@@ -6,7 +6,6 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
   ExportButton,
-  FilterButton,
   FilterSelect,
   MetricGrid,
   PaginationFooter,
@@ -47,10 +46,6 @@ export default function UsersPage() {
     <div className="mx-auto max-w-[1600px] space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader title="Users Management" subtitle="Manage and monitor all platform users." />
-        <Button className="w-full sm:w-auto">
-          <Plus className="h-4 w-4" />
-          Add New User
-        </Button>
       </div>
 
       <MetricGrid metrics={userManagementMetrics} />
@@ -58,11 +53,9 @@ export default function UsersPage() {
       <CardShell>
         <ToolbarCard>
           <SearchBox placeholder="Search users by name, email or phone..." />
-          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Banned"]} />
-          <FilterSelect placeholder="All User Types" values={["All User Types", "Customer", "Service Provider"]} />
-          <FilterSelect placeholder="Joined Date" values={["Joined Date", "Today", "This Week", "This Month"]} />
+          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Suspended"]} />
           <div className="flex gap-3">
-            <FilterButton />
+           
             <ExportButton />
           </div>
         </ToolbarCard>

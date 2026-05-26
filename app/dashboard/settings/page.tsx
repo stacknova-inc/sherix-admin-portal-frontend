@@ -130,58 +130,7 @@ export default function SettingsPage() {
           </FieldBlock>
         </CardShell>
 
-        <aside className="grid gap-4 xl:col-span-2 xl:grid-cols-3 2xl:col-span-1 2xl:block 2xl:space-y-5">
-          <CardShell className="p-4">
-            <h2 className="text-sm font-black">Quick Links</h2>
-            <div className="mt-4 divide-y">
-              {quickLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <button key={link.title} className="flex w-full items-center gap-3 py-3 text-left">
-                    <span
-                      className={cn(
-                        "grid h-9 w-9 place-items-center rounded-lg",
-                        link.tone === "green" && "bg-green-100 text-green-700 dark:bg-green-500/15",
-                        link.tone === "amber" && "bg-amber-100 text-amber-700 dark:bg-amber-500/15",
-                        link.tone === "blue" && "bg-blue-100 text-blue-700 dark:bg-blue-500/15",
-                        link.tone === "purple" && "bg-purple-100 text-purple-700 dark:bg-purple-500/15",
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-black">{link.title}</span>
-                      <span className="block text-xs text-muted-foreground">{link.subtitle}</span>
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </button>
-                );
-              })}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-sm font-black">System Information</h2>
-            <div className="mt-4 divide-y">
-              {systemInformation.map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between gap-3 py-3 text-xs">
-                  <span className="text-muted-foreground">{label}</span>
-                  {value === "Production" ? <SoftTag tone="green">{value}</SoftTag> : <span className="font-black">{value}</span>}
-                </div>
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <div className="flex items-center gap-3">
-              <InitialAvatar initials="AD" className="bg-slate-900 text-white" />
-              <div>
-                <p className="text-sm font-black">Admin</p>
-                <p className="text-xs text-muted-foreground">admin@sherix.com</p>
-              </div>
-            </div>
-          </CardShell>
-        </aside>
+        
       </section>
     </div>
   );

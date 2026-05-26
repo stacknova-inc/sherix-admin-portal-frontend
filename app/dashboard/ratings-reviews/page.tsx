@@ -100,75 +100,23 @@ export default function RatingsReviewsPage() {
       <PageHeader title="Ratings & Reviews" subtitle="Monitor and manage ratings and reviews across the platform." />
       <MetricGrid metrics={ratingsMetrics} columns="xl:grid-cols-6" />
 
-      <div className="sherix-scrollbar flex gap-8 overflow-x-auto border-b">
-        {["All Reviews", "By Service Providers", "By Services", "By Customers", "Pending Reviews"].map((tab, index) => (
-          <button
-            key={tab}
-            className={cn("whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-black", index === 0 ? "border-primary text-primary" : "border-transparent text-muted-foreground")}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className=" font-bold">
+       All Reviews
       </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <section className="grid gap-4">
         <CardShell>
           <ToolbarCard>
             <SearchBox placeholder="Search by review ID, provider, customer or service..." />
             <FilterSelect placeholder="All Ratings" values={["All Ratings", "5 Stars", "4 Stars", "3 Stars", "2 Stars", "1 Star"]} />
-            <FilterSelect placeholder="All Services" values={["All Services", "Battery", "Tire Change", "Diagnostics"]} />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Published", "Pending", "Flagged"]} />
-            <FilterSelect placeholder="All Sources" values={["All Sources", "Mobile App", "Web"]} />
             <ExportButton />
           </ToolbarCard>
           <AdminDataTable data={reviews} columns={reviewColumns} minWidth="1280px" />
           <PaginationFooter label="Showing 1 to 8 of 2,845 reviews" pageCount="285" />
         </CardShell>
 
-        <aside className="space-y-5">
-          <CardShell className="p-4">
-            <SectionHeader title="Rating Distribution" action="View Details" />
-            <div className="space-y-4">
-              {ratingDistribution.map((rating) => (
-                <ProgressRow
-                  key={rating.label}
-                  label={rating.label}
-                  value={rating.value.toLocaleString()}
-                  percent={rating.percent}
-                  width={rating.width}
-                  color={rating.color}
-                />
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <SectionHeader title="Top Rated Providers" />
-            <div className="space-y-4">
-              {topRatedProviders.map((provider) => (
-                <div key={provider.rank} className="grid grid-cols-[22px_36px_1fr_72px] items-center gap-3 text-sm">
-                  <span className="font-black">{provider.rank}</span>
-                  <InitialAvatar initials={provider.initials} className="bg-black text-white" />
-                  <span className="font-bold">{provider.name}</span>
-                  <span className="font-black">
-                    {provider.rating} <span className="text-amber-400">★</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-base font-black">Review Insights</h2>
-            <div className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm font-semibold text-blue-950 dark:bg-blue-500/10 dark:text-blue-100">
-              Most negative feedback is about delays and communication.
-            </div>
-            <Button variant="outline" className="mt-4 w-full bg-card">
-              View Insights
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </CardShell>
-        </aside>
+       
       </section>
     </div>
   );

@@ -7,7 +7,6 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
   ExportButton,
-  FilterButton,
   FilterSelect,
   InitialAvatar,
   MetricGrid,
@@ -97,7 +96,6 @@ export default function AuditLogsPage() {
             <FilterSelect placeholder="All Users" values={["All Users", "Admin", "Support", "System"]} />
             <FilterSelect placeholder="All Roles" values={["All Roles", "Admin", "Support", "Moderator"]} />
             <FilterSelect placeholder="All Resources" values={["All Resources", "User", "Job", "Payout", "System"]} />
-            <FilterButton />
             <ExportButton />
           </ToolbarCard>
           <AdminDataTable data={auditLogs} columns={auditColumns} minWidth="1240px" />
