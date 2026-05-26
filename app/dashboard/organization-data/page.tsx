@@ -1,5 +1,5 @@
-import { AdminDataPage } from "@/components/admin/AdminDataPage";
+import { OrganizationDataDashboard } from "@/components/admin/OrganizationDataDashboard";
 
 export default function OrganizationDataPage() {
-  return <AdminDataPage pageKey="organizationData" />;
+  return <OrganizationDataDashboard />;
 }

@@ -63,7 +63,6 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
     ),
   },
   { accessorKey: "reason", header: "Reason", cell: ({ row }) => <span className="inline-block min-w-[210px] font-semibold">{row.original.reason}</span> },
-  { accessorKey: "amount", header: "Amount", cell: ({ row }) => <span className="font-black">{row.original.amount}</span> },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
   {
     accessorKey: "raisedOn",
@@ -91,8 +90,6 @@ export default function DisputesPage() {
           <ToolbarCard>
             <SearchBox placeholder="Search by dispute ID, job ID, user, provider or reason..." />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} />
-            <FilterSelect placeholder="All Reasons" values={["All Reasons", "Billing", "Service Quality", "Late Arrival"]} />
-            <FilterSelect placeholder="All Parties" values={["All Parties", "Customers", "Providers"]} />
           </ToolbarCard>
           <AdminDataTable data={disputes} columns={disputeColumns}  />
           <PaginationFooter label="Showing 1 to 8 of 128 disputes" pageCount="16" pageSize />

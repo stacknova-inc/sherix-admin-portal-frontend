@@ -264,13 +264,7 @@ const configs: Record<PageKey, PageConfig> = {
       ["REV-2843", "3.0", "Average service", "JOB-12456", "Kwame Asante", "Speedy Mechanics", "Published"],
       ["REV-2842", "1.0", "Not satisfied", "JOB-12452", "Kojo Darko", "DriveCare", "Flagged"],
     ],
-    sideTitle: "Rating Distribution",
-    sideItems: [
-      { label: "5 Stars", value: "1,324 (46.6%)", tone: "bg-green-500" },
-      { label: "4 Stars", value: "845 (29.7%)", tone: "bg-green-400" },
-      { label: "3 Stars", value: "402 (14.1%)", tone: "bg-amber-400" },
-      { label: "1-2 Stars", value: "274 (9.6%)", tone: "bg-red-500" },
-    ],
+  
   },
   disputes: {
     title: "Disputes",
@@ -283,7 +277,7 @@ const configs: Record<PageKey, PageConfig> = {
     ],
     tabs: ["All Disputes", "Open", "Under Review", "Resolved", "Rejected"],
     search: "Search by dispute ID, job ID, user, provider or reason...",
-    filters: ["All Statuses", "All Reasons", "All Parties"],
+    filters: ["All Statuses"],
     columns: ["Dispute ID", "Job ID", "Raised By", "Against", "Reason", "Status"],
     rows: [
       ["DSP-1284", "JOB-12458", "Kofi Mensah", "Bright Auto Care", "Service not completed", "Open"],
@@ -382,7 +376,6 @@ const configs: Record<PageKey, PageConfig> = {
   organizationData: {
     title: "Organization Data",
     subtitle: "Manage organization profile, legal details, offices and operational records.",
-    action: "Update Profile",
     stats: [
       { label: "Registered Entities", value: "4", change: "All verified", icon: Building2, tone: "blue" },
       { label: "Operating Regions", value: "16", change: "2 added this month", icon: Gauge, tone: "green" },
