@@ -101,7 +101,7 @@ export const userManagementMetrics = [
   { label: "Active Users", value: "9,784", change: "7.3% vs last week", direction: "up", tone: "green", icon: UserCheck },
   { label: "New Users (This Week)", value: "256", change: "12.8% vs last week", direction: "up", tone: "blue", icon: UserPlus },
   { label: "Inactive Users", value: "2,674", change: "4.1% vs last week", direction: "down", tone: "amber", icon: Clock3 },
-  { label: "Banned Users", value: "156", change: "1.2% vs last week", direction: "down", tone: "purple", icon: UserRoundX },
+  { label: "Suspended Users", value: "156", change: "1.2% vs last week", direction: "down", tone: "purple", icon: UserRoundX },
 ];
 
 export const usersManagement = [
@@ -266,7 +266,7 @@ export const transactions = [
   { id: "TRX-12545", type: "Commission", relatedTo: "Job #JOB-12454", detail: "Towing Service", from: "QuickFix Services", fromRole: "Provider", to: "Sherix Platform", toRole: "Platform", method: "Wallet Balance", amount: "GHS 16.00", status: "Completed", date: "May 17, 2025", time: "03:20 PM" },
   { id: "TRX-12544", type: "Payment", relatedTo: "Job #JOB-12455", detail: "Oil Change", from: "Ama Serwaa", fromRole: "Customer", to: "Speedy Mechanics", toRole: "Provider", method: "Card Payment", amount: "GHS 150.00", status: "Completed", date: "May 17, 2025", time: "11:10 AM" },
   { id: "TRX-12543", type: "Payout", relatedTo: "Payout to Provider", detail: "", from: "Sherix Platform", fromRole: "Platform", to: "Speedy Mechanics", toRole: "Provider", method: "Bank Transfer", amount: "GHS 150.00", status: "Completed", date: "May 16, 2025", time: "06:25 PM" },
-  { id: "TRX-12542", type: "Dispute Hold", relatedTo: "Job #JOB-12450", detail: "AC Repair", from: "Sherix Platform", fromRole: "Platform", to: "CoolPro Auto", toRole: "Provider", method: "Wallet Balance", amount: "GHS 160.00", status: "On Hold", date: "May 16, 2025", time: "02:30 PM" },
+  { id: "TRX-12542", type: "Dispute Hold", relatedTo: "Job #JOB-12450", detail: "AC Repair", from: "Sherix Platform", fromRole: "Platform", to: "CoolPro Auto", toRole: "Provider", method: "Wallet Balance", amount: "GHS 160.00", status: "Pending", date: "May 16, 2025", time: "02:30 PM" },
   { id: "TRX-12541", type: "Refund", relatedTo: "Job #JOB-12449", detail: "AC Repair", from: "Sherix Platform", fromRole: "Platform", to: "Ofori Kwadwo", toRole: "Customer", method: "Mobile Money", amount: "GHS 60.00", status: "Completed", date: "May 16, 2025", time: "10:05 AM" },
   { id: "TRX-12540", type: "Payment", relatedTo: "Job #JOB-12451", detail: "Battery Replacement", from: "Abena Osei", fromRole: "Customer", to: "Reliable Pros", toRole: "Provider", method: "Mobile Money", amount: "GHS 250.00", status: "Completed", date: "May 16, 2025", time: "09:45 AM" },
   { id: "TRX-12539", type: "Payout", relatedTo: "Payout to Provider", detail: "", from: "Sherix Platform", fromRole: "Platform", to: "Reliable Pros", toRole: "Provider", method: "Bank Transfer", amount: "GHS 250.00", status: "Completed", date: "May 15, 2025", time: "05:30 PM" },
@@ -317,14 +317,14 @@ export const notificationsMetrics = [
 ];
 
 export const notificationRows = [
-  { title: "Job Assigned", description: "You have been assigned a new job...", type: "Job Update", channels: ["Email", "SMS", "Push"], audience: "Service Providers", sentTo: "6,432", status: "Sent", sentOn: "May 18, 2025", time: "10:45 AM", performance: ["Email Open Rate 38.7%", "SMS Delivered 98.2%"], tone: "green" },
-  { title: "Payment Received", description: "You have received a payment of GHS...", type: "Payment", channels: ["Email", "SMS"], audience: "Service Providers", sentTo: "4,231", status: "Sent", sentOn: "May 18, 2025", time: "09:30 AM", performance: ["Email Open Rate 34.2%", "SMS Delivered 97.5%"], tone: "blue" },
-  { title: "Review Reminder", description: "Don't forget to review your recent service...", type: "Reminder", channels: ["Email", "Push"], audience: "Customers", sentTo: "3,987", status: "Sent", sentOn: "May 17, 2025", time: "08:00 PM", performance: ["Email Open Rate 29.4%", "Push Click Rate 12.6%"], tone: "amber" },
-  { title: "New Feature Update", description: "We have launched a new feature...", type: "Announcement", channels: ["Email", "Push"], audience: "All Users", sentTo: "15,642", status: "Sent", sentOn: "May 17, 2025", time: "03:15 PM", performance: ["Email Open Rate 31.6%", "Push Click Rate 10.8%"], tone: "purple" },
-  { title: "Job Cancellation", description: "Job #JOB-12458 has been cancelled.", type: "Alert", channels: ["SMS"], audience: "Service Providers", sentTo: "1,204", status: "Sent", sentOn: "May 17, 2025", time: "11:20 AM", performance: ["SMS Delivered 99.1%"], tone: "red" },
-  { title: "Security Alert", description: "New sign-in detected from a new device.", type: "Security", channels: ["Email", "SMS"], audience: "Customers", sentTo: "2,319", status: "Sent", sentOn: "May 16, 2025", time: "10:05 PM", performance: ["Email Open Rate 41.8%", "SMS Delivered 98.6%"], tone: "green" },
-  { title: "Promotional Offer", description: "Get 20% off on your next service.", type: "Promotion", channels: ["Email", "SMS", "Push"], audience: "Customers", sentTo: "8,765", status: "Scheduled", sentOn: "May 20, 2025", time: "09:00 AM", performance: ["-", "-"], tone: "blue" },
-  { title: "Maintenance Notice", description: "We will be performing scheduled...", type: "System", channels: ["Email", "Push"], audience: "All Users", sentTo: "18,320", status: "Draft", sentOn: "-", time: "-", performance: ["-", "-"], tone: "slate" },
+  { title: "Job Assigned", description: "You have been assigned a new job...", type: "Job Update", channels: ["Email", "SMS", "Push"], audience: "Service Providers", sentTo: "6,432", status: "Sent", sentOn: "May 18, 2025", time: "10:45 AM", tone: "green" },
+  { title: "Payment Received", description: "You have received a payment of GHS...", type: "Payment", channels: ["Email", "SMS"], audience: "Service Providers", sentTo: "4,231", status: "Sent", sentOn: "May 18, 2025", time: "09:30 AM", tone: "blue" },
+  { title: "Review Reminder", description: "Don't forget to review your recent service...", type: "Reminder", channels: ["Email", "Push"], audience: "Customers", sentTo: "3,987", status: "Sent", sentOn: "May 17, 2025", time: "08:00 PM", tone: "amber" },
+  { title: "New Feature Update", description: "We have launched a new feature...", type: "Announcement", channels: ["Email", "Push"], audience: "All Users", sentTo: "15,642", status: "Sent", sentOn: "May 17, 2025", time: "03:15 PM", tone: "purple" },
+  { title: "Job Cancellation", description: "Job #JOB-12458 has been cancelled.", type: "Alert", channels: ["SMS"], audience: "Service Providers", sentTo: "1,204", status: "Sent", sentOn: "May 17, 2025", time: "11:20 AM", tone: "red" },
+  { title: "Security Alert", description: "New sign-in detected from a new device.", type: "Security", channels: ["Email", "SMS"], audience: "Customers", sentTo: "2,319", status: "Sent", sentOn: "May 16, 2025", time: "10:05 PM",  tone: "green" },
+  { title: "Promotional Offer", description: "Get 20% off on your next service.", type: "Promotion", channels: ["Email", "SMS", "Push"], audience: "Customers", sentTo: "8,765", status: "Scheduled", sentOn: "May 20, 2025", time: "09:00 AM",  tone: "blue" },
+  { title: "Maintenance Notice", description: "We will be performing scheduled...", type: "System", channels: ["Email", "Push"], audience: "All Users", sentTo: "18,320", status: "Draft", sentOn: "-", time: "-", tone: "slate" },
 ];
 
 export const notificationSummary = [
@@ -468,8 +468,6 @@ export const auditSeverityBreakdown = [
 
 export const settingsSections = [
   { title: "General", subtitle: "Basic platform settings", icon: Settings },
-  { title: "Organization", subtitle: "Organization profile & details", icon: Briefcase },
-  { title: "Localization", subtitle: "Language, time & region", icon: BarChart3 },
   { title: "Notifications", subtitle: "System notification settings", icon: Bell },
   { title: "Payments", subtitle: "Payouts, fees & preferences", icon: CreditCard },
   { title: "Security", subtitle: "Security & access controls", icon: ShieldCheck },

@@ -94,10 +94,10 @@ export function SearchBox({ placeholder, className }: { placeholder: string; cla
 export function FilterSelect({ placeholder, values, className }: { placeholder: string; values: string[]; className?: string }) {
   return (
     <Select defaultValue={values[0] ?? placeholder}>
-      <SelectTrigger className={cn("h-9 w-full bg-card lg:w-[150px]", className)}>
+      <SelectTrigger className={cn("h-9 w-full bg-card   lg:w-[150px]", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="bg-white">
         {values.map((value) => (
           <SelectItem key={value} value={value}>
             {value}
@@ -108,14 +108,7 @@ export function FilterSelect({ placeholder, values, className }: { placeholder: 
   );
 }
 
-export function FilterButton() {
-  return (
-    <Button variant="outline" className="bg-card">
-      <Filter className="h-4 w-4" />
-      Filters
-    </Button>
-  );
-}
+
 
 export function ExportButton() {
   return (
@@ -148,9 +141,9 @@ export function ActionMenu({ detailHref }: { detailHref?: string }) {
             View details
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem>Approve</DropdownMenuItem>
-        <DropdownMenuItem>Send message</DropdownMenuItem>
-        <DropdownMenuItem className="text-red-600 focus:text-red-600">Restrict access</DropdownMenuItem>
+        <DropdownMenuItem>Edit</DropdownMenuItem>
+        <DropdownMenuItem>Suspend</DropdownMenuItem>
+        <DropdownMenuItem >Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

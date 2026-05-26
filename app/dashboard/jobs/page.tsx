@@ -7,7 +7,6 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
   ExportButton,
-  FilterButton,
   FilterSelect,
   MetricGrid,
   PaginationFooter,
@@ -104,7 +103,6 @@ export default function JobsPage() {
           <FilterSelect placeholder="All Services" values={["All Services", "Battery", "Tire Change", "Diagnostics", "Towing"]} />
           <FilterSelect placeholder="Priority" values={["Priority", "High", "Medium", "Low"]} />
           <div className="flex gap-3">
-            <FilterButton />
             <ExportButton />
           </div>
         </ToolbarCard>

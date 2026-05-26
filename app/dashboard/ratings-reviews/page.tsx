@@ -100,15 +100,8 @@ export default function RatingsReviewsPage() {
       <PageHeader title="Ratings & Reviews" subtitle="Monitor and manage ratings and reviews across the platform." />
       <MetricGrid metrics={ratingsMetrics} columns="xl:grid-cols-6" />
 
-      <div className="sherix-scrollbar flex gap-8 overflow-x-auto border-b">
-        {["All Reviews", "By Service Providers", "By Services", "By Customers", "Pending Reviews"].map((tab, index) => (
-          <button
-            key={tab}
-            className={cn("whitespace-nowrap border-b-2 px-1 pb-3 text-sm font-black", index === 0 ? "border-primary text-primary" : "border-transparent text-muted-foreground")}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className=" font-bold">
+       All Reviews
       </div>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">

@@ -98,7 +98,7 @@ const statusClasses: Record<string, string> = {
   Failed: "bg-red-50 text-red-700",
   Flagged: "bg-red-50 text-red-700",
   Inactive: "bg-orange-50 text-orange-700",
-  "On Hold": "bg-red-50 text-red-700",
+
 };
 
 const people = [
@@ -255,7 +255,6 @@ const configs: Record<PageKey, PageConfig> = {
       { label: "Positive Reviews", value: "2,245", change: "11.3% vs last week", icon: CheckCircle2, tone: "green" },
       { label: "Pending Reviews", value: "313", change: "3.2% vs last week", icon: Eye, tone: "amber" },
     ],
-    tabs: ["All Reviews", "By Service Providers", "By Services", "By Customers", "Pending Reviews"],
     search: "Search by review ID, provider, customer or service...",
     filters: ["All Ratings", "All Services", "All Statuses"],
     columns: ["Review ID", "Rating", "Review", "Related To", "Reviewer", "Provider", "Status"],
@@ -285,12 +284,12 @@ const configs: Record<PageKey, PageConfig> = {
     tabs: ["All Disputes", "Open", "Under Review", "Resolved", "Rejected"],
     search: "Search by dispute ID, job ID, user, provider or reason...",
     filters: ["All Statuses", "All Reasons", "All Parties"],
-    columns: ["Dispute ID", "Job ID", "Raised By", "Against", "Reason", "Amount", "Status"],
+    columns: ["Dispute ID", "Job ID", "Raised By", "Against", "Reason", "Status"],
     rows: [
-      ["DSP-1284", "JOB-12458", "Kofi Mensah", "Bright Auto Care", "Service not completed", "GHS 120.00", "Open"],
-      ["DSP-1283", "JOB-12457", "Ama Serwaa", "QuickFix Services", "Overcharged", "GHS 100.00", "Under Review"],
-      ["DSP-1282", "JOB-12456", "Kwame Asante", "Speedy Mechanics", "Poor service quality", "GHS 150.00", "Under Review"],
-      ["DSP-1281", "JOB-12455", "Efua Anokye", "Reliable Pros", "Service not completed", "GHS 80.00", "Completed"],
+      ["DSP-1284", "JOB-12458", "Kofi Mensah", "Bright Auto Care", "Service not completed", "Open"],
+      ["DSP-1283", "JOB-12457", "Ama Serwaa", "QuickFix Services", "Overcharged", "Under Review"],
+      ["DSP-1282", "JOB-12456", "Kwame Asante", "Speedy Mechanics", "Poor service quality", "Under Review"],
+      ["DSP-1281", "JOB-12455", "Efua Anokye", "Reliable Pros", "Service not completed", "Completed"],
     ],
     sideTitle: "Dispute Details",
     sideItems: [
@@ -390,7 +389,7 @@ const configs: Record<PageKey, PageConfig> = {
       { label: "Documents", value: "38", change: "5 expiring soon", icon: FileText, tone: "amber" },
       { label: "Compliance Score", value: "96%", change: "4% vs last audit", icon: ShieldCheck, tone: "teal" },
     ],
-    tabs: ["Profile", "Legal", "Branches", "Documents", "Compliance"],
+    tabs: ["Services", "Issues", "Ads/Campaigns","Legal"],
     search: "Search organization records, documents or locations...",
     filters: ["All Record Types", "All Regions", "All Statuses"],
     columns: ["Record", "Type", "Owner", "Region", "Last Updated", "Status"],
@@ -400,12 +399,7 @@ const configs: Record<PageKey, PageConfig> = {
       ["Tax Clearance Certificate", "Document", "Finance", "Ghana", "May 15, 2025", "Pending"],
       ["Provider Vetting Policy", "Compliance", "Risk", "All Regions", "May 12, 2025", "Active"],
     ],
-    sideTitle: "Organization Health",
-    sideItems: [
-      { label: "Profile completion", value: "94%", tone: "bg-green-500" },
-      { label: "Documents verified", value: "33 / 38", tone: "bg-blue-500" },
-      { label: "Upcoming renewals", value: "5", tone: "bg-amber-500" },
-    ],
+   
   },
   auditLogs: {
     title: "Audit Logs",
@@ -550,10 +544,7 @@ export function AdminDataPage({ pageKey }: { pageKey: PageKey }) {
                 ))}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </Button>
+               
                 <Button variant="outline">
                   <Download className="h-4 w-4" />
                   Export

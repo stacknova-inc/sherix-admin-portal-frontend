@@ -6,7 +6,6 @@ import { Check, ExternalLink, Info, X } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
-  FilterButton,
   FilterSelect,
   InitialAvatar,
   MetricGrid,
@@ -83,107 +82,23 @@ export default function DisputesPage() {
   const selected = disputes[0];
 
   return (
-    <div className="mx-auto max-w-[1600px] space-y-5">
+    <div className="mx-auto max-w-full space-y-5">
       <PageHeader title="Disputes" subtitle="Review and manage all disputes raised on the platform." />
       <MetricGrid metrics={disputeMetrics} />
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="grid gap-4">
         <CardShell>
           <ToolbarCard>
             <SearchBox placeholder="Search by dispute ID, job ID, user, provider or reason..." />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} />
             <FilterSelect placeholder="All Reasons" values={["All Reasons", "Billing", "Service Quality", "Late Arrival"]} />
             <FilterSelect placeholder="All Parties" values={["All Parties", "Customers", "Providers"]} />
-            <FilterButton />
           </ToolbarCard>
-          <AdminDataTable data={disputes} columns={disputeColumns} minWidth="1180px" />
+          <AdminDataTable data={disputes} columns={disputeColumns}  />
           <PaginationFooter label="Showing 1 to 8 of 128 disputes" pageCount="16" pageSize />
         </CardShell>
 
-        <aside className="space-y-5">
-          <CardShell className="p-4">
-            <div className="mb-4 flex items-start justify-between">
-              <h2 className="text-base font-black">Dispute Details</h2>
-              <Button variant="ghost" size="icon" aria-label="Close details">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="mb-4 flex items-start gap-4">
-              <StatusBadge status={selected.status} />
-              <div className="text-sm">
-                <p>
-                  Dispute ID: <span className="font-black">{selected.id}</span>
-                </p>
-                <p className="text-muted-foreground">Raised on {selected.raisedOn} at {selected.time}</p>
-              </div>
-            </div>
-            <div className="flex gap-4 border-b">
-              {["Overview", "Messages (3)", "History"].map((tab, index) => (
-                <button key={tab} className={index === 0 ? "border-b-2 border-primary pb-3 text-sm font-black text-primary" : "pb-3 text-sm font-black text-muted-foreground"}>
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 space-y-4 text-sm">
-              {[
-                ["Job ID", `${selected.jobId} (${selected.jobName})`],
-                ["Raised By", `${selected.raisedBy} (Customer)`],
-                ["Against", `${selected.against} (Provider)`],
-                ["Reason", selected.reason],
-                ["Amount in Dispute", selected.amount],
-                ["Status", selected.status],
-                ["Description", "Provider arrived but the car was not started. I was charged without the service being completed."],
-              ].map(([label, value]) => (
-                <div key={label} className="grid grid-cols-[120px_1fr] gap-3">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="font-bold">{label === "Status" ? <StatusBadge status={value} /> : value}</span>
-                </div>
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-base font-black">Job Information</h2>
-            <div className="mt-4 space-y-4 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Service Date</span>
-                <span className="font-bold">May 18, 2025 at 10:30 AM</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Total Paid</span>
-                <span className="font-bold">{selected.amount}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Payment Method</span>
-                <span className="font-bold">Mobile Money</span>
-              </div>
-            </div>
-            <Button asChild variant="outline" className="mt-4 w-full bg-card">
-              <Link href={`/dashboard/jobs/${selected.jobId}`}>
-                View Job Details
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-base font-black">Actions</h2>
-            <div className="mt-4 grid gap-3">
-              <Button variant="outline" className="border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-500/10">
-                <Check className="h-4 w-4" />
-                Resolve Dispute
-              </Button>
-              <Button variant="outline" className="bg-card">
-                <Info className="h-4 w-4" />
-                Request More Info
-              </Button>
-              <Button variant="outline" className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-500/10">
-                <X className="h-4 w-4" />
-                Reject Dispute
-              </Button>
-            </div>
-          </CardShell>
-        </aside>
+        
       </section>
     </div>
   );
