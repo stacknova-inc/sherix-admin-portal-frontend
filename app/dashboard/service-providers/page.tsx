@@ -6,7 +6,6 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
   ExportButton,
-  FilterButton,
   FilterSelect,
   MetricGrid,
   PaginationFooter,
@@ -69,10 +68,6 @@ export default function ServiceProvidersPage() {
     <div className="mx-auto max-w-[1600px] space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <PageHeader title="Service Providers" subtitle="Manage and verify all service providers." />
-        <Button className="w-full sm:w-auto">
-          <Plus className="h-4 w-4" />
-          Add New Provider
-        </Button>
       </div>
 
       <MetricGrid metrics={serviceProviderMetrics} />
@@ -84,7 +79,6 @@ export default function ServiceProvidersPage() {
           <FilterSelect placeholder="All Services" values={["All Services", "Battery", "Diagnostics", "Tire Change", "Towing"]} />
           <FilterSelect placeholder="Location" values={["Location", "Accra", "Tema", "Kasoa", "Madina"]} />
           <div className="flex gap-3">
-            <FilterButton />
             <ExportButton />
           </div>
         </ToolbarCard>

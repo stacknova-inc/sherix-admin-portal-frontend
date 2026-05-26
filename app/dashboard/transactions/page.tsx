@@ -6,7 +6,6 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
   ExportButton,
-  FilterButton,
   FilterSelect,
   MetricGrid,
   PaginationFooter,
@@ -26,7 +25,7 @@ const typeTone: Record<string, string> = {
   Payout: "blue",
   Refund: "amber",
   Commission: "purple",
-  "Dispute Hold": "red",
+
 };
 
 function MethodCell({ method }: { method: string }) {
@@ -101,10 +100,9 @@ export default function TransactionsPage() {
         <ToolbarCard>
           <SearchBox placeholder="Search by transaction ID, user, provider or job ID..." />
           <FilterSelect placeholder="All Types" values={["All Types", "Payment", "Payout", "Refund", "Commission"]} />
-          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending", "On Hold"]} />
+          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} />
           <FilterSelect placeholder="All Payment Methods" values={["All Payment Methods", "Mobile Money", "Bank Transfer", "Card Payment"]} className="lg:w-[210px]" />
           <div className="flex gap-3">
-            <FilterButton />
             <ExportButton />
           </div>
         </ToolbarCard>
