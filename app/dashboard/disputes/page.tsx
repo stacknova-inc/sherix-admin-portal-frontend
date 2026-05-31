@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Check, ExternalLink, Info, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, FileClock, XCircle } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
@@ -16,11 +16,45 @@ import {
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { disputeMetrics, disputes } from "@/lib/mock-data";
+import { useDisputeStats, useDisputes } from "@/hooks/useDisputes";
+import { activeStatus, asRecord, dateText, firstText, initials, metricValue, money, recordId, text, timeText } from "@/lib/live-data";
+import type { Dispute } from "@/types";
 
-type DisputeRow = (typeof disputes)[number];
+type DisputeRow = {
+  id: string;
+  jobId: string;
+  jobName: string;
+  raisedBy: string;
+  raisedInitials: string;
+  against: string;
+  againstInitials: string;
+  reason: string;
+  amount: string;
+  status: string;
+  raisedOn: string;
+  time: string;
+};
+
+function mapDispute(dispute: Dispute): DisputeRow {
+  const record = dispute as unknown as Record<string, unknown>;
+  const raisedBy = text(record.raisedBy, "Unknown user");
+  const against = text(record.against, "Unknown provider");
+  const booking = asRecord(record.booking);
+  return {
+    id: recordId(dispute),
+    jobId: firstText(record, ["jobId"], firstText(booking, ["id", "_id", "requestId"], "-")),
+    jobName: text(booking.service, "-"),
+    raisedBy,
+    raisedInitials: initials(raisedBy),
+    against,
+    againstInitials: initials(against),
+    reason: firstText(record, ["reason", "description"]),
+    amount: money(record.amount),
+    status: activeStatus(record, "Open"),
+    raisedOn: dateText(dispute.createdAt),
+    time: timeText(dispute.createdAt),
+  };
+}
 
 const disputeColumns: ColumnDef<DisputeRow>[] = [
   { accessorKey: "id", header: "Dispute ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
@@ -78,12 +112,22 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
 ];
 
 export default function DisputesPage() {
-  const selected = disputes[0];
+  const disputesQuery = useDisputes();
+  const statsQuery = useDisputeStats();
+  const rows = (disputesQuery.data ?? []).map(mapDispute);
+  const stats = asRecord(statsQuery.data);
+  const metrics = [
+    { label: "Total Disputes", value: metricValue(stats, ["totalDisputes", "total"], String(rows.length)), change: "Live backend data", direction: "down", tone: "purple", icon: AlertTriangle },
+    { label: "Open", value: metricValue(stats, ["open", "openDisputes"]), change: "Live backend data", direction: "down", tone: "amber", icon: Clock3 },
+    { label: "Under Review", value: metricValue(stats, ["underReview", "inReview"]), change: "Live backend data", direction: "up", tone: "blue", icon: FileClock },
+    { label: "Resolved", value: metricValue(stats, ["resolved", "resolvedDisputes"]), change: "Live backend data", direction: "up", tone: "green", icon: CheckCircle2 },
+    { label: "Rejected", value: metricValue(stats, ["rejected", "rejectedDisputes"]), change: "Live backend data", direction: "down", tone: "red", icon: XCircle },
+  ];
 
   return (
     <div className="mx-auto max-w-full space-y-5">
       <PageHeader title="Disputes" subtitle="Review and manage all disputes raised on the platform." />
-      <MetricGrid metrics={disputeMetrics} />
+      <MetricGrid metrics={metrics} />
 
       <section className="grid gap-4">
         <CardShell>
@@ -91,8 +135,14 @@ export default function DisputesPage() {
             <SearchBox placeholder="Search by dispute ID, job ID, user, provider or reason..." />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} />
           </ToolbarCard>
-          <AdminDataTable data={disputes} columns={disputeColumns}  />
-          <PaginationFooter label="Showing 1 to 8 of 128 disputes" pageCount="16" pageSize />
+          {disputesQuery.isLoading ? (
+            <div className="p-6 text-sm font-semibold text-muted-foreground">Loading disputes...</div>
+          ) : disputesQuery.isError ? (
+            <div className="p-6 text-sm font-semibold text-red-600">Unable to load disputes.</div>
+          ) : (
+            <AdminDataTable data={rows} columns={disputeColumns} />
+          )}
+          <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} disputes`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} pageSize />
         </CardShell>
 
         

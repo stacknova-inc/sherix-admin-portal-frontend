@@ -5,15 +5,21 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { CardShell } from "@/components/shared/CardShell";
 import { jobStatus } from "@/lib/mock-data";
 
-export function JobStatusDonut() {
+export function JobStatusDonut({
+  data = jobStatus,
+  total = "3,892",
+}: {
+  data?: Array<{ name: string; value: number; percent: string; color: string }>;
+  total?: string;
+}) {
   return (
     <CardShell className="p-4 sm:p-5">
       <h2 className="text-base font-black tracking-normal">Job Status Distribution</h2>
       <div className="relative mx-auto mt-4 h-48 max-w-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={jobStatus} dataKey="value" innerRadius={58} outerRadius={82} paddingAngle={3}>
-              {jobStatus.map((entry) => (
+            <Pie data={data} dataKey="value" innerRadius={58} outerRadius={82} paddingAngle={3}>
+              {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.color} />
               ))}
             </Pie>
@@ -21,13 +27,13 @@ export function JobStatusDonut() {
         </ResponsiveContainer>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <p className="text-xl font-black">3,892</p>
+            <p className="text-xl font-black">{total}</p>
             <p className="text-xs font-semibold text-muted-foreground">Total Jobs</p>
           </div>
         </div>
       </div>
       <div className="space-y-3">
-        {jobStatus.map((item) => (
+        {data.map((item) => (
           <div key={item.name} className="flex items-center justify-between gap-3 text-xs">
             <span className="flex items-center gap-2 font-semibold"><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />{item.name}</span>
             <span className="text-muted-foreground">{item.value.toLocaleString()} ({item.percent})</span>

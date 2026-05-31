@@ -5,7 +5,7 @@ import { CardShell } from "@/components/shared/CardShell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { jobsOverview } from "@/lib/mock-data";
 
-export function JobsOverviewChart() {
+export function JobsOverviewChart({ data = jobsOverview }: { data?: Array<Record<string, string | number>> }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -25,7 +25,7 @@ export function JobsOverviewChart() {
       </div>
       <div className="h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={jobsOverview} margin={{ left: -18, right: 16, top: 8, bottom: 0 }}>
+          <LineChart data={data} margin={{ left: -18, right: 16, top: 8, bottom: 0 }}>
             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "currentColor", fontSize: 12 }} />
             <YAxis axisLine={false} tickLine={false} tick={{ fill: "currentColor", fontSize: 12 }} />
             <Tooltip contentStyle={{ borderRadius: 14, borderColor: "hsl(var(--border))", background: "hsl(var(--card))", color: "hsl(var(--card-foreground))" }} />

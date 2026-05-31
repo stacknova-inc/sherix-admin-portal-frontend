@@ -2,22 +2,31 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useUiStore } from "@/store/use-ui-store";
+import { getErrorMessage } from "@/lib/api";
 
 export default function SignInPage() {
   const router = useRouter();
-  const signIn = useUiStore((state) => state.signIn);
-  const [email, setEmail] = useState("admin@sherix.com");
-  const [password, setPassword] = useState("password");
+  const login = useUiStore((state) => state.login);
+  const isAuthenticating = useUiStore((state) => state.isAuthenticating);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    signIn(email);
-    router.push("/dashboard");
+    setError("");
+
+    try {
+      await login(email, password);
+      router.replace("/dashboard");
+    } catch (loginError) {
+      setError(getErrorMessage(loginError, "Unable to sign in"));
+    }
   }
 
   return (
@@ -75,6 +84,11 @@ export default function SignInPage() {
                 <Input className="mt-2" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
               </label>
             </div>
+            {error && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+                {error}
+              </div>
+            )}
             <div className="mt-4 flex items-center justify-between gap-3 text-xs">
               <label className="flex items-center gap-2 text-muted-foreground">
                 <input type="checkbox" className="h-4 w-4 rounded border-border accent-[#E30613]" defaultChecked />
@@ -84,7 +98,10 @@ export default function SignInPage() {
                 Forgot password?
               </a>
             </div>
-            <Button className="mt-5 w-full" type="submit">Sign In</Button>
+            <Button className="mt-5 w-full" type="submit" disabled={isAuthenticating}>
+              {isAuthenticating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Sign In
+            </Button>
           </form>
         </div>
       </section>

@@ -48,57 +48,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { getErrorMessage } from "@/lib/api";
+import { activeStatus, dateText, money, recordId, text } from "@/lib/live-data";
 import { cn } from "@/lib/utils";
+import { useAddIssue, useIssues } from "@/hooks/useIssues";
+import { useAddService, useServices } from "@/hooks/useServices";
+import type { Issue, Service } from "@/types";
 
 type ModalType = "service" | "issue" | "campaign" | null;
-
-const services = [
-  {
-    title: "Roadside Assistance",
-    description: "On-demand emergency support for towing, jump starts, lockouts, and urgent roadside requests.",
-    created: "May 18, 2026",
-    status: "Active",
-  },
-  {
-    title: "Vehicle Diagnostics",
-    description: "Structured diagnostic service for fault detection, inspection notes, and provider recommendations.",
-    created: "May 14, 2026",
-    status: "Active",
-  },
-  {
-    title: "Fleet Maintenance",
-    description: "Recurring maintenance plans for business accounts with audit-ready service documentation.",
-    created: "Apr 29, 2026",
-    status: "Draft",
-  },
-];
-
-const issues = [
-  {
-    title: "Emergency Towing Request",
-    description: "Escalated towing case submitted by an enterprise fleet customer.",
-    min: "GHS 180",
-    max: "GHS 450",
-    created: "May 20, 2026",
-    status: "Open",
-  },
-  {
-    title: "Battery Replacement Review",
-    description: "Price review for replacement battery requests in high-demand regions.",
-    min: "GHS 250",
-    max: "GHS 680",
-    created: "May 17, 2026",
-    status: "In Review",
-  },
-  {
-    title: "Provider Compliance Exception",
-    description: "Temporary service exception requiring operations and compliance approval.",
-    min: "GHS 90",
-    max: "GHS 220",
-    created: "May 11, 2026",
-    status: "Open",
-  },
-];
 
 const campaigns = [
   {
@@ -143,6 +101,22 @@ const statusStyles: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   return <Badge className={cn("ring-1", statusStyles[status] ?? statusStyles.Draft)}>{status}</Badge>;
+}
+
+function TableLoading({ columns }: { columns: number }) {
+  return (
+    <tbody className="divide-y">
+      {Array.from({ length: 4 }, (_, row) => (
+        <tr key={row} className="bg-card">
+          {Array.from({ length: columns }, (_, column) => (
+            <td key={column} className="px-5 py-4">
+              <div className="h-4 w-full max-w-40 animate-pulse rounded bg-muted" />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  );
 }
 
 function ActionMenu({ onAction }: { onAction: (message: string) => void }) {
@@ -247,7 +221,19 @@ function ModalShell({
   );
 }
 
-function ServicesTab({ onAdd, onAction }: { onAdd: () => void; onAction: (message: string) => void }) {
+function ServicesTab({
+  services,
+  isLoading,
+  isError,
+  onAdd,
+  onAction,
+}: {
+  services: Service[];
+  isLoading: boolean;
+  isError: boolean;
+  onAdd: () => void;
+  onAction: (message: string) => void;
+}) {
   return (
     <div className="space-y-4">
       <Toolbar placeholder="Search services by title, owner, status..." primaryLabel="Add Services" onPrimary={onAdd} />
@@ -263,37 +249,61 @@ function ServicesTab({ onAdd, onAction }: { onAdd: () => void; onAction: (messag
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y">
-              {services.map((service) => (
-                <tr key={service.title} className="group bg-card transition-colors hover:bg-muted/35">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                        <BadgeCheck className="h-5 w-5" />
-                      </span>
-                      <span className="font-black">{service.title}</span>
-                    </div>
-                  </td>
-                  <td className="max-w-md px-5 py-4 text-muted-foreground">{service.description}</td>
-                  <td className="px-5 py-4 font-semibold">{service.created}</td>
-                  <td className="px-5 py-4">
-                    <StatusBadge status={service.status} />
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <ActionMenu onAction={onAction} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            {isLoading ? (
+              <TableLoading columns={5} />
+            ) : (
+              <tbody className="divide-y">
+                {services.map((service) => {
+                  const serviceRecord = service as unknown as Record<string, unknown>;
+                  return (
+                    <tr key={recordId(service)} className="group bg-card transition-colors hover:bg-muted/35">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                            <BadgeCheck className="h-5 w-5" />
+                          </span>
+                          <span className="font-black">{service.name ?? service.title ?? "Untitled service"}</span>
+                        </div>
+                      </td>
+                      <td className="max-w-md px-5 py-4 text-muted-foreground">{service.description ?? "-"}</td>
+                      <td className="px-5 py-4 font-semibold">{dateText(service.createdAt)}</td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={activeStatus(serviceRecord)} />
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <ActionMenu onAction={onAction} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            )}
           </table>
         </div>
-        <Pagination label="Showing 1-3 of 24 services" />
+        {!isLoading && services.length === 0 && (
+          <div className="p-4">
+            <EmptyState title={isError ? "Unable to load services" : "No services available yet"} description={isError ? "Check the API connection and try again." : "New services will appear here after they are added."} />
+          </div>
+        )}
+        <Pagination label={`Showing ${services.length ? `1-${services.length}` : "0"} of ${services.length} services`} />
       </Card>
     </div>
   );
 }
 
-function IssuesTab({ onAdd, onAction }: { onAdd: () => void; onAction: (message: string) => void }) {
+function IssuesTab({
+  issues,
+  isLoading,
+  isError,
+  onAdd,
+  onAction,
+}: {
+  issues: Issue[];
+  isLoading: boolean;
+  isError: boolean;
+  onAdd: () => void;
+  onAction: (message: string) => void;
+}) {
   return (
     <div className="space-y-4">
       <Toolbar placeholder="Search issues, requests, price bands..." primaryLabel="Add Issue" onPrimary={onAdd} />
@@ -310,26 +320,38 @@ function IssuesTab({ onAdd, onAction }: { onAdd: () => void; onAction: (message:
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {issues.map((issue) => (
-                  <tr key={issue.title} className="bg-card transition-colors hover:bg-muted/35">
-                    <td className="px-5 py-4 font-black">{issue.title}</td>
-                    <td className="max-w-sm px-5 py-4 text-muted-foreground">{issue.description}</td>
-                    <td className="px-5 py-4 font-bold">{issue.min}</td>
-                    <td className="px-5 py-4 font-bold">{issue.max}</td>
-                    <td className="px-5 py-4">{issue.created}</td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={issue.status} />
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <ActionMenu  onAction={onAction} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+              {isLoading ? (
+                <TableLoading columns={7} />
+              ) : (
+                <tbody className="divide-y">
+                  {issues.map((issue) => {
+                    const issueRecord = issue as unknown as Record<string, unknown>;
+                    return (
+                      <tr key={recordId(issue)} className="bg-card transition-colors hover:bg-muted/35">
+                        <td className="px-5 py-4 font-black">{issue.issueTitle ?? issue.title ?? "Untitled issue"}</td>
+                        <td className="max-w-sm px-5 py-4 text-muted-foreground">{issue.issueDescription ?? issue.description ?? "-"}</td>
+                        <td className="px-5 py-4 font-bold">{money(issue.issueMinPrice)}</td>
+                        <td className="px-5 py-4 font-bold">{money(issue.issueMaxPrice)}</td>
+                        <td className="px-5 py-4">{dateText(issue.createdAt)}</td>
+                        <td className="px-5 py-4">
+                          <StatusBadge status={activeStatus(issueRecord, "Open")} />
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <ActionMenu onAction={onAction} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+             )}
             </table>
           </div>
-          <Pagination label="Showing 1-3 of 17 issues" />
+          {!isLoading && issues.length === 0 && (
+            <div className="p-4">
+              <EmptyState title={isError ? "Unable to load issues" : "No issues added yet"} description={isError ? "Check the API connection and try again." : "Issue pricing rows will appear here after they are added."} />
+            </div>
+          )}
+          <Pagination label={`Showing ${issues.length ? `1-${issues.length}` : "0"} of ${issues.length} issues`} />
         </Card>
         <div className="space-y-4">
           <div className="rounded-xl border bg-card p-4 shadow-sm">
@@ -554,11 +576,26 @@ function FormField({
   );
 }
 
-function ServiceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function ServiceModal({ open, onClose, onSaved, onError }: { open: boolean; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [icon, setIcon] = React.useState("");
+  const addService = useAddService();
   const titleError = title.length > 0 && title.length < 4 ? "Use at least 4 characters." : undefined;
   const descriptionError = description.length > 180 ? "Description must be 180 characters or fewer." : undefined;
+
+  async function submit() {
+    try {
+      await addService.mutateAsync({ name: title, description, icon });
+      setTitle("");
+      setDescription("");
+      setIcon("");
+      onSaved();
+      onClose();
+    } catch (error) {
+      onError(getErrorMessage(error, "Unable to add service"));
+    }
+  }
 
   return (
     <ModalShell title="Add Services" subtitle="Create a managed service that admins can track and publish." open={open} onClose={onClose}>
@@ -574,30 +611,75 @@ function ServiceModal({ open, onClose }: { open: boolean; onClose: () => void })
             placeholder="Describe what this service includes..."
           />
         </FormField>
+        <FormField label="Icon" hint="Icon name or URL from the backend-supported icon set.">
+          <Input value={icon} onChange={(event) => setIcon(event.target.value)} placeholder="wrench" />
+        </FormField>
       </div>
       <div className="flex flex-col-reverse gap-2 border-t bg-card p-5 sm:flex-row sm:justify-end">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button disabled={!title || !description || Boolean(titleError || descriptionError)}>Save Service</Button>
+        <Button onClick={submit} disabled={!title || !description || Boolean(titleError || descriptionError) || addService.isPending}>
+          {addService.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Save Service
+        </Button>
       </div>
     </ModalShell>
   );
 }
 
-function IssueModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function IssueModal({ open, onClose, services, onSaved, onError }: { open: boolean; onClose: () => void; services: Service[]; onSaved: () => void; onError: (message: string) => void }) {
+  const [service, setService] = React.useState("");
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
   const [min, setMin] = React.useState("100");
   const [max, setMax] = React.useState("500");
+  const addIssue = useAddIssue();
   const minValue = Number(min);
   const maxValue = Number(max);
   const priceError = minValue > 0 && maxValue > 0 && minValue >= maxValue ? "Maximum price must be greater than minimum price." : undefined;
 
+  async function submit() {
+    try {
+      await addIssue.mutateAsync({
+        service,
+        issueTitle: title,
+        issueDescription: description,
+        issueMinPrice: minValue,
+        issueMaxPrice: maxValue,
+      });
+      setService("");
+      setTitle("");
+      setDescription("");
+      setMin("100");
+      setMax("500");
+      onSaved();
+      onClose();
+    } catch (error) {
+      onError(getErrorMessage(error, "Unable to add issue"));
+    }
+  }
+
   return (
     <ModalShell title="Add Issue" subtitle="Define the issue, expected price range, and review details." open={open} onClose={onClose}>
       <div className="grid gap-4 p-5">
+        <FormField label="Service" hint="Select the backend service this issue belongs to.">
+          <Select value={service} onValueChange={setService}>
+            <SelectTrigger>
+              <SelectValue placeholder={services.length ? "Select service" : "No services available"} />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              {services.map((item) => (
+                <SelectItem key={recordId(item)} value={recordId(item)}>
+                  {text(item.name ?? item.title, "Untitled service")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
         <FormField label="Issue Title" hint="Keep it short and operationally clear.">
-          <Input placeholder="Emergency towing price exception" />
+          <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Emergency towing price exception" />
         </FormField>
         <FormField label="Issue Description" hint="Add enough context for reviewers.">
-          <textarea className="min-h-24 rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring" placeholder="Describe the request or issue..." />
+          <textarea value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-24 rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring" placeholder="Describe the request or issue..." />
         </FormField>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Minimum Price" error={priceError}>
@@ -616,7 +698,10 @@ function IssueModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       </div>
       <div className="flex flex-col-reverse gap-2 border-t bg-card p-5 sm:flex-row sm:justify-end">
         <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button disabled={Boolean(priceError) || !min || !max}>Save Issue</Button>
+        <Button onClick={submit} disabled={Boolean(priceError) || !service || !title || !min || !max || addIssue.isPending}>
+          {addIssue.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Save Issue
+        </Button>
       </div>
     </ModalShell>
   );
@@ -706,7 +791,11 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 export function OrganizationDataDashboard() {
   const [modal, setModal] = React.useState<ModalType>(null);
   const [toast, setToast] = React.useState("");
+  const servicesQuery = useServices();
+  const issuesQuery = useIssues();
   const showToast = React.useCallback((message: string) => setToast(message), []);
+  const services = servicesQuery.data ?? [];
+  const issues = issuesQuery.data ?? [];
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
@@ -739,10 +828,10 @@ export function OrganizationDataDashboard() {
           </TabsList>
         </div>
         <TabsContent value="services">
-          <ServicesTab onAdd={() => setModal("service")} onAction={showToast} />
+          <ServicesTab services={services} isLoading={servicesQuery.isLoading} isError={servicesQuery.isError} onAdd={() => setModal("service")} onAction={showToast} />
         </TabsContent>
         <TabsContent value="issues">
-          <IssuesTab onAdd={() => setModal("issue")} onAction={showToast} />
+          <IssuesTab issues={issues} isLoading={issuesQuery.isLoading} isError={issuesQuery.isError} onAdd={() => setModal("issue")} onAction={showToast} />
         </TabsContent>
         <TabsContent value="campaigns">
           <CampaignsTab onAdd={() => setModal("campaign")} onAction={showToast} />
@@ -752,8 +841,8 @@ export function OrganizationDataDashboard() {
         </TabsContent>
       </Tabs>
 
-      <ServiceModal open={modal === "service"} onClose={() => setModal(null)} />
-      <IssueModal open={modal === "issue"} onClose={() => setModal(null)} />
+      <ServiceModal open={modal === "service"} onClose={() => setModal(null)} onSaved={() => showToast("Service added successfully.")} onError={showToast} />
+      <IssueModal open={modal === "issue"} onClose={() => setModal(null)} services={services} onSaved={() => showToast("Issue added successfully.")} onError={showToast} />
       <CampaignModal open={modal === "campaign"} onClose={() => setModal(null)} />
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>
