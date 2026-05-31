@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { useUiStore } from "@/store/use-ui-store";
 
 export function UserMenu() {
+  const router = useRouter();
   const user = useUiStore((state) => state.user);
   const signOut = useUiStore((state) => state.signOut);
+
+  function logout() {
+    signOut();
+    router.replace("/sign-in");
+  }
 
   return (
     <DropdownMenu>
@@ -30,7 +37,7 @@ export function UserMenu() {
           <User className="h-4 w-4" />
           Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={signOut} className="text-primary">
+        <DropdownMenuItem onClick={logout} className="text-primary">
           <LogOut className="h-4 w-4" />
           Logout
         </DropdownMenuItem>

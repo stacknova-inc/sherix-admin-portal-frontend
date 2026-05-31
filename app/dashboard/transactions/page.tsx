@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowRight, Banknote, CreditCard, KeyRound, Wallet } from "lucide-react";
+import { ArrowRight, Banknote, Briefcase, CreditCard, DollarSign, KeyRound, Wallet, WalletCards } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
@@ -16,9 +16,25 @@ import {
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { transactions, transactionsMetrics } from "@/lib/mock-data";
+import { useTransactions } from "@/hooks/useFinancial";
+import { activeStatus, asRecord, dateText, firstText, money, recordId, text, timeText } from "@/lib/live-data";
+import type { Transaction } from "@/types";
 
-type TransactionRow = (typeof transactions)[number];
+type TransactionRow = {
+  id: string;
+  type: string;
+  relatedTo: string;
+  detail?: string;
+  from: string;
+  fromRole: string;
+  to: string;
+  toRole: string;
+  method: string;
+  amount: string;
+  status: string;
+  date: string;
+  time: string;
+};
 
 const typeTone: Record<string, string> = {
   Payment: "green",
@@ -91,10 +107,39 @@ const transactionColumns: ColumnDef<TransactionRow>[] = [
 ];
 
 export default function TransactionsPage() {
+  const transactionsQuery = useTransactions();
+  const rows: TransactionRow[] = (transactionsQuery.data ?? []).map((transaction: Transaction) => {
+    const record = transaction as unknown as Record<string, unknown>;
+    const from = asRecord(record.from);
+    const to = asRecord(record.to);
+    return {
+      id: recordId(transaction),
+      type: firstText(record, ["type"], "Payment"),
+      relatedTo: firstText(record, ["relatedTo", "bookingId", "jobId"], "-"),
+      detail: firstText(record, ["detail", "description"], ""),
+      from: text(record.from),
+      fromRole: firstText(from, ["role", "type"], "Sender"),
+      to: text(record.to),
+      toRole: firstText(to, ["role", "type"], "Recipient"),
+      method: firstText(record, ["method", "paymentMethod"], "Mobile Money"),
+      amount: money(record.amount),
+      status: activeStatus(record, "Pending"),
+      date: dateText(transaction.createdAt),
+      time: timeText(transaction.createdAt),
+    };
+  });
+  const total = rows.reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0);
+  const metrics = [
+    { label: "Total Transactions", value: money(total), change: "Live backend data", direction: "up", tone: "purple", icon: DollarSign },
+    { label: "Total Amount In", value: money(total), change: "Live backend data", direction: "up", tone: "green", icon: Wallet },
+    { label: "Total Amount Out", value: money(0), change: "Live backend data", direction: "down", tone: "amber", icon: WalletCards },
+    { label: "Refunds Issued", value: money(rows.filter((row) => row.type.toLowerCase().includes("refund")).reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0)), change: "Live backend data", direction: "down", tone: "blue", icon: Briefcase },
+  ];
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Transactions" subtitle="View and manage all platform transactions." />
-      <MetricGrid metrics={transactionsMetrics} />
+      <MetricGrid metrics={metrics} />
 
       <CardShell>
         <ToolbarCard>
@@ -106,8 +151,14 @@ export default function TransactionsPage() {
             <ExportButton />
           </div>
         </ToolbarCard>
-        <AdminDataTable data={transactions} columns={transactionColumns} minWidth="1320px" />
-        <PaginationFooter label="Showing 1 to 10 of 1,256 transactions" pageCount="126" />
+        {transactionsQuery.isLoading ? (
+          <div className="p-6 text-sm font-semibold text-muted-foreground">Loading transactions...</div>
+        ) : transactionsQuery.isError ? (
+          <div className="p-6 text-sm font-semibold text-red-600">Unable to load transactions.</div>
+        ) : (
+          <AdminDataTable data={rows} columns={transactionColumns} minWidth="1320px" />
+        )}
+        <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} transactions`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} />
       </CardShell>
     </div>
   );

@@ -8,7 +8,7 @@ function initials(name: string) {
   return name.split(" ").map((part) => part[0]).join("").slice(0, 2);
 }
 
-export function RecentRequests() {
+export function RecentRequests({ requests = recentRequests }: { requests?: Array<{ id: string; name: string; location: string; status: string; time: string }> }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -16,7 +16,7 @@ export function RecentRequests() {
         <Link href="/dashboard/jobs" className="text-xs font-bold text-primary hover:underline">View all</Link>
       </div>
       <div className="space-y-3">
-        {recentRequests.map((request) => (
+        {requests.map((request) => (
           <div key={request.id} className="flex items-start gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-red-50 text-primary dark:bg-red-500/15">{initials(request.name)}</AvatarFallback>
@@ -33,6 +33,7 @@ export function RecentRequests() {
             </div>
           </div>
         ))}
+        {!requests.length && <p className="py-8 text-center text-sm font-semibold text-muted-foreground">No recent requests yet.</p>}
       </div>
     </CardShell>
   );
