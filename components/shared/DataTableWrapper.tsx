@@ -3,7 +3,11 @@
 import { flexRender, type Table as TanStackTable } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+
+
+
 export function DataTableWrapper<TData>({ table, minWidth = "980px" }: { table: TanStackTable<TData>; minWidth?: string }) {
+  let index = 0;
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <Table style={{ minWidth }}>
@@ -21,7 +25,7 @@ export function DataTableWrapper<TData>({ table, minWidth = "980px" }: { table: 
         <TableBody>
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow key={index++}>
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                 ))}
