@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
-import { MetricGrid, PaginationFooter, PersonCell, SoftTag, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
+import { MetricGrid, PersonCell, SoftTag, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -590,9 +590,8 @@ export function StaffManagementPage() {
         ) : staffQuery.isError ? (
           <div className="p-6 text-sm font-semibold text-red-600">Unable to load staff members.</div>
         ) : (
-          <AdminDataTable data={filteredRows} columns={columns} minWidth="1320px" />
+          <AdminDataTable data={filteredRows} columns={columns} minWidth="1320px" rowLabel="staff members" />
         )}
-        <PaginationFooter label={`Showing ${filteredRows.length ? `1 to ${filteredRows.length}` : "0"} of ${filteredRows.length} staff members`} pageCount={String(Math.max(1, Math.ceil(filteredRows.length / 10)))} />
       </CardShell>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">

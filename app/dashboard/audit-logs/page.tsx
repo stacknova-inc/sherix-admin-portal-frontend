@@ -1,167 +1,240 @@
 "use client";
 
+import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ExternalLink } from "lucide-react";
-import { DonutChart } from "@/components/shared/AdminCharts";
+import { Activity, AlertTriangle, CheckCircle2, Clock3, FileText, ShieldAlert, UserRoundCog } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   ExportButton,
   FilterSelect,
   InitialAvatar,
   MetricGrid,
-  PaginationFooter,
-  ProgressRow,
   SearchBox,
-  SectionHeader,
   SoftTag,
   StatusCell,
   ToolbarCard,
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
-import { auditActionBreakdown, auditLogs, auditMetrics, auditSeverityBreakdown } from "@/lib/mock-data";
+import { Input } from "@/components/ui/input";
+import { useAuditLogs, useAuditStats } from "@/hooks/useAudit";
+import { asRecord, dateText, firstText, initials, metricChange, metricDirection, metricValue, text, timeText } from "@/lib/live-data";
+import type { AuditLog } from "@/services/audit";
 
-type AuditRow = (typeof auditLogs)[number];
-
-const roleTone: Record<string, string> = {
-  Admin: "purple",
-  Support: "blue",
-  Moderator: "amber",
-  System: "slate",
+type AuditRow = {
+  id: string;
+  actorName: string;
+  actorEmail: string;
+  role: string;
+  action: string;
+  module: string;
+  description: string;
+  ipAddress: string;
+  status: string;
+  timestamp: string;
+  date: string;
+  time: string;
+  initials: string;
 };
 
-const resourceTone: Record<string, string> = {
-  "Service Provider": "purple",
-  Payout: "green",
-  Job: "blue",
-  User: "blue",
-  Service: "blue",
-  Dispute: "red",
-  Notification: "amber",
-  System: "purple",
+const actionTone: Record<string, string> = {
+  login: "green",
+  create: "blue",
+  update: "amber",
+  edit: "amber",
+  approve: "green",
+  reject: "red",
+  delete: "red",
+  suspend: "red",
+  activate: "green",
 };
+
+function toneForAction(action: string) {
+  const normalized = action.toLowerCase();
+  return Object.entries(actionTone).find(([key]) => normalized.includes(key))?.[1] ?? "slate";
+}
+
+function normalizeStatus(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized.includes("fail") || normalized.includes("error")) return "Failed";
+  if (normalized.includes("warn")) return "Warning";
+  if (normalized.includes("success") || normalized.includes("complete")) return "Success";
+  return status || "Unknown";
+}
+
+function mapAuditLog(log: AuditLog): AuditRow {
+  const record = log as Record<string, unknown>;
+  const actor = asRecord(record.user ?? record.admin ?? record.actor ?? record.performedBy ?? record.createdBy);
+  const actorName = text(
+    record.user ?? record.admin ?? record.actor ?? record.performedBy ?? record.createdBy,
+    firstText(record, ["userName", "adminName", "actorName", "performedByName", "name"], "System"),
+  );
+  const timestamp = String(record.timestamp ?? record.createdAt ?? record.time ?? record.date ?? "");
+  const action = firstText(record, ["action", "actionType", "event", "activity"], "Activity");
+  const module = firstText(record, ["module", "resource", "resourceType", "entity", "collection"], "System");
+  const description = firstText(record, ["description", "message", "note", "details", "activityDescription"], `${action} in ${module}`);
+
+  return {
+    id: String(record.id ?? record._id ?? ""),
+    actorName,
+    actorEmail: firstText(actor, ["email"], firstText(record, ["email", "actorEmail", "adminEmail"], "-")),
+    role: firstText(actor, ["role"], firstText(record, ["role", "actorRole", "adminRole"], "Admin")),
+    action,
+    module,
+    description,
+    ipAddress: firstText(record, ["ipAddress", "ip", "clientIp"], "-"),
+    status: normalizeStatus(firstText(record, ["status", "result"], "Success")),
+    timestamp,
+    date: dateText(timestamp),
+    time: timeText(timestamp),
+    initials: initials(actorName),
+  };
+}
 
 const auditColumns: ColumnDef<AuditRow>[] = [
+  { accessorKey: "id", header: "#", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
   {
-    accessorKey: "time",
-    header: "Time",
-    cell: ({ row }) => {
-      const [date, time] = row.original.time.split("\n");
-      return (
-        <div className="min-w-[120px]">
-          <p className="font-semibold">{date}</p>
-          <p className="text-xs text-muted-foreground">{time}</p>
-        </div>
-      );
-    },
+    accessorKey: "action",
+    header: "Action",
+    cell: ({ row }) => <SoftTag tone={toneForAction(row.original.action)}>{row.original.action}</SoftTag>,
   },
   {
-    accessorKey: "user",
-    header: "User",
+    accessorKey: "actorName",
+    header: "User / Admin",
     cell: ({ row }) => (
-      <div className="flex min-w-[170px] items-center gap-3">
+      <div className="flex min-w-[210px] items-center gap-3">
         <InitialAvatar initials={row.original.initials} />
-        <div>
-          <p className="font-black">{row.original.user}</p>
-          <p className="text-xs text-muted-foreground">{row.original.email}</p>
+        <div className="min-w-0">
+          <p className="truncate font-black">{row.original.actorName}</p>
+          <p className="truncate text-xs text-muted-foreground">{row.original.actorEmail}</p>
         </div>
       </div>
     ),
   },
-  { accessorKey: "role", header: "Role", cell: ({ row }) => <SoftTag tone={roleTone[row.original.role]}>{row.original.role}</SoftTag> },
-  { accessorKey: "action", header: "Action", cell: ({ row }) => <span className="inline-block min-w-[170px] font-bold">{row.original.action}</span> },
-  { accessorKey: "resource", header: "Resource", cell: ({ row }) => <SoftTag tone={resourceTone[row.original.resource]}>{row.original.resource}</SoftTag> },
-  { accessorKey: "resourceId", header: "Resource ID", cell: ({ row }) => <span className="font-semibold">{row.original.resourceId}</span> },
-  { accessorKey: "ip", header: "IP Address" },
+  { accessorKey: "role", header: "Role", cell: ({ row }) => <span className="font-bold">{row.original.role}</span> },
+  { accessorKey: "module", header: "Module", cell: ({ row }) => <SoftTag tone="blue">{row.original.module}</SoftTag> },
+  {
+    accessorKey: "description",
+    header: "Activity Description",
+    cell: ({ row }) => <span className="inline-block min-w-[260px] max-w-[420px] whitespace-normal text-sm font-semibold leading-5">{row.original.description}</span>,
+  },
+  {
+    accessorKey: "date",
+    header: "Date & Time",
+    cell: ({ row }) => (
+      <div className="min-w-[130px]">
+        <p className="font-semibold">{row.original.date}</p>
+        <p className="text-xs text-muted-foreground">{row.original.time || "-"}</p>
+      </div>
+    ),
+  },
+  { accessorKey: "ipAddress", header: "IP Address" },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
-  { id: "details", header: "Details", cell: () => <ActionMenu /> },
 ];
 
 export default function AuditLogsPage() {
-  const selected = auditLogs[0];
-  const [selectedDate, selectedTime] = selected.time.split("\n");
+  const logsQuery = useAuditLogs();
+  const statsQuery = useAuditStats();
+  const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState("All Statuses");
+  const [module, setModule] = React.useState("All Modules");
+  const [fromDate, setFromDate] = React.useState("");
+  const [toDate, setToDate] = React.useState("");
+  const rows = React.useMemo(() => (logsQuery.data ?? []).map(mapAuditLog), [logsQuery.data]);
+  const modules = React.useMemo(() => ["All Modules", ...Array.from(new Set(rows.map((row) => row.module).filter(Boolean))).sort()], [rows]);
+  const filteredRows = React.useMemo(() => {
+    const search = query.trim().toLowerCase();
+    const from = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
+    const to = toDate ? new Date(`${toDate}T23:59:59`) : null;
+
+    return rows.filter((row) => {
+      const haystack = [row.actorName, row.actorEmail, row.role, row.action, row.module, row.description, row.ipAddress, row.status].join(" ").toLowerCase();
+      const created = row.timestamp ? new Date(row.timestamp) : null;
+      const matchesSearch = !search || haystack.includes(search);
+      const matchesStatus = status === "All Statuses" || row.status === status;
+      const matchesModule = module === "All Modules" || row.module === module;
+      const matchesFrom = !from || (created && created >= from);
+      const matchesTo = !to || (created && created <= to);
+      return matchesSearch && matchesStatus && matchesModule && matchesFrom && matchesTo;
+    });
+  }, [fromDate, module, query, rows, status, toDate]);
+  const stats = asRecord(statsQuery.data);
+  const derivedMetrics = React.useMemo(
+    () => ({
+      total: rows.length,
+      failed: rows.filter((row) => row.status === "Failed").length,
+      warning: rows.filter((row) => row.status === "Warning").length,
+      success: rows.filter((row) => row.status === "Success").length,
+      uniqueActors: new Set(rows.map((row) => row.actorEmail || row.actorName)).size,
+    }),
+    [rows],
+  );
+  const metrics = [
+    { label: "Total Events", value: metricValue(stats, ["totalEvents", "total", "events"], String(derivedMetrics.total)), change: metricChange(stats, ["totalEvents", "total", "events"], "Current audit stream"), direction: metricDirection(stats, ["totalEvents", "total", "events"]), tone: "purple", icon: FileText },
+    { label: "Unique Admins", value: metricValue(stats, ["uniqueUsers", "uniqueAdmins", "users"], String(derivedMetrics.uniqueActors)), change: metricChange(stats, ["uniqueUsers", "uniqueAdmins", "users"], "Distinct actors"), direction: metricDirection(stats, ["uniqueUsers", "uniqueAdmins", "users"]), tone: "blue", icon: UserRoundCog },
+    { label: "Successful", value: metricValue(stats, ["successfulEvents", "success"], String(derivedMetrics.success)), change: metricChange(stats, ["successfulEvents", "success"], "Completed actions"), direction: metricDirection(stats, ["successfulEvents", "success"]), tone: "green", icon: CheckCircle2 },
+    { label: "Warnings", value: metricValue(stats, ["warningEvents", "warnings"], String(derivedMetrics.warning)), change: metricChange(stats, ["warningEvents", "warnings"], "Review recommended"), direction: metricDirection(stats, ["warningEvents", "warnings"], "down"), tone: "amber", icon: AlertTriangle },
+    { label: "Failed", value: metricValue(stats, ["failedAttempts", "failed", "failures"], String(derivedMetrics.failed)), change: metricChange(stats, ["failedAttempts", "failed", "failures"], "Needs attention"), direction: metricDirection(stats, ["failedAttempts", "failed", "failures"], "down"), tone: "red", icon: ShieldAlert },
+  ];
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Audit Logs" subtitle="Track and review all important activities performed across the platform." />
-      <MetricGrid metrics={auditMetrics} columns="xl:grid-cols-4" />
+      <PageHeader title="Audit Logs" subtitle="Review security, staff, user, payment, and operational activity across the platform." />
+      <MetricGrid metrics={metrics} />
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <CardShell>
           <ToolbarCard>
-            <SearchBox placeholder="Search by keyword (e.g. user, action, resource, IP)" />
-            <FilterSelect placeholder="All Actions" values={["All Actions", "Updated", "Approved", "Deleted", "Login"]} />
-            <FilterSelect placeholder="All Users" values={["All Users", "Admin", "Support", "System"]} />
-            <FilterSelect placeholder="All Roles" values={["All Roles", "Admin", "Support", "Moderator"]} />
-            <FilterSelect placeholder="All Resources" values={["All Resources", "User", "Job", "Payout", "System"]} />
+            <SearchBox placeholder="Search actor, role, action, module, IP or description..." value={query} onChange={setQuery} />
+            <FilterSelect placeholder="All Statuses" values={["All Statuses", "Success", "Failed", "Warning"]} value={status} onChange={setStatus} className="lg:w-[160px]" />
+            <FilterSelect placeholder="All Modules" values={modules} value={module} onChange={setModule} className="lg:w-[180px]" />
+            <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-9 bg-card lg:w-[150px]" aria-label="From date" />
+            <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-9 bg-card lg:w-[150px]" aria-label="To date" />
             <ExportButton />
           </ToolbarCard>
-          <AdminDataTable data={auditLogs} columns={auditColumns} minWidth="1240px" />
-          <PaginationFooter label="Showing 1 to 10 of 5,842 events" pageCount="585" pageSize />
+          {logsQuery.isLoading ? (
+            <div className="flex items-center gap-2 p-6 text-sm font-semibold text-muted-foreground">
+              <Clock3 className="h-4 w-4 animate-spin" />
+              Loading audit logs...
+            </div>
+          ) : logsQuery.isError ? (
+            <div className="p-6 text-sm font-semibold text-red-600">Unable to load audit logs. Check the console for the API error details.</div>
+          ) : (
+            <AdminDataTable data={filteredRows} columns={auditColumns} minWidth="1360px" rowLabel="audit events" />
+          )}
         </CardShell>
 
-        <aside className="space-y-5">
+        <aside className="space-y-4">
           <CardShell className="p-4">
-            <SectionHeader title="Events by Action" />
-            <div className="grid gap-3 sm:grid-cols-[170px_1fr] xl:grid-cols-1">
-              <DonutChart data={auditActionBreakdown} total="5,842" label="Total" height={180} />
-              <div className="space-y-3">
-                {auditActionBreakdown.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="flex items-center gap-2 font-semibold">
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                      {item.name}
-                    </span>
-                    <span className="font-bold">
-                      {item.value.toLocaleString()} ({item.percent})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <SectionHeader title="Events by Severity" />
-            <div className="space-y-4">
-              {auditSeverityBreakdown.map((event) => (
-                <ProgressRow
-                  key={event.label}
-                  label={event.label}
-                  value={event.value.toLocaleString()}
-                  percent={event.percent}
-                  width={event.width}
-                  color={event.color}
-                />
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-base font-black">Log Details</h2>
-            <div className="mt-4 space-y-4 text-sm">
+            <h2 className="text-sm font-black">Activity Mix</h2>
+            <div className="mt-4 space-y-3 text-sm">
               {[
-                ["Time", `${selectedDate} ${selectedTime}`],
-                ["User", `${selected.user} (${selected.email})`],
-                ["Role", selected.role],
-                ["Action", selected.action],
-                ["Resource", `${selected.resource} (${selected.resourceId})`],
-                ["IP Address", selected.ip],
-                ["User Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"],
-                ["Status", selected.status],
-              ].map(([label, value]) => (
-                <div key={label} className="grid grid-cols-[94px_1fr] gap-3">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className="font-bold">{label === "Status" ? <StatusCell status={value} /> : value}</span>
+                ["Success", derivedMetrics.success, "bg-green-600"],
+                ["Warning", derivedMetrics.warning, "bg-amber-500"],
+                ["Failed", derivedMetrics.failed, "bg-red-600"],
+              ].map(([label, value, color]) => (
+                <div key={label} className="grid grid-cols-[82px_1fr_42px] items-center gap-3">
+                  <span className="font-semibold text-muted-foreground">{label}</span>
+                  <span className="h-2 overflow-hidden rounded-full bg-muted">
+                    <span className={`${color} block h-full rounded-full`} style={{ width: `${derivedMetrics.total ? (Number(value) / derivedMetrics.total) * 100 : 0}%` }} />
+                  </span>
+                  <span className="text-right font-black">{value}</span>
                 </div>
               ))}
             </div>
-            <Button variant="outline" className="mt-4 w-full bg-card">
-              View Full Details
-              <ExternalLink className="h-4 w-4" />
-            </Button>
+          </CardShell>
+
+          <CardShell className="p-4">
+            <h2 className="text-sm font-black">Review Focus</h2>
+            <div className="mt-3 space-y-3 text-sm">
+              <p className="flex items-start gap-2 rounded-xl border bg-background p-3 font-semibold">
+                <Activity className="mt-0.5 h-4 w-4 text-primary" />
+                Showing {filteredRows.length} matching events from {rows.length} loaded audit records.
+              </p>
+              <p className="rounded-xl border bg-background p-3 text-xs font-semibold leading-5 text-muted-foreground">
+                Filter by status, module, date range, actor, IP address, or activity description to isolate operational or security events.
+              </p>
+            </div>
           </CardShell>
         </aside>
       </section>

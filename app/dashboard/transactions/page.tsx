@@ -1,6 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 import { ArrowRight, Banknote, Briefcase, CreditCard, DollarSign, KeyRound, Wallet, WalletCards } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
@@ -107,15 +108,18 @@ const transactionColumns: ColumnDef<TransactionRow>[] = [
 ];
 
 export default function TransactionsPage() {
+  const [query, setQuery] = React.useState("");
+  const [type, setType] = React.useState("All Types");
+  const [status, setStatus] = React.useState("All Statuses");
   const transactionsQuery = useTransactions();
-  const rows: TransactionRow[] = (transactionsQuery.data ?? []).map((transaction: Transaction) => {
+  const rows: TransactionRow[] = React.useMemo(() => (transactionsQuery.data ?? []).map((transaction: Transaction) => {
     const record = transaction as unknown as Record<string, unknown>;
     const from = asRecord(record.from);
     const to = asRecord(record.to);
     return {
       id: recordId(transaction),
       type: firstText(record, ["type"], "Payment"),
-      relatedTo: firstText(record, ["relatedTo", "bookingId", "jobId"], "-"),
+      relatedTo: text(record.booking ?? record.job ?? record.service, firstText(record, ["relatedName", "bookingName", "jobName"], "Related record")),
       detail: firstText(record, ["detail", "description"], ""),
       from: text(record.from),
       fromRole: firstText(from, ["role", "type"], "Sender"),
@@ -127,7 +131,16 @@ export default function TransactionsPage() {
       date: dateText(transaction.createdAt),
       time: timeText(transaction.createdAt),
     };
-  });
+  }), [transactionsQuery.data]);
+  const filteredRows = React.useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesSearch = !search || [row.type, row.relatedTo, row.detail, row.from, row.to, row.method, row.status].join(" ").toLowerCase().includes(search);
+      const matchesType = type === "All Types" || row.type.toLowerCase().includes(type.toLowerCase());
+      const matchesStatus = status === "All Statuses" || row.status.toLowerCase().includes(status.toLowerCase());
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [query, rows, status, type]);
   const total = rows.reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0);
   const metrics = [
     { label: "Total Transactions", value: money(total), change: "Live backend data", direction: "up", tone: "purple", icon: DollarSign },
@@ -143,9 +156,9 @@ export default function TransactionsPage() {
 
       <CardShell>
         <ToolbarCard>
-          <SearchBox placeholder="Search by transaction ID, user, provider or job ID..." />
-          <FilterSelect placeholder="All Types" values={["All Types", "Payment", "Payout", "Refund", "Commission"]} />
-          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} />
+          <SearchBox placeholder="Search by transaction, user, provider or job..." value={query} onChange={setQuery} />
+          <FilterSelect placeholder="All Types" values={["All Types", "Payment", "Payout", "Refund", "Commission"]} value={type} onChange={setType} />
+          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} value={status} onChange={setStatus} />
           <FilterSelect placeholder="All Payment Methods" values={["All Payment Methods", "Mobile Money", "Bank Transfer", "Card Payment"]} className="lg:w-[210px]" />
           <div className="flex gap-3">
             <ExportButton />
@@ -156,9 +169,8 @@ export default function TransactionsPage() {
         ) : transactionsQuery.isError ? (
           <div className="p-6 text-sm font-semibold text-red-600">Unable to load transactions.</div>
         ) : (
-          <AdminDataTable data={rows} columns={transactionColumns} minWidth="1320px" />
+          <AdminDataTable data={filteredRows} columns={transactionColumns} minWidth="1320px" rowLabel="transactions" />
         )}
-        <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} transactions`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} />
       </CardShell>
     </div>
   );
