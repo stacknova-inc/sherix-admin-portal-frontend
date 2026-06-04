@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
+import * as React from "react";
 import { AlertTriangle, CheckCircle2, Clock3, FileClock, XCircle } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
@@ -112,9 +113,19 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
 ];
 
 export default function DisputesPage() {
+  const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState("All Statuses");
   const disputesQuery = useDisputes();
   const statsQuery = useDisputeStats();
-  const rows = (disputesQuery.data ?? []).map(mapDispute);
+  const rows = React.useMemo(() => (disputesQuery.data ?? []).map(mapDispute), [disputesQuery.data]);
+  const filteredRows = React.useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesSearch = !search || [row.jobName, row.raisedBy, row.against, row.reason, row.status].join(" ").toLowerCase().includes(search);
+      const matchesStatus = status === "All Statuses" || row.status.toLowerCase().includes(status.toLowerCase());
+      return matchesSearch && matchesStatus;
+    });
+  }, [query, rows, status]);
   const stats = asRecord(statsQuery.data);
   const metrics = [
     { label: "Total Disputes", value: metricValue(stats, ["totalDisputes", "total"], String(rows.length)), change: "Live backend data", direction: "down", tone: "purple", icon: AlertTriangle },
@@ -132,17 +143,16 @@ export default function DisputesPage() {
       <section className="grid gap-4">
         <CardShell>
           <ToolbarCard>
-            <SearchBox placeholder="Search by dispute ID, job ID, user, provider or reason..." />
-            <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} />
+            <SearchBox placeholder="Search by job, user, provider or reason..." value={query} onChange={setQuery} />
+            <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} value={status} onChange={setStatus} />
           </ToolbarCard>
           {disputesQuery.isLoading ? (
             <div className="p-6 text-sm font-semibold text-muted-foreground">Loading disputes...</div>
           ) : disputesQuery.isError ? (
             <div className="p-6 text-sm font-semibold text-red-600">Unable to load disputes.</div>
           ) : (
-            <AdminDataTable data={rows} columns={disputeColumns} />
+            <AdminDataTable data={filteredRows} columns={disputeColumns} rowLabel="disputes" />
           )}
-          <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} disputes`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} pageSize />
         </CardShell>
 
         

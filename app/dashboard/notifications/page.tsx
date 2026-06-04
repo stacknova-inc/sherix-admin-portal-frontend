@@ -89,8 +89,7 @@ export default function NotificationsPage() {
               Create Notification
             </Button>
           </ToolbarCard>
-          <AdminDataTable data={notificationRows} columns={notificationColumns} minWidth="1220px" />
-          <PaginationFooter label="Showing 1 to 8 of 42 notifications" pageCount="6" pageSize />
+          <AdminDataTable data={notificationRows} columns={notificationColumns} minWidth="1220px" rowLabel="notifications" />
         </CardShell>
 
         

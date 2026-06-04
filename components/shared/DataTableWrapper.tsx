@@ -3,7 +3,24 @@
 import { flexRender, type Table as TanStackTable } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-export function DataTableWrapper<TData>({ table, minWidth = "980px" }: { table: TanStackTable<TData>; minWidth?: string }) {
+function shouldMaskCell(columnId: string, header: unknown) {
+  if (columnId === "displayId") return false;
+  if (columnId === "index") return true;
+  if (["id", "jobId", "requestId", "resourceId", "providerId", "userId", "disputeId", "reviewId", "transactionId", "payoutId"].includes(columnId)) {
+    return true;
+  }
+  return typeof header === "string" && /\b(id|ids)\b/i.test(header);
+}
+
+export function DataTableWrapper<TData>({
+  table,
+  minWidth = "980px",
+  displayIndexOffset = 0,
+}: {
+  table: TanStackTable<TData>;
+  minWidth?: string;
+  displayIndexOffset?: number;
+}) {
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
       <Table style={{ minWidth }}>
@@ -22,9 +39,16 @@ export function DataTableWrapper<TData>({ table, minWidth = "980px" }: { table: 
           {table.getRowModel().rows.length ? (
             table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const displayIndex = displayIndexOffset + row.index + 1;
+                  const content = shouldMaskCell(cell.column.id, cell.column.columnDef.header) ? (
+                    <span className="font-black tabular-nums">{displayIndex}</span>
+                  ) : (
+                    flexRender(cell.column.columnDef.cell, cell.getContext())
+                  );
+
+                  return <TableCell key={cell.id}>{content}</TableCell>;
+                })}
               </TableRow>
             ))
           ) : (

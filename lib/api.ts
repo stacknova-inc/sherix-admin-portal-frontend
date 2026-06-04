@@ -44,6 +44,25 @@ export const api = axios.create({
   },
 });
 
+function logApiError(error: unknown) {
+  if (typeof window === "undefined") return;
+
+  if (error instanceof AxiosError) {
+    console.error("[Sherix API Error]", {
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      response: error.response?.data,
+      message: error.message,
+    });
+    return;
+  }
+
+  console.error("[Sherix API Error]", error);
+}
+
 api.interceptors.request.use((config) => {
   const baseURL = getApiBaseUrl();
   if (!baseURL) {
@@ -63,6 +82,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    logApiError(error);
+    return Promise.reject(error);
+  },
+);
+
 export function unwrapData<T>(response: unknown): T {
   const value = response as { data?: unknown; result?: unknown; items?: unknown; docs?: unknown };
   if (Array.isArray(value)) return value as T;
@@ -78,7 +105,7 @@ export function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
 
   const record = data as Record<string, unknown>;
-  for (const key of ["services", "issues", "companies", "users", "bookings", "transactions", "disputes", "data"]) {
+  for (const key of ["services", "issues", "companies", "serviceProviders", "providers", "users", "bookings", "transactions", "disputes", "auditLogs", "logs", "events", "data"]) {
     if (Array.isArray(record?.[key])) return record[key] as T[];
   }
 

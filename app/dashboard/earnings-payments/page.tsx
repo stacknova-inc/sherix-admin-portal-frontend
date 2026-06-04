@@ -124,8 +124,7 @@ export default function EarningsPaymentsPage() {
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]">
         <CardShell className="p-4">
           <SectionHeader title="Recent Payouts" />
-          {earningsQuery.isLoading ? <div className="p-6 text-sm font-semibold text-muted-foreground">Loading payouts...</div> : <AdminDataTable data={payoutRows} columns={payoutColumns} minWidth="780px" />}
-          <p className="mt-4 text-sm text-muted-foreground">Showing {payoutRows.length ? `1 to ${payoutRows.length}` : "0"} of {payoutRows.length} payouts</p>
+          {earningsQuery.isLoading ? <div className="p-6 text-sm font-semibold text-muted-foreground">Loading payouts...</div> : <AdminDataTable data={payoutRows} columns={payoutColumns} minWidth="780px" rowLabel="payouts" />}
         </CardShell>
 
         <CardShell className="p-4">

@@ -14,6 +14,7 @@ import {
   Star,
   Tags,
   UserCog,
+  UserRoundCog,
   Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -36,6 +37,7 @@ export const dashboardRoutes: NavRoute[] = [
   { title: "Organization Data", href: "/dashboard/organization-data", icon: ListChecks },
   { title: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { title: "Reports & Analytics", href: "/dashboard/reports-analytics", icon: BarChart3 },
+  { title: "Staff Management", href: "/dashboard/staff-management", icon: UserRoundCog },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
   { title: "Audit Logs", href: "/dashboard/audit-logs", icon: FileClock },
 ];

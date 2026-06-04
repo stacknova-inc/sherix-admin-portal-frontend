@@ -52,8 +52,7 @@ const reviewColumns: ColumnDef<ReviewRow>[] = [
     header: "Related To",
     cell: ({ row }) => (
       <div className="min-w-[150px]">
-        <p className="font-bold">{row.original.job}</p>
-        <p className="text-xs text-muted-foreground">{row.original.service}</p>
+        <p className="font-bold">{row.original.service}</p>
       </div>
     ),
   },
@@ -76,7 +75,6 @@ const reviewColumns: ColumnDef<ReviewRow>[] = [
     cell: ({ row }) => (
       <div className="min-w-[150px]">
         <p className="font-bold">{row.original.provider}</p>
-        <p className="text-xs text-muted-foreground">{row.original.providerId}</p>
       </div>
     ),
   },
@@ -112,8 +110,7 @@ export default function RatingsReviewsPage() {
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Published", "Pending", "Flagged"]} />
             <ExportButton />
           </ToolbarCard>
-          <AdminDataTable data={reviews} columns={reviewColumns} minWidth="1280px" />
-          <PaginationFooter label="Showing 1 to 8 of 2,845 reviews" pageCount="285" />
+          <AdminDataTable data={reviews} columns={reviewColumns} minWidth="1280px" rowLabel="reviews" />
         </CardShell>
 
        
