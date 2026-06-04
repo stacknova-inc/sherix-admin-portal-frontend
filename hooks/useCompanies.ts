@@ -12,6 +12,13 @@ export function useCompanies() {
   });
 }
 
+export function useCompanyStats() {
+  return useQuery({
+    queryKey: ["companies", "stats"],
+    queryFn: companiesApi.stats,
+  });
+}
+
 export function useCompanyAction() {
   const queryClient = useQueryClient();
   return useMutation({

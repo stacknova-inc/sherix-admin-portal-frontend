@@ -5,16 +5,18 @@ export type UserAction = "suspend" | "activate";
 
 export const usersApi = {
   async list() {
-    const response = await api.get("/users");
-    return unwrapArray<User>(response.data);
+    try {
+      const response = await api.get("/users/admin/users");
+      return unwrapArray<User>(response.data);
+    } catch (error) {
+      console.warn("[Sherix Users] /users/admin/users failed, retrying /users.", error);
+      const response = await api.get("/users");
+      return unwrapArray<User>(response.data);
+    }
   },
   async get(id: string) {
     const response = await api.get(`/users/${id}`);
     return unwrapData<User>(response.data);
-  },
-  async stats() {
-    const response = await api.get("/users/stats");
-    return unwrapData<Record<string, unknown>>(response.data);
   },
   async action(id: string, action: UserAction, payload?: { reason?: string }) {
     const response = await api.patch(`/users/${id}/${action}`, payload);

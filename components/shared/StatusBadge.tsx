@@ -26,9 +26,11 @@ const statusClasses: Record<string, string> = {
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
+  const displayStatus = status.toLowerCase() === "banned" ? "Suspended" : status;
+
   return (
-    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold", statusClasses[status] ?? statusClasses.Pending, className)}>
-      {status}
+    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold", statusClasses[displayStatus] ?? statusClasses.Pending, className)}>
+      {displayStatus}
     </span>
   );
 }

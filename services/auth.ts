@@ -35,13 +35,15 @@ function pickToken(payload: Record<string, unknown>) {
     payload.accessToken ??
     payload.access_token ??
     payload.jwt ??
+    payload.access ??
     asRecord(payload.auth).token ??
-    asRecord(payload.session).token
+    asRecord(payload.session).token ??
+    asRecord(payload.tokens).accessToken
   );
 }
 
 function pickUser(payload: Record<string, unknown>) {
-  return asRecord(payload.userData ?? payload.user ?? payload.admin ?? payload.data);
+  return asRecord(payload.userData ?? payload.user ?? payload.admin ?? payload.adminData ?? payload.currentAdmin ?? payload.profile ?? payload.data);
 }
 
 function initials(name: string) {
@@ -88,7 +90,14 @@ export const authApi = {
     const rawUser = pickUser(payload);
     const role = String(rawUser.role ?? payload.role ?? "");
     const email = String(rawUser.email ?? input.email);
-    const name = String(rawUser.name ?? rawUser.fullName ?? email.split("@")[0] ?? "Admin");
+    const fullName = String(
+      rawUser.fullName ??
+      rawUser.name ??
+      [rawUser.firstName, rawUser.lastName].filter(Boolean).join(" ") ??
+      email.split("@")[0] ??
+      "Admin",
+    );
+    const name = fullName || email.split("@")[0] || "Admin";
 
     if (typeof token !== "string" || !token) {
       throw new Error("Login succeeded but no access token was returned.");
@@ -105,6 +114,7 @@ export const authApi = {
         ...rawUser,
         email,
         name,
+        fullName,
         role,
         initials: String(rawUser.initials ?? initials(name)),
       } as AuthUser,

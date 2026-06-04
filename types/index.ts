@@ -123,3 +123,66 @@ export interface Transaction extends ApiTimestamped {
   amount?: number;
   status?: string;
 }
+
+export type StaffStatus = "Active" | "Suspended" | "Inactive" | "Pending Invitation";
+
+export interface StaffRoleDefinition {
+  department: string;
+  role: string;
+  label: string;
+}
+
+export interface StaffMember extends ApiTimestamped {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  department: string;
+  role: string;
+  status: StaffStatus;
+  lastLogin?: string;
+  lastActivityAt?: string;
+  deletedAt?: string;
+}
+
+export interface CreateStaffInput {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  department: string;
+  role: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface UpdateStaffInput {
+  fullName: string;
+  phoneNumber: string;
+  department: string;
+  role: string;
+}
+
+export type StaffAuditAction =
+  | "Staff creation"
+  | "Staff updates"
+  | "Role changes"
+  | "Status changes"
+  | "Password resets"
+  | "Deletions";
+
+export interface StaffAuditLog {
+  id: string;
+  staffId: string;
+  actionType: StaffAuditAction;
+  performedBy: string;
+  timestamp: string;
+  note: string;
+}
+
+export interface StaffNotification {
+  id: string;
+  staffId: string;
+  type: "Account created" | "Password reset" | "Role changed" | "Account suspended" | "Account activated";
+  sentTo: string;
+  timestamp: string;
+  message: string;
+}

@@ -3,14 +3,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Eye, Loader2, MoreVertical, UserCheck, UserRoundX } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   ExportButton,
   FilterSelect,
   MetricGrid,
-  PaginationFooter,
   PersonCell,
   SearchBox,
   SoftTag,
@@ -20,11 +18,12 @@ import {
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, dateText, firstText, initials, metricValue, recordId } from "@/lib/live-data";
-import { useUserAction, useUsers, useUserStats } from "@/hooks/useUsers";
+import { activeStatus, firstText, initials, recordId } from "@/lib/live-data";
+import { useUserAction, useUsers } from "@/hooks/useUsers";
 import type { User } from "@/types";
-import { Clock3, UserCheck, UserPlus, UserRoundX, Users } from "lucide-react";
+import { Clock3, UserPlus, Users } from "lucide-react";
 
 type UserRow = {
   id: string;
@@ -32,7 +31,6 @@ type UserRow = {
   email: string;
   phone: string;
   type: string;
-  joinedDate: string;
   status: string;
   initials: string;
   avatarTone: string;
@@ -47,7 +45,6 @@ function mapUser(user: User): UserRow {
     email: firstText(record, ["email"]),
     phone: firstText(record, ["phone", "phoneNumber"]),
     type: firstText(record, ["type", "userType", "role"], "Customer"),
-    joinedDate: dateText(user.createdAt),
     status: activeStatus(record),
     initials: initials(name),
     avatarTone: "bg-slate-900 text-white",
@@ -66,9 +63,8 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 function UserActions({ user, onToast }: { user: UserRow; onToast: (message: string) => void }) {
   const action = useUserAction();
   const isSuspended = user.status.toLowerCase().includes("suspend") || user.status.toLowerCase().includes("inactive");
-  const nextAction = isSuspended ? "activate" : "suspend";
 
-  async function runAction() {
+  async function runAction(nextAction: "activate" | "suspend") {
     try {
       const reason = nextAction === "suspend" ? window.prompt("Reason for suspension") ?? undefined : undefined;
       await action.mutateAsync({ id: user.id, action: nextAction, reason });
@@ -79,15 +75,29 @@ function UserActions({ user, onToast }: { user: UserRow; onToast: (message: stri
   }
 
   return (
-    <div className="flex justify-end gap-2">
-      <Button asChild variant="ghost" size="sm">
-        <Link href={`/dashboard/users/${user.id}`}>View</Link>
-      </Button>
-      <Button variant="outline" size="sm" onClick={runAction} disabled={action.isPending}>
-        {action.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        {isSuspended ? "Activate" : "Suspend"}
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={`Actions for ${user.name}`} disabled={action.isPending}>
+          {action.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-white">
+        <DropdownMenuItem asChild>
+          <Link href={`/dashboard/users/${user.id}`}>
+            <Eye className="h-4 w-4" />
+            View User
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => runAction("activate")} disabled={!isSuspended || action.isPending}>
+          <UserCheck className="h-4 w-4" />
+          Activate User
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => runAction("suspend")} disabled={isSuspended || action.isPending} className="text-red-600">
+          <UserRoundX className="h-4 w-4" />
+          Suspend User
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -105,25 +115,48 @@ const userColumns = (onToast: (message: string) => void): ColumnDef<UserRow>[] =
     header: "User Type",
     cell: ({ row }) => <SoftTag tone={row.original.type === "Service Provider" ? "purple" : "blue"}>{row.original.type}</SoftTag>,
   },
-  { accessorKey: "joinedDate", header: "Joined Date" },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
   { id: "actions", header: "Actions", cell: ({ row }) => <UserActions user={row.original} onToast={onToast} /> },
 ];
 
 export default function UsersPage() {
   const [toast, setToast] = React.useState("");
+  const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState("All Status");
   const usersQuery = useUsers();
-  const statsQuery = useUserStats();
   const rows = React.useMemo(() => (usersQuery.data ?? []).map(mapUser), [usersQuery.data]);
+  const filteredRows = React.useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesSearch = !search || [row.name, row.email, row.phone, row.type, row.status].join(" ").toLowerCase().includes(search);
+      const matchesStatus = status === "All Status" || row.status.toLowerCase() === status.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [query, rows, status]);
+  const derivedStats = React.useMemo(() => {
+    const users = usersQuery.data ?? [];
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    return {
+      active: rows.filter((row) => row.status.toLowerCase().includes("active")).length,
+      inactive: rows.filter((row) => row.status.toLowerCase().includes("inactive")).length,
+      suspended: rows.filter((row) => row.status.toLowerCase().includes("suspend")).length,
+      newUsers: users.filter((user) => {
+        const created = user.createdAt ? new Date(user.createdAt) : null;
+        return created && Number.isFinite(created.getTime()) && created >= weekAgo;
+      }).length,
+    };
+  }, [rows, usersQuery.data]);
   const metrics = React.useMemo(
     () => [
-      { label: "Total Users", value: metricValue(statsQuery.data, ["totalUsers", "total", "users"]), change: "Live backend data", direction: "up", tone: "red", icon: Users },
-      { label: "Active Users", value: metricValue(statsQuery.data, ["activeUsers", "active"]), change: "Live backend data", direction: "up", tone: "green", icon: UserCheck },
-      { label: "New Users", value: metricValue(statsQuery.data, ["newUsers", "newThisWeek", "new"]), change: "Live backend data", direction: "up", tone: "blue", icon: UserPlus },
-      { label: "Inactive Users", value: metricValue(statsQuery.data, ["inactiveUsers", "inactive"]), change: "Live backend data", direction: "down", tone: "amber", icon: Clock3 },
-      { label: "Suspended Users", value: metricValue(statsQuery.data, ["suspendedUsers", "suspended"]), change: "Live backend data", direction: "down", tone: "purple", icon: UserRoundX },
+      { label: "Total Users", value: String(rows.length), change: "Derived from loaded users", direction: "up", tone: "red", icon: Users },
+      { label: "Active Users", value: String(derivedStats.active), change: "Derived from loaded users", direction: "up", tone: "green", icon: UserCheck },
+      { label: "New Users", value: String(derivedStats.newUsers), change: "Created in last 7 days", direction: "up", tone: "blue", icon: UserPlus },
+      { label: "Inactive Users", value: String(derivedStats.inactive), change: "Derived from loaded users", direction: "down", tone: "amber", icon: Clock3 },
+      { label: "Suspended Users", value: String(derivedStats.suspended), change: "Derived from loaded users", direction: "down", tone: "purple", icon: UserRoundX },
     ],
-    [statsQuery.data],
+    [derivedStats, rows.length],
   );
 
   return (
@@ -136,8 +169,8 @@ export default function UsersPage() {
 
       <CardShell>
         <ToolbarCard>
-          <SearchBox placeholder="Search users by name, email or phone..." />
-          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Suspended"]} />
+          <SearchBox placeholder="Search users by name, email or phone..." value={query} onChange={setQuery} />
+          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Suspended"]} value={status} onChange={setStatus} />
           <div className="flex gap-3">
            
             <ExportButton />
@@ -148,9 +181,8 @@ export default function UsersPage() {
         ) : usersQuery.isError ? (
           <div className="p-6 text-sm font-semibold text-red-600">Unable to load users.</div>
         ) : (
-          <AdminDataTable data={rows} columns={userColumns(setToast)} minWidth="1120px" />
+          <AdminDataTable data={filteredRows} columns={userColumns(setToast)} minWidth="1120px" rowLabel="users" />
         )}
-        <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} users`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} />
       </CardShell>
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>

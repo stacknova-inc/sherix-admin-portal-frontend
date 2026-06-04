@@ -82,18 +82,40 @@ export function ToolbarCard({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-2.5 border-b p-3 lg:flex-row lg:items-center">{children}</div>;
 }
 
-export function SearchBox({ placeholder, className }: { placeholder: string; className?: string }) {
+export function SearchBox({
+  placeholder,
+  className,
+  value,
+  onChange,
+}: {
+  placeholder: string;
+  className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <div className={cn("relative min-w-0 flex-1", className)}>
       <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-      <Input className="bg-card pl-9" placeholder={placeholder} />
+      <Input className="bg-card pl-9" placeholder={placeholder} value={value} onChange={(event) => onChange?.(event.target.value)} />
     </div>
   );
 }
 
-export function FilterSelect({ placeholder, values, className }: { placeholder: string; values: string[]; className?: string }) {
+export function FilterSelect({
+  placeholder,
+  values,
+  className,
+  value,
+  onChange,
+}: {
+  placeholder: string;
+  values: string[];
+  className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
-    <Select defaultValue={values[0] ?? placeholder}>
+    <Select defaultValue={values[0] ?? placeholder} value={value} onValueChange={onChange}>
       <SelectTrigger className={cn("h-9 w-full bg-card   lg:w-[150px]", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
@@ -217,24 +239,44 @@ export function StatusCell({ status }: { status: string }) {
   return <StatusBadge status={status} />;
 }
 
-export function PaginationFooter({ label, pageCount = "1246", pageSize = false }: { label: string; pageCount?: string; pageSize?: boolean }) {
+export function PaginationFooter({
+  label,
+  pageCount = "1",
+  pageSize = false,
+  currentPage = 1,
+  onPageChange,
+}: {
+  label: string;
+  pageCount?: string;
+  pageSize?: boolean;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Number(pageCount) || 1);
+  const pages = Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+    const windowStart = Math.min(Math.max(1, currentPage - 2), Math.max(1, totalPages - 4));
+    return windowStart + index;
+  });
+
   return (
     <div className="flex flex-col gap-3 border-t p-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <p>{label}</p>
       <div className="flex flex-wrap items-center gap-2 text-foreground">
-        <Button variant="ghost" size="icon" className="h-7 w-7">
+        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage <= 1} onClick={() => onPageChange?.(currentPage - 1)}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        {["1", "2", "3", "4", "5"].map((page) => (
-          <Button key={page} variant={page === "1" ? "default" : "ghost"} size="icon" className="h-7 w-7 rounded-md">
+        {pages.map((page) => (
+          <Button key={page} variant={page === currentPage ? "default" : "ghost"} size="icon" className="h-7 w-7 rounded-md" onClick={() => onPageChange?.(page)}>
             {page}
           </Button>
         ))}
-        <span className="px-2 text-muted-foreground">...</span>
-        <Button variant="ghost" className="h-7 rounded-md px-2">
-          {pageCount}
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7">
+        {totalPages > pages[pages.length - 1] && <span className="px-2 text-muted-foreground">...</span>}
+        {totalPages > pages[pages.length - 1] && (
+          <Button variant="ghost" className="h-7 rounded-md px-2" onClick={() => onPageChange?.(totalPages)}>
+            {totalPages}
+          </Button>
+        )}
+        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage >= totalPages} onClick={() => onPageChange?.(currentPage + 1)}>
           <ChevronRight className="h-4 w-4" />
         </Button>
         {pageSize && (

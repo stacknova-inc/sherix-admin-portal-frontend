@@ -20,12 +20,6 @@ export function useUser(id?: string) {
   });
 }
 
-export function useUserStats() {
-  return useQuery({
-    queryKey: ["users", "stats"],
-    queryFn: usersApi.stats,
-  });
-}
 
 export function useUserAction() {
   const queryClient = useQueryClient();
@@ -34,7 +28,6 @@ export function useUserAction() {
       usersApi.action(id, action, reason ? { reason } : undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usersQueryKey });
-      queryClient.invalidateQueries({ queryKey: ["users", "stats"] });
     },
   });
 }

@@ -2,16 +2,13 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
-import { Loader2, MapPin, ShieldCheck, Users, Clock3, XCircle, Briefcase } from "lucide-react";
+import { CheckCircle2, Clock3, Loader2, MapPin, MoreVertical, ShieldCheck, UserCheck, UserRoundX, Users, XCircle, Briefcase } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   ExportButton,
   FilterSelect,
   MetricGrid,
-  PaginationFooter,
   PersonCell,
-  RatingStars,
   SearchBox,
   ServiceTags,
   StatusCell,
@@ -20,10 +17,11 @@ import {
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, asRecord, dateText, firstText, initials, recordId, text } from "@/lib/live-data";
-import { useCompanies, useCompanyAction } from "@/hooks/useCompanies";
-import type { Company, Service } from "@/types";
+import { activeStatus, asRecord, firstText, initials, metricChange, metricDirection, metricValue, recordId, text } from "@/lib/live-data";
+import { useCompanies, useCompanyAction, useCompanyStats } from "@/hooks/useCompanies";
+import type { Company } from "@/types";
 
 type ProviderRow = {
   id: string;
@@ -33,32 +31,55 @@ type ProviderRow = {
   extraServices: number;
   phone: string;
   location: string;
-  rating: number;
-  reviews: number;
   status: string;
-  joinedDate: string;
   initials: string;
   avatarTone: string;
 };
 
+function serviceLabel(service: unknown) {
+  if (typeof service === "string") return service;
+  const record = asRecord(service);
+  return text(record.name ?? record.title ?? record.serviceName ?? record.categoryName ?? record.label ?? record.issueTitle, "");
+}
+
+function collectServices(...sources: unknown[]) {
+  const services = sources.flatMap((source) => {
+    if (!source) return [];
+    if (Array.isArray(source)) return source.map(serviceLabel);
+    return [serviceLabel(source)];
+  });
+
+  return Array.from(new Set(services.map((service) => service.trim()).filter(Boolean)));
+}
+
 function mapCompany(company: Company): ProviderRow {
-  const record = company as unknown as Record<string, unknown>;
-  const name = firstText(record, ["name", "companyName", "businessName"], "Unnamed company");
-  const allServices = Array.isArray(company.services)
-    ? company.services.map((service) => (typeof service === "string" ? service : text((service as Service).name ?? (service as Service).title))).filter(Boolean)
-    : [];
+  const root = company as unknown as Record<string, unknown>;
+  const companyRecord = asRecord(root.company ?? root.provider ?? root.serviceProvider ?? root.business);
+  const userRecord = asRecord(root.user ?? root.owner ?? root.admin);
+  const record = { ...root, ...companyRecord };
+  const name = firstText(record, ["name", "companyName", "businessName", "legalName"], text(userRecord, "Unnamed company"));
+  const allServices = collectServices(
+    record.services,
+    record.service,
+    record.serviceOffered,
+    record.serviceOffers,
+    record.serviceCategories,
+    record.categories,
+    record.specializations,
+    record.skills,
+    record.issues,
+    asRecord(record.profile).services,
+    asRecord(userRecord.profile).services,
+  );
   return {
-    id: recordId(company),
+    id: recordId(company) || String(root.providerId ?? root.companyId ?? ""),
     name,
-    email: firstText(record, ["email"]),
+    email: firstText(record, ["email"], firstText(userRecord, ["email"])),
     services: allServices.slice(0, 2),
     extraServices: Math.max(0, allServices.length - 2),
-    phone: firstText(record, ["phone", "phoneNumber"]),
+    phone: firstText(record, ["phone", "phoneNumber", "contactPhone"], firstText(userRecord, ["phone", "phoneNumber"])),
     location: firstText(record, ["location", "address"]),
-    rating: Number(record.rating ?? 0),
-    reviews: Number(record.reviews ?? record.reviewCount ?? 0),
     status: activeStatus(record),
-    joinedDate: dateText(company.createdAt),
     initials: initials(name),
     avatarTone: "bg-black text-white",
   };
@@ -89,18 +110,27 @@ function CompanyActions({ company, onToast }: { company: ProviderRow; onToast: (
   const suspended = company.status.toLowerCase().includes("suspend") || company.status.toLowerCase().includes("inactive");
 
   return (
-    <div className="flex min-w-[260px] justify-end gap-2">
-      <Button variant="outline" size="sm" onClick={() => runAction("approve")} disabled={action.isPending}>
-        Approve
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => runAction("reject")} disabled={action.isPending}>
-        Reject
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => runAction(suspended ? "activate" : "suspend")} disabled={action.isPending}>
-        {action.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        {suspended ? "Activate" : "Suspend"}
-      </Button>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={`Actions for ${company.name}`} disabled={action.isPending}>
+          {action.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="bg-white">
+        <DropdownMenuItem onClick={() => runAction("approve")} disabled={action.isPending}>
+          <CheckCircle2 className="h-4 w-4" />
+          Approve Company
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => runAction("reject")} disabled={action.isPending} className="text-red-600">
+          <XCircle className="h-4 w-4" />
+          Reject Company
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => runAction(suspended ? "activate" : "suspend")} disabled={action.isPending}>
+          {suspended ? <UserCheck className="h-4 w-4" /> : <UserRoundX className="h-4 w-4" />}
+          {suspended ? "Activate Company" : "Suspend Company"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -116,7 +146,12 @@ const providerColumns = (onToast: (message: string) => void): ColumnDef<Provider
   {
     accessorKey: "services",
     header: "Service(s)",
-    cell: ({ row }) => <ServiceTags services={row.original.services} extra={row.original.extraServices} />,
+    cell: ({ row }) =>
+      row.original.services.length ? (
+        <ServiceTags services={row.original.services} extra={row.original.extraServices} />
+      ) : (
+        <span className="text-xs font-semibold text-muted-foreground">No services listed</span>
+      ),
   },
   { accessorKey: "phone", header: "Phone" },
   {
@@ -129,31 +164,32 @@ const providerColumns = (onToast: (message: string) => void): ColumnDef<Provider
       </span>
     ),
   },
-  {
-    accessorKey: "rating",
-    header: "Rating",
-    cell: ({ row }) => (
-      <div className="min-w-[120px]">
-        <RatingStars rating={row.original.rating} />
-        <span className="ml-1 text-xs text-muted-foreground">({row.original.reviews})</span>
-      </div>
-    ),
-  },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
-  { accessorKey: "joinedDate", header: "Joined Date" },
   { id: "actions", header: "Actions", cell: ({ row }) => <CompanyActions company={row.original} onToast={onToast} /> },
 ];
 
 export default function ServiceProvidersPage() {
   const [toast, setToast] = React.useState("");
+  const [query, setQuery] = React.useState("");
+  const [status, setStatus] = React.useState("All Status");
   const companiesQuery = useCompanies();
+  const statsQuery = useCompanyStats();
   const rows = React.useMemo(() => (companiesQuery.data ?? []).map(mapCompany), [companiesQuery.data]);
+  const filteredRows = React.useMemo(() => {
+    const search = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesSearch = !search || [row.name, row.email, row.phone, row.location, row.status, ...row.services].join(" ").toLowerCase().includes(search);
+      const matchesStatus = status === "All Status" || row.status.toLowerCase().includes(status.toLowerCase());
+      return matchesSearch && matchesStatus;
+    });
+  }, [query, rows, status]);
+  const stats = asRecord(statsQuery.data);
   const metrics = [
-    { label: "Total Companies", value: String(rows.length), change: "Live backend data", direction: "up", tone: "red", icon: Users },
-    { label: "Approved Companies", value: String(rows.filter((row) => row.status.toLowerCase().includes("approved") || row.status.toLowerCase().includes("verified")).length), change: "Live backend data", direction: "up", tone: "green", icon: ShieldCheck },
-    { label: "Pending Verification", value: String(rows.filter((row) => row.status.toLowerCase().includes("pending")).length), change: "Live backend data", direction: "up", tone: "amber", icon: Clock3 },
-    { label: "Rejected Companies", value: String(rows.filter((row) => row.status.toLowerCase().includes("reject")).length), change: "Live backend data", direction: "down", tone: "red", icon: XCircle },
-    { label: "Active Companies", value: String(rows.filter((row) => row.status.toLowerCase().includes("active") || row.status.toLowerCase().includes("verified")).length), change: "Live backend data", direction: "up", tone: "blue", icon: Briefcase },
+    { label: "Total Companies", value: metricValue(stats, ["totalCompanies", "totalProviders", "serviceProviders", "total"], String(rows.length)), change: metricChange(stats, ["totalCompanies", "totalProviders", "serviceProviders", "total"]), direction: metricDirection(stats, ["totalCompanies", "totalProviders", "serviceProviders", "total"]), tone: "red", icon: Users },
+    { label: "Approved Companies", value: metricValue(stats, ["approvedCompanies", "approvedProviders", "verifiedProviders", "approved"], String(rows.filter((row) => row.status.toLowerCase().includes("approved") || row.status.toLowerCase().includes("verified")).length)), change: metricChange(stats, ["approvedCompanies", "approvedProviders", "verifiedProviders", "approved"]), direction: metricDirection(stats, ["approvedCompanies", "approvedProviders", "verifiedProviders", "approved"]), tone: "green", icon: ShieldCheck },
+    { label: "Pending Verification", value: metricValue(stats, ["pendingVerification", "pendingProviders", "pending"], String(rows.filter((row) => row.status.toLowerCase().includes("pending")).length)), change: metricChange(stats, ["pendingVerification", "pendingProviders", "pending"]), direction: metricDirection(stats, ["pendingVerification", "pendingProviders", "pending"]), tone: "amber", icon: Clock3 },
+    { label: "Rejected Companies", value: metricValue(stats, ["rejectedCompanies", "rejectedProviders", "rejected"], String(rows.filter((row) => row.status.toLowerCase().includes("reject")).length)), change: metricChange(stats, ["rejectedCompanies", "rejectedProviders", "rejected"], "Live backend data"), direction: metricDirection(stats, ["rejectedCompanies", "rejectedProviders", "rejected"], "down"), tone: "red", icon: XCircle },
+    { label: "Active Companies", value: metricValue(stats, ["activeCompanies", "activeProviders", "active"], String(rows.filter((row) => row.status.toLowerCase().includes("active") || row.status.toLowerCase().includes("verified")).length)), change: metricChange(stats, ["activeCompanies", "activeProviders", "active"]), direction: metricDirection(stats, ["activeCompanies", "activeProviders", "active"]), tone: "blue", icon: Briefcase },
   ];
 
   return (
@@ -166,8 +202,8 @@ export default function ServiceProvidersPage() {
 
       <CardShell>
         <ToolbarCard>
-          <SearchBox placeholder="Search providers by name, email, phone or service..." />
-          <FilterSelect placeholder="All Status" values={["All Status", "Verified", "Pending", "Rejected"]} />
+          <SearchBox placeholder="Search providers by name, email, phone or service..." value={query} onChange={setQuery} />
+          <FilterSelect placeholder="All Status" values={["All Status", "Verified", "Pending", "Rejected"]} value={status} onChange={setStatus} />
           <FilterSelect placeholder="All Services" values={["All Services", "Battery", "Diagnostics", "Tire Change", "Towing"]} />
           <FilterSelect placeholder="Location" values={["Location", "Accra", "Tema", "Kasoa", "Madina"]} />
           <div className="flex gap-3">
@@ -179,9 +215,8 @@ export default function ServiceProvidersPage() {
         ) : companiesQuery.isError ? (
           <div className="p-6 text-sm font-semibold text-red-600">Unable to load companies.</div>
         ) : (
-          <AdminDataTable data={rows} columns={providerColumns(setToast)} minWidth="1340px" />
+          <AdminDataTable data={filteredRows} columns={providerColumns(setToast)} minWidth="1340px" rowLabel="companies" />
         )}
-        <PaginationFooter label={`Showing ${rows.length ? `1 to ${rows.length}` : "0"} of ${rows.length} companies`} pageCount={String(Math.max(1, Math.ceil(rows.length / 10)))} />
       </CardShell>
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>

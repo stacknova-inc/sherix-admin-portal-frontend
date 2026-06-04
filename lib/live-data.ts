@@ -12,7 +12,7 @@ export function text(value: unknown, fallback = "-") {
   if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
   const record = asRecord(value);
-  return text(record.name ?? record.title ?? record.fullName ?? record.companyName, fallback);
+  return text(record.value ?? record.count ?? record.total ?? record.name ?? record.title ?? record.fullName ?? record.companyName, fallback);
 }
 
 export function firstText(record: Record<string, unknown>, keys: string[], fallback = "-") {
@@ -49,7 +49,7 @@ export function initials(name: string) {
 }
 
 export function activeStatus(record: Record<string, unknown>, fallback = "Active") {
-  if (typeof record.status === "string") return record.status;
+  if (typeof record.status === "string") return record.status.toLowerCase() === "banned" ? "Suspended" : record.status;
   if (typeof record.verificationStatus === "string") return record.verificationStatus;
   if (typeof record.isActive === "boolean") return record.isActive ? "Active" : "Suspended";
   return fallback;
@@ -58,4 +58,36 @@ export function activeStatus(record: Record<string, unknown>, fallback = "Active
 export function metricValue(stats: Record<string, unknown> | undefined, keys: string[], fallback = "0") {
   if (!stats) return fallback;
   return firstText(stats, keys, fallback);
+}
+
+export function metricChange(stats: Record<string, unknown> | undefined, keys: string[], fallback = "Live backend data") {
+  if (!stats) return fallback;
+
+  for (const key of keys) {
+    const metric = asRecord(stats[key]);
+    const change = metric.change ?? metric.percentageChange ?? metric.delta;
+    if (change === null || change === undefined || change === "") continue;
+
+    const numericChange = Number(change);
+    if (Number.isFinite(numericChange)) {
+      const sign = numericChange > 0 ? "+" : "";
+      return `${sign}${numericChange}%`;
+    }
+
+    return text(change, fallback);
+  }
+
+  return fallback;
+}
+
+export function metricDirection(stats: Record<string, unknown> | undefined, keys: string[], fallback: "up" | "down" = "up") {
+  if (!stats) return fallback;
+
+  for (const key of keys) {
+    const metric = asRecord(stats[key]);
+    const change = Number(metric.change ?? metric.percentageChange ?? metric.delta);
+    if (Number.isFinite(change)) return change < 0 ? "down" : "up";
+  }
+
+  return fallback;
 }

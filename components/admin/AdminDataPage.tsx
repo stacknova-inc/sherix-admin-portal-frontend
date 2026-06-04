@@ -102,23 +102,23 @@ const statusClasses: Record<string, string> = {
 };
 
 const people = [
-  ["USR-12086", "Kofi Mensah", "kofi@gmail.com", "050 123 4567", "Customer", "May 18, 2025", "Active"],
-  ["USR-12087", "Ama Serwaa", "ama@gmail.com", "050 987 6543", "Customer", "May 18, 2025", "Active"],
-  ["USR-12088", "Kwame Asante", "kwame@gmail.com", "050 456 7890", "Customer", "May 17, 2025", "Active"],
-  ["USR-12089", "Abena Osei", "abena@gmail.com", "050 321 0987", "Customer", "May 17, 2025", "Inactive"],
-  ["USR-12090", "Yaw Boadu", "yaw@gmail.com", "050 644 3210", "Customer", "May 16, 2025", "Active"],
-  ["USR-12091", "Nana Addo", "nana@gmail.com", "050 111 2222", "Customer", "May 16, 2025", "Active"],
-  ["USR-12092", "Kojo Darko", "kojo@gmail.com", "020 333 4444", "Service Provider", "May 15, 2025", "Active"],
-  ["USR-12093", "Efua Anokye", "efua@gmail.com", "050 777 8888", "Service Provider", "May 15, 2025", "Active"],
+  ["USR-12086", "Kofi Mensah", "kofi@gmail.com", "050 123 4567", "Customer", "Active"],
+  ["USR-12087", "Ama Serwaa", "ama@gmail.com", "050 987 6543", "Customer", "Active"],
+  ["USR-12088", "Kwame Asante", "kwame@gmail.com", "050 456 7890", "Customer", "Active"],
+  ["USR-12089", "Abena Osei", "abena@gmail.com", "050 321 0987", "Customer", "Inactive"],
+  ["USR-12090", "Yaw Boadu", "yaw@gmail.com", "050 644 3210", "Customer", "Active"],
+  ["USR-12091", "Nana Addo", "nana@gmail.com", "050 111 2222", "Customer", "Active"],
+  ["USR-12092", "Kojo Darko", "kojo@gmail.com", "020 333 4444", "Service Provider", "Active"],
+  ["USR-12093", "Efua Anokye", "efua@gmail.com", "050 777 8888", "Service Provider", "Active"],
 ];
 
 const providers = [
-  ["SP-2548", "Bright Auto Care", "Battery, Diagnostics", "050 123 4567", "Accra, Airport", "4.8 (126)", "Verified", "May 18, 2025"],
-  ["SP-2547", "QuickFix Services", "Tire Change, Battery", "050 987 6543", "Madina, Accra", "4.6 (98)", "Verified", "May 18, 2025"],
-  ["SP-2546", "Speedy Mechanics", "Diagnostics, Engine", "050 456 7890", "Tema, Community 25", "4.7 (156)", "Pending", "May 17, 2025"],
-  ["SP-2545", "Auto Rescue GH", "Towing, Battery", "050 321 0087", "Spintex, Accra", "4.5 (87)", "Verified", "May 17, 2025"],
-  ["SP-2544", "Wheels & More", "Tires, Alignment", "050 644 3210", "Lapaz, Accra", "4.3 (64)", "Rejected", "May 16, 2025"],
-  ["SP-2543", "DriveCare", "Diagnostics, AC Repair", "050 111 2222", "Dzorwulu, Accra", "4.6 (74)", "Verified", "May 16, 2025"],
+  ["SP-2548", "Bright Auto Care", "Battery, Diagnostics", "050 123 4567", "Accra, Airport", "4.8 (126)", "Verified"],
+  ["SP-2547", "QuickFix Services", "Tire Change, Battery", "050 987 6543", "Madina, Accra", "4.6 (98)", "Verified"],
+  ["SP-2546", "Speedy Mechanics", "Diagnostics, Engine", "050 456 7890", "Tema, Community 25", "4.7 (156)", "Pending"],
+  ["SP-2545", "Auto Rescue GH", "Towing, Battery", "050 321 0087", "Spintex, Accra", "4.5 (87)", "Verified"],
+  ["SP-2544", "Wheels & More", "Tires, Alignment", "050 644 3210", "Lapaz, Accra", "4.3 (64)", "Rejected"],
+  ["SP-2543", "DriveCare", "Diagnostics, AC Repair", "050 111 2222", "Dzorwulu, Accra", "4.6 (74)", "Verified"],
 ];
 
 const jobs = [
@@ -142,8 +142,8 @@ const configs: Record<PageKey, PageConfig> = {
       { label: "Inactive Users", value: "2,674", change: "4.1% vs last week", icon: UserX, tone: "amber", down: true },
     ],
     search: "Search users by name, email or phone...",
-    filters: ["All Status", "All User Types", "Joined Date"],
-    columns: ["User ID", "User", "Email", "Phone", "User Type", "Joined Date", "Status"],
+    filters: ["All Status", "All User Types"],
+    columns: ["User ID", "User", "Email", "Phone", "User Type", "Status"],
     rows: people,
     sideTitle: "User Overview",
     sideItems: [
@@ -164,7 +164,7 @@ const configs: Record<PageKey, PageConfig> = {
     ],
     search: "Search providers by name, email, phone or service...",
     filters: ["All Status", "All Services", "Location"],
-    columns: ["Provider ID", "Provider", "Service(s)", "Phone", "Location", "Rating", "Status", "Joined Date"],
+    columns: ["Provider ID", "Provider", "Service(s)", "Phone", "Location", "Rating", "Status"],
     rows: providers,
     sideTitle: "Top Rated Providers",
     sideItems: [
