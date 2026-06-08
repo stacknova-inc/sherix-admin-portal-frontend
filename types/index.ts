@@ -50,6 +50,49 @@ export type UpdateIssueInput = Partial<CreateIssueInput> & {
   isActive?: boolean;
 };
 
+export interface AdCampaign extends ApiTimestamped {
+  title?: string;
+  image?: string;
+  imageUrl?: string;
+  imageURL?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  isActive?: boolean;
+}
+
+export interface CreateAdCampaignInput {
+  image: File;
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
+export type UpdateAdCampaignInput = Partial<Omit<CreateAdCampaignInput, "image">> & {
+  image?: File;
+};
+
+export interface LegalDocument extends ApiTimestamped {
+  name?: string;
+  documentName?: string;
+  title?: string;
+  fileName?: string;
+  fileType?: string;
+  mimeType?: string;
+  type?: string;
+  document?: unknown;
+  file?: unknown;
+  pdf?: unknown;
+  url?: string;
+  fileUrl?: string;
+  documentUrl?: string;
+  pdfUrl?: string;
+  path?: string;
+  location?: string;
+  uploadedBy?: unknown;
+  uploadedAt?: string;
+}
+
 export interface Company extends ApiTimestamped {
   name?: string;
   companyName?: string;
