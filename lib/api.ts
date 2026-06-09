@@ -105,7 +105,7 @@ export function unwrapArray<T>(response: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
 
   const record = data as Record<string, unknown>;
-  for (const key of ["services", "issues", "companies", "serviceProviders", "providers", "users", "bookings", "transactions", "disputes", "auditLogs", "logs", "events", "data"]) {
+  for (const key of ["services", "issues", "companies", "serviceProviders", "providers", "users", "bookings", "transactions", "disputes", "auditLogs", "logs", "events", "campaigns", "adCampaigns", "legalDocuments", "documents", "data"]) {
     if (Array.isArray(record?.[key])) return record[key] as T[];
   }
 

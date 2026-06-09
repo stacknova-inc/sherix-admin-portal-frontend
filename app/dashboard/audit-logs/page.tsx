@@ -180,9 +180,9 @@ export default function AuditLogsPage() {
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Audit Logs" subtitle="Review security, staff, user, payment, and operational activity across the platform." />
-      <MetricGrid metrics={metrics} />
+   
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid gap-4 ">
         <CardShell>
           <ToolbarCard>
             <SearchBox placeholder="Search actor, role, action, module, IP or description..." value={query} onChange={setQuery} />
@@ -204,39 +204,7 @@ export default function AuditLogsPage() {
           )}
         </CardShell>
 
-        <aside className="space-y-4">
-          <CardShell className="p-4">
-            <h2 className="text-sm font-black">Activity Mix</h2>
-            <div className="mt-4 space-y-3 text-sm">
-              {[
-                ["Success", derivedMetrics.success, "bg-green-600"],
-                ["Warning", derivedMetrics.warning, "bg-amber-500"],
-                ["Failed", derivedMetrics.failed, "bg-red-600"],
-              ].map(([label, value, color]) => (
-                <div key={label} className="grid grid-cols-[82px_1fr_42px] items-center gap-3">
-                  <span className="font-semibold text-muted-foreground">{label}</span>
-                  <span className="h-2 overflow-hidden rounded-full bg-muted">
-                    <span className={`${color} block h-full rounded-full`} style={{ width: `${derivedMetrics.total ? (Number(value) / derivedMetrics.total) * 100 : 0}%` }} />
-                  </span>
-                  <span className="text-right font-black">{value}</span>
-                </div>
-              ))}
-            </div>
-          </CardShell>
-
-          <CardShell className="p-4">
-            <h2 className="text-sm font-black">Review Focus</h2>
-            <div className="mt-3 space-y-3 text-sm">
-              <p className="flex items-start gap-2 rounded-xl border bg-background p-3 font-semibold">
-                <Activity className="mt-0.5 h-4 w-4 text-primary" />
-                Showing {filteredRows.length} matching events from {rows.length} loaded audit records.
-              </p>
-              <p className="rounded-xl border bg-background p-3 text-xs font-semibold leading-5 text-muted-foreground">
-                Filter by status, module, date range, actor, IP address, or activity description to isolate operational or security events.
-              </p>
-            </div>
-          </CardShell>
-        </aside>
+       
       </section>
     </div>
   );
