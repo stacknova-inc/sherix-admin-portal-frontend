@@ -23,12 +23,16 @@ export type NavRoute = {
   title: string;
   href: string;
   icon: ComponentType<{ className?: string }>;
+  children?: NavRoute[];
 };
 
 export const dashboardRoutes: NavRoute[] = [
   { title: "Dashboard", href: "/dashboard", icon: Gauge },
   { title: "Users", href: "/dashboard/users", icon: Users },
-  { title: "Service Providers", href: "/dashboard/service-providers", icon: UserCog },
+  { title: "Service Providers", href: "/dashboard/service-providers", icon: UserCog, children: [
+    { title: "Individual Providers", href: "/dashboard/service-providers/individual", icon: UserCog },
+    { title: "Company Providers", href: "/dashboard/service-providers/company", icon: Tags },
+  ] },
   { title: "Jobs / Requests", href: "/dashboard/jobs", icon: BriefcaseBusiness },
   { title: "Earnings & Payments", href: "/dashboard/earnings-payments", icon: DollarSign },
   { title: "Transactions", href: "/dashboard/transactions", icon: CreditCard },

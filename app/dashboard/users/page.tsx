@@ -36,7 +36,9 @@ type UserRow = {
   avatarTone: string;
 };
 
+
 function mapUser(user: User): UserRow {
+  console.log("Mapping user:", user);
   const record = user as unknown as Record<string, unknown>;
   const name = firstText(record, ["name", "fullName"], `${firstText(record, ["firstName"], "")} ${firstText(record, ["lastName"], "")}`.trim() || "Unnamed user");
   return {
@@ -45,7 +47,7 @@ function mapUser(user: User): UserRow {
     email: firstText(record, ["email"]),
     phone: firstText(record, ["phone", "phoneNumber"]),
     type: firstText(record, ["type", "userType", "role"], "Customer"),
-    status: activeStatus(record),
+    status: record.isActive === true ? "Active" : "Suspended",
     initials: initials(name),
     avatarTone: "bg-slate-900 text-white",
   };
@@ -73,6 +75,7 @@ function UserActions({ user, onToast }: { user: UserRow; onToast: (message: stri
       onToast(getErrorMessage(error, `Unable to ${nextAction} user`));
     }
   }
+  
 
   return (
     <DropdownMenu>
@@ -159,6 +162,12 @@ export default function UsersPage() {
     [derivedStats, rows.length],
   );
 
+  const exportData = React.useMemo(
+  () => filteredRows.map(({ id, name, email, phone, type, status }) => ({ id, name, email, phone, type, status })),
+  [filteredRows],
+);
+
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -173,7 +182,7 @@ export default function UsersPage() {
           <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Suspended"]} value={status} onChange={setStatus} />
           <div className="flex gap-3">
            
-            <ExportButton />
+            <ExportButton data={exportData} filename="users" />
           </div>
         </ToolbarCard>
         {usersQuery.isLoading ? (
