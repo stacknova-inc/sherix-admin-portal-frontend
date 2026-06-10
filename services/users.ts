@@ -6,10 +6,10 @@ export type UserAction = "suspend" | "activate";
 export const usersApi = {
   async list() {
     try {
-      const response = await api.get("/users/admin/users");
+      const response = await api.get("/users");
       return unwrapArray<User>(response.data);
     } catch (error) {
-      console.warn("[Sherix Users] /users/admin/users failed, retrying /users.", error);
+      console.warn("[Sherix Users] /users failed, retrying /users.", error);
       const response = await api.get("/users");
       return unwrapArray<User>(response.data);
     }

@@ -132,9 +132,40 @@ export function FilterSelect({
 
 
 
-export function ExportButton() {
+type ExportButtonProps = {
+  data: Record<string, unknown>[];
+  filename?: string;
+};
+
+export function ExportButton({ data, filename = "export" }: ExportButtonProps) {
+  function handleExport() {
+    if (!data.length) return;
+
+    // Use the keys of the first row as headers
+    const headers = Object.keys(data[0]);
+    const csvRows = [
+      headers.join(","), // header row
+      ...data.map((row) =>
+        headers
+          .map((key) => {
+            const value = String(row[key] ?? "").replace(/"/g, '""');
+            return `"${value}"`;
+          })
+          .join(","),
+      ),
+    ];
+
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <Button variant="outline" className="bg-card">
+    <Button variant="outline" className="bg-card" onClick={handleExport} disabled={!data.length}>
       <Download className="h-4 w-4" />
       Export
     </Button>

@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ActionMenu,
-  ExportButton,
+
   FilterSelect,
   InitialAvatar,
   MetricGrid,
@@ -93,6 +93,7 @@ const reviewColumns: ColumnDef<ReviewRow>[] = [
 ];
 
 export default function RatingsReviewsPage() {
+  
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Ratings & Reviews" subtitle="Monitor and manage ratings and reviews across the platform." />
@@ -108,7 +109,7 @@ export default function RatingsReviewsPage() {
             <SearchBox placeholder="Search by review ID, provider, customer or service..." />
             <FilterSelect placeholder="All Ratings" values={["All Ratings", "5 Stars", "4 Stars", "3 Stars", "2 Stars", "1 Star"]} />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Published", "Pending", "Flagged"]} />
-            <ExportButton />
+            
           </ToolbarCard>
           <AdminDataTable data={reviews} columns={reviewColumns} minWidth="1280px" rowLabel="reviews" />
         </CardShell>

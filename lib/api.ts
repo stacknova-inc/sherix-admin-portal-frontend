@@ -51,6 +51,7 @@ function logApiError(error: unknown) {
     console.error("[Sherix API Error]", {
       method: error.config?.method?.toUpperCase(),
       url: error.config?.url,
+       data: error.response?.data,
       baseURL: error.config?.baseURL,
       status: error.response?.status,
       statusText: error.response?.statusText,
