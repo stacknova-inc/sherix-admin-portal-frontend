@@ -177,6 +177,23 @@ export default function AuditLogsPage() {
     { label: "Failed", value: metricValue(stats, ["failedAttempts", "failed", "failures"], String(derivedMetrics.failed)), change: metricChange(stats, ["failedAttempts", "failed", "failures"], "Needs attention"), direction: metricDirection(stats, ["failedAttempts", "failed", "failures"], "down"), tone: "red", icon: ShieldAlert },
   ];
 
+
+  const exportData = React.useMemo(
+    () =>
+      filteredRows.map(({ id, actorName, actorEmail, role, action, module, description, ipAddress, status, timestamp }) => ({
+        id,
+        actorName,
+        actorEmail,
+        role,
+        action,
+        module,
+        description,
+        ipAddress,
+        status,
+        timestamp,
+      })),
+    [filteredRows],
+  );
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Audit Logs" subtitle="Review security, staff, user, payment, and operational activity across the platform." />
@@ -190,7 +207,7 @@ export default function AuditLogsPage() {
             <FilterSelect placeholder="All Modules" values={modules} value={module} onChange={setModule} className="lg:w-[180px]" />
             <Input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-9 bg-card lg:w-[150px]" aria-label="From date" />
             <Input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-9 bg-card lg:w-[150px]" aria-label="To date" />
-            <ExportButton />
+            <ExportButton data={exportData} filename="audit-logs" />
           </ToolbarCard>
           {logsQuery.isLoading ? (
             <div className="flex items-center gap-2 p-6 text-sm font-semibold text-muted-foreground">

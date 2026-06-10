@@ -149,6 +149,26 @@ export default function TransactionsPage() {
     { label: "Refunds Issued", value: money(rows.filter((row) => row.type.toLowerCase().includes("refund")).reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0)), change: "Live backend data", direction: "down", tone: "blue", icon: Briefcase },
   ];
 
+  const exportData = React.useMemo(
+    () =>
+      filteredRows.map(({ id, type, relatedTo, detail, from, fromRole, to, toRole, method, amount, status, date, time }) => ({  
+        id,
+        type,
+        relatedTo,
+        detail,
+        from,
+        fromRole,
+        to,
+        toRole,
+        method,
+        amount,
+        status,
+        date,
+        time
+      })),
+    [filteredRows]
+  );
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Transactions" subtitle="View and manage all platform transactions." />
@@ -161,7 +181,7 @@ export default function TransactionsPage() {
           <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} value={status} onChange={setStatus} />
           <FilterSelect placeholder="All Payment Methods" values={["All Payment Methods", "Mobile Money", "Bank Transfer", "Card Payment"]} className="lg:w-[210px]" />
           <div className="flex gap-3">
-            <ExportButton />
+            <ExportButton data={exportData} filename="transactions" />
           </div>
         </ToolbarCard>
         {transactionsQuery.isLoading ? (

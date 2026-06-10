@@ -74,6 +74,22 @@ export default function JobsPage() {
     { label: "Cancelled Jobs", value: metricValue(stats, ["cancelledJobs", "cancelled"]), change: metricChange(stats, ["cancelledJobs", "cancelled"]), direction: metricDirection(stats, ["cancelledJobs", "cancelled"], "down"), tone: "red", icon: XCircle },
   ];
 
+  const exportData = React.useMemo(
+    () =>
+      filteredRows.map(({ id, requestId, service, customer, provider, location, amount, status, priority, paymentStatus }) => ({
+        id,
+        requestId,
+        service,
+        customer,     provider,
+        location,
+        amount,
+        status,
+        priority,
+        paymentStatus,
+      })),
+    [filteredRows],
+  );
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Jobs & Requests" subtitle="Manage jobs, assignments, and ongoing requests across the platform." />
@@ -84,7 +100,7 @@ export default function JobsPage() {
           <FilterSelect placeholder="All Statuses" values={["All Statuses", "Pending", "Ongoing", "Completed", "Cancelled"]} value={status} onChange={setStatus} />
           <FilterSelect placeholder="All Services" values={["All Services"]} />
           <div className="flex gap-3">
-            <ExportButton />
+            <ExportButton data={exportData} filename="jobs" />
           </div>
         </ToolbarCard>
         {bookingsQuery.isLoading ? (

@@ -80,7 +80,7 @@ export default function ReportsAnalyticsPage() {
     { name: "Cancelled", value: cancelledJobs, color: "#DC2626" },
   ].filter((item) => item.value > 0);
   const sourceRows: ReportSourceRow[] = [
-    { id: "users", source: "/users/admin/users", category: "Users", records: String(users.length), status: usersQuery.isSuccess ? "Loaded" : usersQuery.isLoading ? "Loading" : "Unavailable", updated: new Date().toLocaleString() },
+    { id: "users", source: "/users", category: "Users", records: String(users.length), status: usersQuery.isSuccess ? "Loaded" : usersQuery.isLoading ? "Loading" : "Unavailable", updated: new Date().toLocaleString() },
     { id: "providers", source: "/users/service-providers", category: "Providers", records: String(companies.length), status: companiesQuery.isSuccess ? "Loaded" : companiesQuery.isLoading ? "Loading" : "Unavailable", updated: new Date().toLocaleString() },
     { id: "bookings", source: "/bookings/admin/bookings", category: "Jobs", records: String(bookings.length), status: bookingsQuery.isSuccess ? "Loaded" : bookingsQuery.isLoading ? "Loading" : "Unavailable", updated: new Date().toLocaleString() },
     { id: "transactions", source: "/financial/transactions", category: "Financial", records: String(transactions.length), status: transactionsQuery.isSuccess ? "Loaded" : transactionsQuery.isLoading ? "Loading" : "Unavailable", updated: new Date().toLocaleString() },

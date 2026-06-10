@@ -7,10 +7,12 @@ export const companiesApi = {
   async list() {
     try {
       const response = await api.get("/users/service-providers");
+      console.log("Fetched companies from /users/service-providers:", response.data);
       return unwrapArray<Company>(response.data);
     } catch (error) {
       console.warn("[Sherix Service Providers] /users/service-providers failed, retrying /companies.", error);
       const response = await api.get("/companies");
+     
       return unwrapArray<Company>(response.data);
     }
   },
