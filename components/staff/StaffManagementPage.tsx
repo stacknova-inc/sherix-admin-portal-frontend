@@ -598,16 +598,8 @@ function buildColumns(
       header: "Status",
       cell: ({ row }) => <StatusCell status={row.original.status} />,
     },
-    {
-      accessorKey: "createdAt",
-      header: "Date Created",
-      cell: ({ row }) => dateOnly(row.original.createdAt),
-    },
-    {
-      accessorKey: "lastLogin",
-      header: "Last Login",
-      cell: ({ row }) => dateTime(row.original.lastLogin),
-    },
+   
+    
     {
       id: "actions",
       header: "Actions",
@@ -784,9 +776,9 @@ export function StaffManagementPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
-              <SelectItem value="createdAt">Date Created</SelectItem>
+           
               <SelectItem value="fullName">Name</SelectItem>
-              <SelectItem value="lastLogin">Last Login</SelectItem>
+             
             </SelectContent>
           </Select>
         </ToolbarCard>
