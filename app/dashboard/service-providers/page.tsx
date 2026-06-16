@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
-import { CheckCircle2, Clock3, Loader2, MapPin, MoreVertical, ShieldCheck, UserCheck, UserRoundX, Users, XCircle, Briefcase } from "lucide-react";
+import { Clock3, Loader2, MapPin, MoreVertical, ShieldCheck, UserCheck, UserRoundX, Users, XCircle, Briefcase } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
   ExportButton,
@@ -19,12 +19,13 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, asRecord, firstText, initials, metricChange, metricDirection, metricValue, recordId, text } from "@/lib/live-data";
+import { activeStatus, asRecord, firstText, initials, metricChange, metricDirection, metricValue, recordId, text, uniqueRecordIds } from "@/lib/live-data";
 import { useCompanies, useCompanyAction, useCompanyStats } from "@/hooks/useCompanies";
 import type { Company } from "@/types";
 
 type ProviderRow = {
   id: string;
+  actionId: string;
   name: string;
   email: string;
   services: string[];
@@ -58,6 +59,7 @@ function mapCompany(company: Company): ProviderRow {
   const userRecord = asRecord(root.user ?? root.owner ?? root.admin);
   const record = { ...root, ...companyRecord };
   const name = firstText(record, ["name", "companyName", "businessName", "legalName"], text(userRecord, "Unnamed company"));
+  const ids = uniqueRecordIds(root.userId, userRecord, root.companyId, companyRecord, root.providerId, root.serviceProvider, company);
   const allServices = collectServices(
     record.services,
     record.service,
@@ -73,6 +75,7 @@ function mapCompany(company: Company): ProviderRow {
   );
   return {
     id: recordId(company) || String(root.providerId ?? root.companyId ?? ""),
+    actionId: ids[0] ?? "",
     name,
     email: firstText(record, ["email"], firstText(userRecord, ["email"])),
     services: allServices.slice(0, 2),
@@ -97,11 +100,11 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 function CompanyActions({ company, onToast }: { company: ProviderRow; onToast: (message: string) => void }) {
   const action = useCompanyAction();
 
-  async function runAction(nextAction: "approve" | "reject" | "suspend" | "activate") {
+  async function runAction(nextAction: "suspend" | "activate") {
     try {
-      const reason = nextAction === "reject" ? window.prompt("Reason for rejection") ?? undefined : undefined;
-      await action.mutateAsync({ id: company.id, action: nextAction, reason });
-      onToast(`Company ${nextAction}d successfully.`);
+      const reason = nextAction === "suspend" ? window.prompt("Reason for suspension") ?? undefined : undefined;
+      await action.mutateAsync({ id: company.actionId || company.id, action: nextAction, reason });
+      onToast(`Company ${nextAction === "activate" ? "activated" : "suspended"} successfully.`);
     } catch (error) {
       onToast(getErrorMessage(error, `Unable to ${nextAction} company`));
     }
@@ -117,14 +120,6 @@ function CompanyActions({ company, onToast }: { company: ProviderRow; onToast: (
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-white">
-        <DropdownMenuItem onClick={() => runAction("approve")} disabled={action.isPending}>
-          <CheckCircle2 className="h-4 w-4" />
-          Approve Company
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => runAction("reject")} disabled={action.isPending} className="text-red-600">
-          <XCircle className="h-4 w-4" />
-          Reject Company
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => runAction(suspended ? "activate" : "suspend")} disabled={action.isPending}>
           {suspended ? <UserCheck className="h-4 w-4" /> : <UserRoundX className="h-4 w-4" />}
           {suspended ? "Activate Company" : "Suspend Company"}

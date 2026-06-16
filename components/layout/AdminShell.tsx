@@ -11,6 +11,9 @@ import { useUiStore } from "@/store/use-ui-store";
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useUiStore((state) => state.user);
+  const token = useUiStore((state) => state.token);
+  const expiresAt = useUiStore((state) => state.expiresAt);
+  const signOut = useUiStore((state) => state.signOut);
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -20,12 +23,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (hasHydrated && !user) {
+    if (!hasHydrated) return;
+
+    if (!user || !token || !expiresAt || expiresAt <= Date.now()) {
+      if (user || token) signOut();
       router.replace("/sign-in");
     }
-  }, [hasHydrated, router, user]);
+  }, [expiresAt, hasHydrated, router, signOut, token, user]);
 
-  if (!hasHydrated || !user) {
+  if (!hasHydrated || !user || !token) {
     return null;
   }
 

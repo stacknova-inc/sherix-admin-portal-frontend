@@ -1,27 +1,9 @@
-import { api, unwrapArray, unwrapData } from "@/lib/api";
-import type { Company } from "@/types";
+import { serviceProvidersApi, type ServiceProviderAction } from "@/services/service-providers";
 
-export type CompanyAction = "approve" | "reject" | "suspend" | "activate";
+export type CompanyAction = ServiceProviderAction;
 
 export const companiesApi = {
-  async list() {
-    try {
-      const response = await api.get("/users/service-providers");
-      console.log("Fetched companies from /users/service-providers:", response.data);
-      return unwrapArray<Company>(response.data);
-    } catch (error) {
-      console.warn("[Sherix Service Providers] /users/service-providers failed, retrying /companies.", error);
-      const response = await api.get("/companies");
-     
-      return unwrapArray<Company>(response.data);
-    }
-  },
-  async stats() {
-    const response = await api.get("/users/service-providers/stats");
-    return unwrapData<Record<string, unknown>>(response.data);
-  },
-  async action(id: string, action: CompanyAction, payload?: { reason?: string }) {
-    const response = await api.patch(`/companies/${id}/${action}`, payload);
-    return unwrapData<Company>(response.data);
-  },
+  list: () => serviceProvidersApi.list(false),
+  stats: async () => ({} as Record<string, unknown>),
+  action: serviceProvidersApi.action,
 };

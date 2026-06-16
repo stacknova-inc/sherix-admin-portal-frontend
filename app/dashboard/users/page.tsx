@@ -30,7 +30,6 @@ type UserRow = {
   name: string;
   email: string;
   phone: string;
-  type: string;
   status: string;
   initials: string;
   avatarTone: string;
@@ -38,7 +37,6 @@ type UserRow = {
 
 
 function mapUser(user: User): UserRow {
-  console.log("Mapping user:", user);
   const record = user as unknown as Record<string, unknown>;
   const name = firstText(record, ["name", "fullName"], `${firstText(record, ["firstName"], "")} ${firstText(record, ["lastName"], "")}`.trim() || "Unnamed user");
   return {
@@ -46,8 +44,7 @@ function mapUser(user: User): UserRow {
     name,
     email: firstText(record, ["email"]),
     phone: firstText(record, ["phone", "phoneNumber"]),
-    type: firstText(record, ["type", "userType", "role"], "Customer"),
-    status: record.isActive === true ? "Active" : "Suspended",
+    status: activeStatus(record),
     initials: initials(name),
     avatarTone: "bg-slate-900 text-white",
   };
@@ -113,11 +110,6 @@ const userColumns = (onToast: (message: string) => void): ColumnDef<UserRow>[] =
   },
   { accessorKey: "email", header: "Email" },
   { accessorKey: "phone", header: "Phone" },
-  {
-    accessorKey: "type",
-    header: "User Type",
-    cell: ({ row }) => <SoftTag tone={row.original.type === "Service Provider" ? "purple" : "blue"}>{row.original.type}</SoftTag>,
-  },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
   { id: "actions", header: "Actions", cell: ({ row }) => <UserActions user={row.original} onToast={onToast} /> },
 ];
@@ -131,7 +123,7 @@ export default function UsersPage() {
   const filteredRows = React.useMemo(() => {
     const search = query.trim().toLowerCase();
     return rows.filter((row) => {
-      const matchesSearch = !search || [row.name, row.email, row.phone, row.type, row.status].join(" ").toLowerCase().includes(search);
+      const matchesSearch = !search || [row.name, row.email, row.phone, row.status].join(" ").toLowerCase().includes(search);
       const matchesStatus = status === "All Status" || row.status.toLowerCase() === status.toLowerCase();
       return matchesSearch && matchesStatus;
     });
@@ -155,15 +147,13 @@ export default function UsersPage() {
     () => [
       { label: "Total Users", value: String(rows.length), change: "Derived from loaded users", direction: "up", tone: "red", icon: Users },
       { label: "Active Users", value: String(derivedStats.active), change: "Derived from loaded users", direction: "up", tone: "green", icon: UserCheck },
-      { label: "New Users", value: String(derivedStats.newUsers), change: "Created in last 7 days", direction: "up", tone: "blue", icon: UserPlus },
-      { label: "Inactive Users", value: String(derivedStats.inactive), change: "Derived from loaded users", direction: "down", tone: "amber", icon: Clock3 },
       { label: "Suspended Users", value: String(derivedStats.suspended), change: "Derived from loaded users", direction: "down", tone: "purple", icon: UserRoundX },
     ],
     [derivedStats, rows.length],
   );
 
   const exportData = React.useMemo(
-  () => filteredRows.map(({ id, name, email, phone, type, status }) => ({ id, name, email, phone, type, status })),
+  () => filteredRows.map(({ id, name, email, phone,status }) => ({ id, name, email, phone,status })),
   [filteredRows],
 );
 
@@ -179,7 +169,7 @@ export default function UsersPage() {
       <CardShell>
         <ToolbarCard>
           <SearchBox placeholder="Search users by name, email or phone..." value={query} onChange={setQuery} />
-          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Pending", "Suspended"]} value={status} onChange={setStatus} />
+          <FilterSelect placeholder="All Status" values={["All Status", "Active", "Inactive", "Suspended"]} value={status} onChange={setStatus} />
           <div className="flex gap-3">
            
             <ExportButton data={exportData} filename="users" />
