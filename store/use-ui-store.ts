@@ -10,6 +10,7 @@ type UiStore = {
   user: AuthUser | null;
   token: string | null;
   role: string | null;
+  expiresAt: number | null;
   isAuthenticating: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -27,13 +28,14 @@ export const useUiStore = create<UiStore>()(
       user: null,
       token: null,
       role: null,
+      expiresAt: null,
       isAuthenticating: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSession: (session) => {
         persistAuthSession(session);
-        set({ token: session.token, role: session.role, user: session.user, isAuthenticating: false });
+        set({ token: session.token, role: session.role, user: session.user, expiresAt: session.expiresAt, isAuthenticating: false });
       },
       login: async (email, password) => {
         set({ isAuthenticating: true });
@@ -41,11 +43,11 @@ export const useUiStore = create<UiStore>()(
           const session = await authApi.login({ email, password });
           if (session.role !== ADMIN_PORTAL_ROLE) {
             clearAuthSession();
-            set({ user: null, token: null, role: null, isAuthenticating: false, sidebarOpen: false });
+            set({ user: null, token: null, role: null, expiresAt: null, isAuthenticating: false, sidebarOpen: false });
             throw new Error("This portal is only available to Sherix administrators.");
           }
           persistAuthSession(session);
-          set({ token: session.token, role: session.role, user: session.user, isAuthenticating: false });
+          set({ token: session.token, role: session.role, user: session.user, expiresAt: session.expiresAt, isAuthenticating: false });
           return session;
         } catch (error) {
           set({ isAuthenticating: false });
@@ -54,16 +56,29 @@ export const useUiStore = create<UiStore>()(
       },
       signOut: () => {
         clearAuthSession();
-        set({ user: null, token: null, role: null, sidebarOpen: false });
+        set({ user: null, token: null, role: null, expiresAt: null, sidebarOpen: false });
       },
     }),
     {
       name: "sherix-ui",
-      partialize: (state) => ({ user: state.user, token: state.token, role: state.role, sidebarCollapsed: state.sidebarCollapsed }),
+      partialize: (state) => ({ user: state.user, token: state.token, role: state.role, expiresAt: state.expiresAt, sidebarCollapsed: state.sidebarCollapsed }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        const storedExpiresAt =
+          typeof window !== "undefined" ? Number(window.localStorage.getItem("sherix_session_expires_at")) : 0;
+        const expiresAt = (state.expiresAt ?? storedExpiresAt) || (state.token ? Date.now() + 7 * 24 * 60 * 60 * 1000 : 0);
+        if (!expiresAt || expiresAt <= Date.now()) {
+          clearAuthSession();
+          state.user = null;
+          state.token = null;
+          state.role = null;
+          state.expiresAt = null;
+          return;
+        }
+
         if (state.token && state.role && state.user) {
-          persistAuthSession({ token: state.token, role: state.role, user: state.user });
+          state.expiresAt = expiresAt;
+          persistAuthSession({ token: state.token, role: state.role, user: state.user, expiresAt });
         }
       },
     },

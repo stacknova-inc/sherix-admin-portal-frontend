@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { individualMechanicsApi, companyMechanicsApi, type MechanicAction } from "@/services/mechanics";
+import { companyProvidersQueryKey, individualProvidersQueryKey, serviceProvidersQueryKey } from "@/hooks/useServiceProviders";
 
 // ── Individual Mechanics ──────────────────────────────────────────────────────
 
@@ -26,7 +27,11 @@ export function useIndividualMechanicAction() {
   return useMutation({
     mutationFn: ({ id, action, reason }: { id: string; action: MechanicAction; reason?: string }) =>
       individualMechanicsApi.action(id, action, reason ? { reason } : undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: individualMechanicsQueryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: individualProvidersQueryKey });
+      queryClient.invalidateQueries({ queryKey: serviceProvidersQueryKey });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
   });
 }
 
@@ -53,6 +58,11 @@ export function useCompanyMechanicAction() {
   return useMutation({
     mutationFn: ({ id, action, reason }: { id: string; action: MechanicAction; reason?: string }) =>
       companyMechanicsApi.action(id, action, reason ? { reason } : undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: companyMechanicsQueryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: companyProvidersQueryKey });
+      queryClient.invalidateQueries({ queryKey: serviceProvidersQueryKey });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
   });
 }
