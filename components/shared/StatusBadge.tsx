@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 
 const statusClasses: Record<string, string> = {
   Active: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
-  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
   Ongoing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   Completed: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
   Cancelled: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
@@ -29,7 +28,7 @@ export function StatusBadge({ status, className }: { status: string; className?:
   const displayStatus = status.toLowerCase() === "banned" ? "Suspended" : status;
 
   return (
-    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold", statusClasses[displayStatus] ?? statusClasses.Pending, className)}>
+    <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold", statusClasses[displayStatus] ?? statusClasses.Draft, className)}>
       {displayStatus}
     </span>
   );

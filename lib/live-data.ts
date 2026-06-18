@@ -8,6 +8,16 @@ export function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
+export function idText(value: unknown) {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  const record = asRecord(value);
+  return text(record._id ?? record.id, "");
+}
+
+export function uniqueRecordIds(...values: unknown[]) {
+  return Array.from(new Set(values.map(idText).filter(Boolean)));
+}
+
 export function text(value: unknown, fallback = "-") {
   if (value === null || value === undefined || value === "") return fallback;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);

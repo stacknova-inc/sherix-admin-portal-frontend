@@ -1,216 +1,270 @@
+// import { api, assertApiId, unwrapArray, unwrapData } from "@/lib/api";
+
+// import type {
+//   CreateStaffInput,
+//   StaffMember,
+//   StaffRoleDefinition,
+//   StaffStatus,
+//   UpdateStaffInput,
+// } from "@/types";
+
+// export type StaffStatusAction = "suspend" | "activate";
+
+// export const staffRoleDefinitions: StaffRoleDefinition[] = [
+//   { department: "Finance", role: "finance_admin", label: "Finance Admin" },
+//   { department: "Customer Support", role: "support_admin", label: "Support Admin" },
+//   { department: "Operations", role: "operations_admin", label: "Operations Admin" },
+//   { department: "Compliance", role: "compliance_admin", label: "Compliance Admin" },
+//   { department: "Marketing", role: "marketing_admin", label: "Marketing Admin" },
+//   { department: "Technical Support", role: "tech_admin", label: "Technical Support Admin" },
+//   { department: "Human Resources", role: "hr_admin", label: "Human Resources Admin" },
+//   { department: "Business Development", role: "business_admin", label: "Business Development Admin" },
+// ];
+
+// function statusFromRecord(record: Record<string, unknown>): StaffStatus {
+//   if (typeof record.status === "string") {
+//     const status = record.status.toLowerCase();
+//     if (status.includes("suspend")) return "Suspended";
+//     if (status.includes("inactive") || status.includes("disabled")) return "Inactive";
+//     return "Active";
+//   }
+
+//   if (typeof record.isActive === "boolean") return record.isActive ? "Active" : "Suspended";
+//   return "Active";
+// }
+
+// function mapStaff(staff: unknown): StaffMember {
+//   const record = staff && typeof staff === "object" ? (staff as Record<string, unknown>) : {};
+//   const firstName = typeof record.firstName === "string" ? record.firstName : "";
+//   const lastName = typeof record.lastName === "string" ? record.lastName : "";
+//   const fullName =
+//     String(record.name ?? record.fullName ?? `${firstName} ${lastName}`.trim() ?? "").trim() ||
+//     "Unnamed staff";
+
+//   return {
+//     ...(record as unknown as StaffMember),
+//     _id: typeof record._id === "string" ? record._id : undefined,
+//     id: typeof record.id === "string" ? record.id : undefined,
+//     fullName,
+//     name: fullName,
+//     email: String(record.email ?? ""),
+//     phoneNumber: String(record.phoneNumber ?? record.phone ?? ""),
+//     department: String(record.department ?? ""),
+//     role: String(record.role ?? ""),
+//     status: statusFromRecord(record),
+//     isActive: typeof record.isActive === "boolean" ? record.isActive : statusFromRecord(record) === "Active",
+//     lastLogin: typeof record.lastLogin === "string" ? record.lastLogin : undefined,
+//     lastActivityAt:
+//       typeof record.lastActivityAt === "string"
+//         ? record.lastActivityAt
+//         : typeof record.updatedAt === "string"
+//           ? record.updatedAt
+//           : undefined,
+//   };
+// }
+
+// function createPayload(input: CreateStaffInput) {
+//   return {
+//     name: String(input.name ?? input.fullName ?? "").trim(),
+//     email: input.email.trim(),
+//     phoneNumber: input.phoneNumber.trim(),
+//     department: input.department,
+//     role: input.role,
+//     password: input.password,
+//     confirmPassword: input.confirmPassword,
+//   };
+// }
+
+// function updatePayload(input: UpdateStaffInput) {
+//   return {
+//     name: String(input.name ?? input.fullName ?? "").trim(),
+//     email: input.email?.trim(),
+//     phoneNumber: input.phoneNumber.trim(),
+//     department: input.department,
+//     role: input.role,
+//     isActive: input.isActive,
+//   };
+// }
+
+// export const staffApi = {
+//   async list() {
+//     const response = await api.get("/staff");
+//     console.log("Raw staff list response:", response.data);
+//     // Response shape: { data: { staff: [...], pagination: {...} }, message: "...", status: true }
+//     const inner = response.data?.data;
+//     const staffArray: unknown[] = Array.isArray(inner?.staff)
+//       ? inner.staff
+//       : Array.isArray(inner)
+//         ? inner
+//         : [];
+//     return staffArray.map(mapStaff);
+//   },
+
+//   async get(id: string) {
+//     const staffId = assertApiId(id, "Staff");
+//     // ✅ Use staffApi.list() explicitly instead of this.list() to avoid `this` binding issues
+//     const staff = (await staffApi.list()).find(
+//       (member) => member.id === staffId || member._id === staffId,
+//     );
+//     if (!staff) throw new Error("Staff member was not found.");
+//     return staff;
+//   },
+
+//   async create(input: CreateStaffInput) {
+//     const response = await api.post("/staff/create", createPayload(input));
+//     return mapStaff(unwrapData<unknown>(response.data));
+//   },
+
+//   async update(id: string, input: UpdateStaffInput) {
+//     const staffId = assertApiId(id, "Staff");
+//     const response = await api.patch(`/staff/${staffId}`, updatePayload(input));
+//     return mapStaff(unwrapData<unknown>(response.data));
+//   },
+
+//   async setStatus(id: string, action: StaffStatusAction) {
+//     // ✅ Use staffApi.get() and staffApi.update() explicitly instead of this.*
+//     const current = await staffApi.get(id);
+//     return staffApi.update(id, {
+//       name: current.fullName,
+//       email: current.email,
+//       phoneNumber: current.phoneNumber,
+//       department: current.department,
+//       role: current.role,
+//       isActive: action === "activate",
+//     });
+//   },
+// };
+import { api, assertApiId, unwrapArray, unwrapData } from "@/lib/api";
+
 import type {
   CreateStaffInput,
-  StaffAuditAction,
-  StaffAuditLog,
   StaffMember,
-  StaffNotification,
   StaffRoleDefinition,
   StaffStatus,
   UpdateStaffInput,
 } from "@/types";
 
-export type StaffStatusAction = "suspend" | "activate" | "deactivate";
+export type StaffStatusAction = "suspend" | "activate";
 
 export const staffRoleDefinitions: StaffRoleDefinition[] = [
-  { department: "Finance", role: "financeAdmin", label: "Finance Admin" },
-  { department: "Customer Support", role: "supportAdmin", label: "Support Admin" },
-  { department: "Operations", role: "operationsAdmin", label: "Operations Admin" },
-  { department: "Compliance", role: "complianceAdmin", label: "Compliance Admin" },
-  { department: "Marketing", role: "marketingAdmin", label: "Marketing Admin" },
-  { department: "Technical Support", role: "techAdmin", label: "Technical Support Admin" },
-  { department: "Human Resources", role: "hrAdmin", label: "Human Resources Admin" },
-  { department: "Business Development", role: "businessAdmin", label: "Business Development Admin" },
+  { department: "Finance", role: "finance_admin", label: "Finance Admin" },
+  { department: "Customer Support", role: "customer_support_admin", label: "Customer Support Admin" },
+  { department: "Operations", role: "operations_admin", label: "Operations Admin" },
+  { department: "Compliance", role: "compliance_admin", label: "Compliance Admin" },
+  { department: "Marketing", role: "marketing_admin", label: "Marketing Admin" },
+  { department: "Technical Support", role: "technical_support_admin", label: "Technical Support Admin" },
+  { department: "Human Resources", role: "human_resources_admin", label: "Human Resources Admin" },
+  { department: "Business Development", role: "business_development_admin", label: "Business Development Admin" },
 ];
 
-const now = new Date("2026-06-02T18:30:00.000Z");
+function statusFromRecord(record: Record<string, unknown>): StaffStatus {
+  if (typeof record.status === "string") {
+    const status = record.status.toLowerCase();
+    if (status.includes("suspend")) return "Suspended";
+    if (status.includes("inactive") || status.includes("disabled")) return "Inactive";
+    return "Active";
+  }
 
-function daysAgo(days: number) {
-  const value = new Date(now);
-  value.setDate(value.getDate() - days);
-  return value.toISOString();
+  if (typeof record.isActive === "boolean") return record.isActive ? "Active" : "Suspended";
+  return "Active";
 }
 
-function roleForDepartment(department: string) {
-  return staffRoleDefinitions.find((definition) => definition.department === department) ?? staffRoleDefinitions[0];
-}
+function mapStaff(staff: unknown): StaffMember {
+  const record = staff && typeof staff === "object" ? (staff as Record<string, unknown>) : {};
+  const firstName = typeof record.firstName === "string" ? record.firstName : "";
+  const lastName = typeof record.lastName === "string" ? record.lastName : "";
+  const fullName =
+    String(record.name ?? record.fullName ?? `${firstName} ${lastName}`.trim() ?? "").trim() ||
+    "Unnamed staff";
 
-function makeStaff(id: string, fullName: string, email: string, phoneNumber: string, department: string, status: StaffStatus, createdDaysAgo: number, loginDaysAgo?: number): StaffMember {
-  const definition = roleForDepartment(department);
   return {
-    id,
-    _id: id,
+    ...(record as unknown as StaffMember),
+    _id: typeof record._id === "string" ? record._id : undefined,
+    id: typeof record.id === "string" ? record.id : undefined,
     fullName,
-    email,
-    phoneNumber,
-    department,
-    role: definition.role,
-    status,
-    createdAt: daysAgo(createdDaysAgo),
-    updatedAt: daysAgo(Math.max(1, createdDaysAgo - 2)),
-    lastLogin: loginDaysAgo === undefined ? undefined : daysAgo(loginDaysAgo),
-    lastActivityAt: loginDaysAgo === undefined ? daysAgo(createdDaysAgo) : daysAgo(Math.max(0, loginDaysAgo - 1)),
+    name: fullName,
+    email: String(record.email ?? ""),
+    phoneNumber: String(record.phoneNumber ?? record.phone ?? ""),
+    department: String(record.department ?? ""),
+    role: String(record.role ?? ""),
+    status: statusFromRecord(record),
+    isActive: typeof record.isActive === "boolean" ? record.isActive : statusFromRecord(record) === "Active",
+    lastLogin: typeof record.lastLogin === "string" ? record.lastLogin : undefined,
+    lastActivityAt:
+      typeof record.lastActivityAt === "string"
+        ? record.lastActivityAt
+        : typeof record.updatedAt === "string"
+          ? record.updatedAt
+          : undefined,
   };
 }
 
-let staffMembers: StaffMember[] = [
-  makeStaff("staff-001", "Amina Bello", "amina.bello@sherix.com", "+234 801 221 4567", "Finance", "Active", 96, 1),
-  makeStaff("staff-002", "Daniel Mensah", "daniel.mensah@sherix.com", "+233 24 401 2190", "Customer Support", "Active", 81, 0),
-  makeStaff("staff-003", "Nora Okafor", "nora.okafor@sherix.com", "+234 803 902 3341", "Operations", "Suspended", 64, 12),
-  makeStaff("staff-004", "Kwame Boateng", "kwame.boateng@sherix.com", "+233 20 772 8842", "Compliance", "Inactive", 48, 30),
-  makeStaff("staff-005", "Maya Chen", "maya.chen@sherix.com", "+1 415 201 4438", "Marketing", "Pending Invitation", 5),
-  makeStaff("staff-006", "Leo Martins", "leo.martins@sherix.com", "+44 7700 900182", "Technical Support", "Active", 22, 2),
-  makeStaff("staff-007", "Grace Adeyemi", "grace.adeyemi@sherix.com", "+234 805 112 7788", "Human Resources", "Active", 35, 4),
-  makeStaff("staff-008", "Priya Shah", "priya.shah@sherix.com", "+1 646 209 1200", "Business Development", "Active", 17, 3),
-];
-
-let auditLogs: StaffAuditLog[] = [
-  { id: "audit-001", staffId: "staff-003", actionType: "Status changes", performedBy: "Sherix Super Admin", timestamp: daysAgo(2), note: "Nora Okafor was suspended pending review." },
-  { id: "audit-002", staffId: "staff-005", actionType: "Staff creation", performedBy: "Sherix Super Admin", timestamp: daysAgo(5), note: "Maya Chen was invited to Marketing." },
-  { id: "audit-003", staffId: "staff-001", actionType: "Password resets", performedBy: "Sherix Super Admin", timestamp: daysAgo(7), note: "Password reset link sent to Amina Bello." },
-];
-
-let notifications: StaffNotification[] = [
-  { id: "note-001", staffId: "staff-005", type: "Account created", sentTo: "maya.chen@sherix.com", timestamp: daysAgo(5), message: "Staff invitation sent." },
-  { id: "note-002", staffId: "staff-003", type: "Account suspended", sentTo: "nora.okafor@sherix.com", timestamp: daysAgo(2), message: "Account suspension notification sent." },
-];
-
-function cloneStaff(staff: StaffMember) {
-  return { ...staff };
+function createPayload(input: CreateStaffInput) {
+  return {
+    name: String(input.name ?? input.fullName ?? "").trim(),
+    email: input.email.trim(),
+    phoneNumber: input.phoneNumber.trim(),
+    department: input.department,
+    role: input.role,
+    password: input.password,
+    confirmPassword: input.confirmPassword,
+  };
 }
 
-function recordAudit(staffId: string, actionType: StaffAuditAction, note: string) {
-  auditLogs = [
-    {
-      id: `audit-${Date.now()}`,
-      staffId,
-      actionType,
-      performedBy: "Sherix Super Admin",
-      timestamp: new Date().toISOString(),
-      note,
-    },
-    ...auditLogs,
-  ];
-}
-
-function recordNotification(staff: StaffMember, type: StaffNotification["type"], message: string) {
-  notifications = [
-    {
-      id: `note-${Date.now()}`,
-      staffId: staff.id ?? staff._id ?? "",
-      type,
-      sentTo: staff.email,
-      timestamp: new Date().toISOString(),
-      message,
-    },
-    ...notifications,
-  ];
-}
-
-function validateStaff(input: CreateStaffInput) {
-  if (!input.fullName.trim()) throw new Error("Full name is required.");
-  if (!/^\S+@\S+\.\S+$/.test(input.email)) throw new Error("Enter a valid email address.");
-  if (!input.phoneNumber.trim()) throw new Error("Phone number is required.");
-  if (input.password.length < 8) throw new Error("Password must be at least 8 characters.");
-  if (input.password !== input.confirmPassword) throw new Error("Passwords do not match.");
-  if (staffMembers.some((staff) => !staff.deletedAt && staff.email.toLowerCase() === input.email.toLowerCase())) {
-    throw new Error("A staff member with this email already exists.");
-  }
+function updatePayload(input: UpdateStaffInput) {
+  return {
+    name: String(input.name ?? input.fullName ?? "").trim(),
+    email: input.email?.trim(),
+    phoneNumber: input.phoneNumber.trim(),
+    department: input.department,
+    role: input.role,
+    isActive: input.isActive,
+  };
 }
 
 export const staffApi = {
   async list() {
-    return staffMembers.filter((staff) => !staff.deletedAt).map(cloneStaff);
+    const response = await api.get("/staff");
+    console.log("Raw staff list response:", response.data);
+    // Response shape: { data: { staff: [...], pagination: {...} }, message: "...", status: true }
+    const inner = response.data?.data;
+    const staffArray: unknown[] = Array.isArray(inner?.staff)
+      ? inner.staff
+      : Array.isArray(inner)
+        ? inner
+        : [];
+    return staffArray.map(mapStaff);
   },
+
   async get(id: string) {
-    const staff = staffMembers.find((member) => (member.id === id || member._id === id) && !member.deletedAt);
+    const staffId = assertApiId(id, "Staff");
+    const staff = (await staffApi.list()).find(
+      (member) => member.id === staffId || member._id === staffId,
+    );
     if (!staff) throw new Error("Staff member was not found.");
-    return cloneStaff(staff);
+    return staff;
   },
+
   async create(input: CreateStaffInput) {
-    validateStaff(input);
-    const definition = staffRoleDefinitions.find((item) => item.department === input.department && item.role === input.role) ?? roleForDepartment(input.department);
-    const staff: StaffMember = {
-      id: `staff-${Date.now()}`,
-      _id: `staff-${Date.now()}`,
-      fullName: input.fullName.trim(),
-      email: input.email.trim().toLowerCase(),
-      phoneNumber: input.phoneNumber.trim(),
-      department: definition.department,
-      role: definition.role,
-      status: "Pending Invitation",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastActivityAt: new Date().toISOString(),
-    };
-    staffMembers = [staff, ...staffMembers];
-    recordAudit(staff.id ?? "", "Staff creation", `${staff.fullName} was created as ${definition.label}.`);
-    recordNotification(staff, "Account created", "Account invitation sent.");
-    return cloneStaff(staff);
+    const response = await api.post("/staff/create", createPayload(input));
+    return mapStaff(unwrapData<unknown>(response.data));
   },
+
   async update(id: string, input: UpdateStaffInput) {
-    let updated: StaffMember | undefined;
-    staffMembers = staffMembers.map((staff) => {
-      if (staff.id !== id && staff._id !== id) return staff;
-      const previousRole = staff.role;
-      const definition = staffRoleDefinitions.find((item) => item.department === input.department && item.role === input.role) ?? roleForDepartment(input.department);
-      updated = {
-        ...staff,
-        fullName: input.fullName.trim(),
-        phoneNumber: input.phoneNumber.trim(),
-        department: definition.department,
-        role: definition.role,
-        updatedAt: new Date().toISOString(),
-      };
-      if (previousRole !== definition.role) {
-        recordAudit(staff.id ?? "", "Role changes", `${updated.fullName} role changed from ${previousRole} to ${definition.role}.`);
-        recordNotification(updated, "Role changed", "Role change notification sent.");
-      } else {
-        recordAudit(staff.id ?? "", "Staff updates", `${updated.fullName} profile details were updated.`);
-      }
-      return updated;
-    });
-    if (!updated) throw new Error("Staff member was not found.");
-    return cloneStaff(updated);
+    const staffId = assertApiId(id, "Staff");
+    const response = await api.patch(`/staff/${staffId}`, updatePayload(input));
+    return mapStaff(unwrapData<unknown>(response.data));
   },
+
   async setStatus(id: string, action: StaffStatusAction) {
-    const statusByAction: Record<StaffStatusAction, StaffStatus> = {
-      suspend: "Suspended",
-      activate: "Active",
-      deactivate: "Inactive",
-    };
-    let updated: StaffMember | undefined;
-    staffMembers = staffMembers.map((staff) => {
-      if (staff.id !== id && staff._id !== id) return staff;
-      updated = { ...staff, status: statusByAction[action], updatedAt: new Date().toISOString() };
-      recordAudit(staff.id ?? "", "Status changes", `${staff.fullName} status changed to ${updated.status}.`);
-      if (action === "suspend") recordNotification(updated, "Account suspended", "Account suspension notification sent.");
-      if (action === "activate") recordNotification(updated, "Account activated", "Account activation notification sent.");
-      return updated;
+    const current = await staffApi.get(id);
+    return staffApi.update(id, {
+      name: current.fullName,
+      email: current.email,
+      phoneNumber: current.phoneNumber,
+      department: current.department,
+      role: current.role,
+      isActive: action === "activate",
     });
-    if (!updated) throw new Error("Staff member was not found.");
-    return cloneStaff(updated);
-  },
-  async resetPassword(id: string) {
-    const staff = await staffApi.get(id);
-    recordAudit(staff.id ?? "", "Password resets", `Password reset link sent to ${staff.fullName}.`);
-    recordNotification(staff, "Password reset", "Password reset link sent.");
-    return { resetLink: `https://admin.sherix.com/reset-password/${staff.id}`, staff };
-  },
-  async softDelete(id: string) {
-    let deleted: StaffMember | undefined;
-    staffMembers = staffMembers.map((staff) => {
-      if (staff.id !== id && staff._id !== id) return staff;
-      deleted = { ...staff, status: "Inactive", deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-      recordAudit(staff.id ?? "", "Deletions", `${staff.fullName} was soft deleted.`);
-      return deleted;
-    });
-    if (!deleted) throw new Error("Staff member was not found.");
-    return cloneStaff(deleted);
-  },
-  async auditLogs(staffId?: string) {
-    return auditLogs.filter((log) => !staffId || log.staffId === staffId).map((log) => ({ ...log }));
-  },
-  async notifications(staffId?: string) {
-    return notifications.filter((notification) => !staffId || notification.staffId === staffId).map((notification) => ({ ...notification }));
   },
 };

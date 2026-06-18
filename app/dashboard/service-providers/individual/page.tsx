@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
 import {
-  CheckCircle2, Clock3, Loader2, MapPin, MoreVertical,
+  Clock3, Loader2, MapPin, MoreVertical,
   ShieldCheck, UserCheck, UserRoundX, Users, XCircle, Wrench,
 } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
@@ -16,12 +16,13 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, asRecord, firstText, initials, metricChange, metricDirection, metricValue, recordId, text } from "@/lib/live-data";
+import { activeStatus, asRecord, firstText, initials, metricChange, metricDirection, metricValue, recordId, text, uniqueRecordIds } from "@/lib/live-data";
 import { useIndividualMechanics, useIndividualMechanicStats, useIndividualMechanicAction } from "@/hooks/useMechanics";
 import type { Company } from "@/types";
 
 type MechanicRow = {
   id: string;
+  actionId: string;
   name: string;
   email: string;
   services: string[];
@@ -53,6 +54,7 @@ function mapMechanic(item: Company): MechanicRow {
   const nested = asRecord(root.mechanic ?? root.provider ?? root.serviceProvider ?? root.user);
   const record = { ...root, ...nested };
   const name = firstText(record, ["name", "fullName", "firstName"], text(nested, "Unnamed mechanic"));
+  const ids = uniqueRecordIds(root.userId, root.mechanicId, root.providerId, root.user, nested, item);
   const allServices = collectServices(
     record.services, record.service, record.serviceOffered,
     record.serviceCategories, record.specializations, record.skills,
@@ -60,6 +62,7 @@ function mapMechanic(item: Company): MechanicRow {
   );
   return {
     id: recordId(item) || String(root.providerId ?? root.mechanicId ?? root.userId ?? ""),
+    actionId: ids[0] ?? "",
     name,
     email: firstText(record, ["email"]),
     services: allServices.slice(0, 2),
@@ -83,11 +86,11 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 function MechanicActions({ mechanic, onToast }: { mechanic: MechanicRow; onToast: (msg: string) => void }) {
   const action = useIndividualMechanicAction();
 
-  async function runAction(nextAction: "approve" | "reject" | "suspend" | "activate") {
+  async function runAction(nextAction: "suspend" | "activate") {
     try {
-      const reason = nextAction === "reject" ? window.prompt("Reason for rejection") ?? undefined : undefined;
-      await action.mutateAsync({ id: mechanic.id, action: nextAction, reason });
-      onToast(`Mechanic ${nextAction}d successfully.`);
+      const reason = nextAction === "suspend" ? window.prompt("Reason for suspension") ?? undefined : undefined;
+      await action.mutateAsync({ id: mechanic.actionId || mechanic.id, action: nextAction, reason });
+      onToast(`Mechanic ${nextAction === "activate" ? "activated" : "suspended"} successfully.`);
     } catch (error) {
       onToast(getErrorMessage(error, `Unable to ${nextAction} mechanic`));
     }
@@ -103,12 +106,6 @@ function MechanicActions({ mechanic, onToast }: { mechanic: MechanicRow; onToast
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-white">
-        <DropdownMenuItem onClick={() => runAction("approve")} disabled={action.isPending}>
-          <CheckCircle2 className="h-4 w-4" /> Approve Mechanic
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => runAction("reject")} disabled={action.isPending} className="text-red-600">
-          <XCircle className="h-4 w-4" /> Reject Mechanic
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => runAction(suspended ? "activate" : "suspend")} disabled={action.isPending}>
           {suspended ? <UserCheck className="h-4 w-4" /> : <UserRoundX className="h-4 w-4" />}
           {suspended ? "Activate Mechanic" : "Suspend Mechanic"}

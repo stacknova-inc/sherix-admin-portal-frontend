@@ -107,6 +107,22 @@ export interface Company extends ApiTimestamped {
   status?: string;
   verificationStatus?: string;
   isActive?: boolean;
+  isEmployee?: boolean;
+}
+
+export interface ServiceProvider extends Company {
+  user?: unknown;
+  provider?: unknown;
+  serviceProvider?: unknown;
+  company?: unknown;
+  business?: unknown;
+  owner?: unknown;
+  admin?: unknown;
+  userId?: string;
+  providerId?: string;
+  serviceProviderId?: string;
+  companyId?: string;
+  mechanicId?: string;
 }
 
 export interface User extends ApiTimestamped {
@@ -121,6 +137,23 @@ export interface User extends ApiTimestamped {
   userType?: string;
   status?: string;
   isActive?: boolean;
+}
+
+export interface AdminNotification extends ApiTimestamped {
+  title?: string;
+  message?: string;
+  description?: string;
+  type?: string;
+  channel?: string;
+  channels?: string[];
+  audience?: string;
+  recipient?: unknown;
+  recipients?: unknown[];
+  sentTo?: string | number;
+  status?: string;
+  createdAt?: string;
+  sentAt?: string;
+  updatedAt?: string;
 }
 
 export interface DashboardSummary {
@@ -167,7 +200,7 @@ export interface Transaction extends ApiTimestamped {
   status?: string;
 }
 
-export type StaffStatus = "Active" | "Suspended" | "Inactive" | "Pending Invitation";
+export type StaffStatus = "Active" | "Suspended" | "Inactive";
 
 export interface StaffRoleDefinition {
   department: string;
@@ -177,18 +210,21 @@ export interface StaffRoleDefinition {
 
 export interface StaffMember extends ApiTimestamped {
   fullName: string;
+  name?: string;
   email: string;
   phoneNumber: string;
   department: string;
   role: string;
   status: StaffStatus;
+  isActive?: boolean;
   lastLogin?: string;
   lastActivityAt?: string;
   deletedAt?: string;
 }
 
 export interface CreateStaffInput {
-  fullName: string;
+  fullName?: string;
+  name?: string;
   email: string;
   phoneNumber: string;
   department: string;
@@ -198,10 +234,13 @@ export interface CreateStaffInput {
 }
 
 export interface UpdateStaffInput {
-  fullName: string;
+  fullName?: string;
+  name?: string;
+  email?: string;
   phoneNumber: string;
   department: string;
   role: string;
+  isActive?: boolean;
 }
 
 export type StaffAuditAction =
