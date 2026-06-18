@@ -85,56 +85,10 @@ export function StaffDetailsPage() {
           </div>
         </CardShell>
 
-        <CardShell className="p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Clock3 className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-black">Activity Information</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <InfoRow label="Account Created" value={dateTime(staff.createdAt)} />
-            <InfoRow label="Last Login" value={dateTime(staff.lastLogin)} />
-            <InfoRow label="Last Activity" value={dateTime(staff.lastActivityAt)} />
-          </div>
-        </CardShell>
+        
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <CardShell className="p-4">
-          <h2 className="text-sm font-black">Audit Logging</h2>
-          <div className="mt-3 grid gap-2">
-            {(auditQuery.data ?? []).map((event) => (
-              <div key={event.id} className="rounded-xl border bg-card p-3 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-black">{event.actionType}</p>
-                  <span className="text-muted-foreground">{dateTime(event.timestamp)}</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">{event.note}</p>
-                <p className="mt-2 font-semibold">Performed by {event.performedBy}</p>
-              </div>
-            ))}
-            {!auditQuery.data?.length && <p className="rounded-xl border p-4 text-sm font-semibold text-muted-foreground">No staff-specific audit events yet.</p>}
-          </div>
-        </CardShell>
-        <CardShell className="p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-black">Notifications</h2>
-          </div>
-          <div className="grid gap-2">
-            {(notificationsQuery.data ?? []).map((notification) => (
-              <div key={notification.id} className="rounded-xl border bg-card p-3 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-black">{notification.type}</p>
-                  <span className="text-muted-foreground">{dateTime(notification.timestamp)}</span>
-                </div>
-                <p className="mt-1 text-muted-foreground">{notification.message}</p>
-                <p className="mt-2 font-semibold">Sent to {notification.sentTo}</p>
-              </div>
-            ))}
-            {!notificationsQuery.data?.length && <p className="rounded-xl border p-4 text-sm font-semibold text-muted-foreground">No notifications recorded for this staff member.</p>}
-          </div>
-        </CardShell>
-      </div>
+      
     </div>
   );
 }
