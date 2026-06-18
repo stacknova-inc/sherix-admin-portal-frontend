@@ -9,6 +9,7 @@ export type AuditEvent = {
   actionType: string;
   timestamp?: string;
   note?: string;
+  performedBy?: string;
 };
 
 export const staffQueryKey = ["staff"] as const;

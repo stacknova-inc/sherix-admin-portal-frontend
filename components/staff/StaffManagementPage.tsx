@@ -681,14 +681,7 @@ export function StaffManagementPage() {
         tone: "red",
         icon: ShieldAlert,
       },
-      {
-        label: "Audit Events",
-        value: String(auditQuery.data?.length ?? 0),
-        change: "Tracked actions",
-        direction: "up",
-        tone: "teal",
-        icon: CheckCircle2,
-      },
+      
     ],
     [auditQuery.data?.length, staff],
   );
