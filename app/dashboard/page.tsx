@@ -3,12 +3,9 @@
 import { Briefcase, ClipboardCheck, DollarSign, ShieldCheck, Users } from "lucide-react";
 import { JobStatusDonut } from "@/components/dashboard/JobStatusDonut";
 import { JobsOverviewChart } from "@/components/dashboard/JobsOverviewChart";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { RecentRequests } from "@/components/dashboard/RecentRequests";
 import { RevenueOverview } from "@/components/dashboard/RevenueOverview";
-import { ServiceProviderVerification } from "@/components/dashboard/ServiceProviderVerification";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { SystemStatus } from "@/components/dashboard/SystemStatus";
 import { TopServices } from "@/components/dashboard/TopServices";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useAuditStats } from "@/hooks/useAudit";
@@ -16,6 +13,7 @@ import { useBookingStats, useBookings } from "@/hooks/useBookings";
 import { useCompanyStats } from "@/hooks/useCompanies";
 import { useDashboardAnalytics, useDashboardSummary } from "@/hooks/useDashboard";
 import { useFinancialEarnings } from "@/hooks/useFinancial";
+import { useCompanyMechanics, useIndividualMechanics } from "@/hooks/useMechanics";
 import { useUsers } from "@/hooks/useUsers";
 import { activeStatus, asRecord, firstText, metricChange, metricValue, money, text, timeText } from "@/lib/live-data";
 
@@ -38,14 +36,27 @@ export default function DashboardPage() {
   const companyStatsQuery = useCompanyStats();
   const earningsQuery = useFinancialEarnings();
   const auditStatsQuery = useAuditStats();
+  const individualProvidersQuery = useIndividualMechanics();
+  const companyProvidersQuery = useCompanyMechanics();
   const summary = asRecord(summaryQuery.data);
   const analytics = asRecord(analyticsQuery.data);
   const bookingStats = asRecord(bookingStatsQuery.data);
   const companyStats = asRecord(companyStatsQuery.data);
   const earnings = asRecord(earningsQuery.data);
+  const individualProvidersCount = individualProvidersQuery.data?.length ?? 0;
+  const companyProvidersCount = companyProvidersQuery.data?.length ?? 0;
+  const totalServiceProviders = individualProvidersCount + companyProvidersCount;
   const cards = [
     { label: "Total Users", value: usersQuery.data?.length !== undefined ? String(usersQuery.data.length) : metricValue(summary, ["totalUsers", "users"]), change: usersQuery.data ? "Derived from loaded users" : "Live backend data", icon: Users, tone: "red" },
-    { label: "Service Providers", value: metricValue(companyStats, ["totalProviders", "serviceProviders", "totalCompanies", "total"], metricValue(summary, ["serviceProviders", "totalProviders", "providers"])), change: metricChange(companyStats, ["totalProviders", "serviceProviders", "totalCompanies", "total"]), icon: ShieldCheck, tone: "red" },
+    {
+      label: "Service Providers",
+      value: individualProvidersQuery.data || companyProvidersQuery.data
+        ? String(totalServiceProviders)
+        : metricValue(companyStats, ["totalProviders", "serviceProviders", "totalCompanies", "total"], metricValue(summary, ["serviceProviders", "totalProviders", "providers"])),
+      change: `${individualProvidersCount} individual • ${companyProvidersCount} company`,
+      icon: ShieldCheck,
+      tone: "red",
+    },
     { label: "Total Jobs", value: metricValue(bookingStats, ["totalRequests", "totalBookings", "total"], metricValue(summary, ["totalJobs", "jobs", "bookings"])), change: metricChange(bookingStats, ["totalRequests", "totalBookings", "total"]), icon: Briefcase, tone: "blue" },
     { label: "Total Revenue", value: money(earnings.totalEarnings ?? earnings.total ?? summary.totalRevenue ?? summary.revenue), change: metricChange(earnings, ["totalEarnings", "total", "revenue"]), icon: DollarSign, tone: "amber" },
     { label: "Completed Jobs", value: metricValue(bookingStats, ["completedJobs", "completed"], metricValue(summary, ["completedJobs", "completed"])), change: metricChange(bookingStats, ["completedJobs", "completed"]), icon: ClipboardCheck, tone: "green" },
@@ -54,10 +65,11 @@ export default function DashboardPage() {
   const inProgressJobs = numericMetric(bookingStats, ["inProgress", "ongoing"]);
   const cancelledJobs = numericMetric(bookingStats, ["cancelledJobs", "cancelled"]);
   const pendingJobs = numericMetric(bookingStats, ["pendingRequests", "pending"]);
+  const expiredJobs = numericMetric(bookingStats, ["expiredJobs", "expired"]);
   const totalJobs = numericMetric(bookingStats, ["totalRequests", "totalBookings", "total"]) || (bookingsQuery.data?.length ?? 0);
   const jobsOverview = ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : Array.isArray(analytics.jobs) ? analytics.jobs : []) as Array<Record<string, string | number>>).length
     ? ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : analytics.jobs) as Array<Record<string, string | number>>)
-    : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs }];
+    : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs, expired: expiredJobs }];
   const revenueOverview = (Array.isArray(analytics.revenueOverview) ? analytics.revenueOverview : Array.isArray(analytics.revenue) ? analytics.revenue : []) as Array<Record<string, string | number>>;
   const statusData = (Array.isArray(analytics.jobStatus) ? analytics.jobStatus : Array.isArray(summary.jobStatus) ? summary.jobStatus : []) as Array<{ name: string; value: number; percent?: string; color?: string }>;
   const liveStatusData: Array<{ name: string; value: number; percent?: string; color?: string }> = statusData.length
@@ -66,6 +78,7 @@ export default function DashboardPage() {
         { name: "Completed", value: completedJobs, color: "#16A34A" },
         { name: "In Progress", value: inProgressJobs, color: "#2563EB" },
         { name: "Pending", value: pendingJobs, color: "#F59E0B" },
+        { name: "Expired", value: expiredJobs, color: "#F97316" },
         { name: "Cancelled", value: cancelledJobs, color: "#DC2626" },
       ].filter((item) => item.value > 0);
   const jobStatus = liveStatusData.map((item, index) => {
@@ -74,7 +87,7 @@ export default function DashboardPage() {
       name: item.name,
       value,
       percent: item.percent ?? (totalJobs ? `${((value / totalJobs) * 100).toFixed(1)}%` : "0%"),
-      color: item.color ?? ["#16A34A", "#2563EB", "#F59E0B", "#DC2626"][index % 4],
+      color: item.color ?? ["#16A34A", "#2563EB", "#F59E0B", "#F97316", "#DC2626"][index % 5],
     };
   });
   const recentBookings = (bookingsQuery.data ?? []).slice(0, 5).map((booking, index) => {
@@ -123,29 +136,12 @@ export default function DashboardPage() {
         </div>
         <RecentRequests requests={recentRequests} />
       </section>
-      <section className="grid gap-3 rounded-xl border bg-card p-4 text-sm sm:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground">Completion Rate</p>
-          <p className="mt-1 text-lg font-black">{totalJobs ? `${((completedJobs / totalJobs) * 100).toFixed(1)}%` : "0%"}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground">Open Workload</p>
-          <p className="mt-1 text-lg font-black">{pendingJobs + inProgressJobs} active requests</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground">Cancellation Share</p>
-          <p className="mt-1 text-lg font-black">{totalJobs ? `${((cancelledJobs / totalJobs) * 100).toFixed(1)}%` : "0%"}</p>
-        </div>
-      </section>
+      
       <section className="grid gap-4 xl:grid-cols-[minmax(260px,0.7fr)_minmax(0,1.1fr)_minmax(260px,0.8fr)]">
-        <ServiceProviderVerification />
         <RevenueOverview data={revenueOverview} total={money(summary.totalRevenue ?? summary.revenue)} />
         <TopServices services={topServices} />
       </section>
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
-        <RecentActivity />
-        <SystemStatus />
-      </section>
+      
     </div>
   );
 }

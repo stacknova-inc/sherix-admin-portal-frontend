@@ -23,8 +23,8 @@ export function DataTableWrapper<TData>({
 }) {
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
-      <Table style={{ minWidth }}>
-        <TableHeader>
+      <Table style={{ minWidth }} containerClassName="max-h-[60vh]">
+        <TableHeader className="sticky top-0 z-10 bg-card">
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
