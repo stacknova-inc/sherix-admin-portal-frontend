@@ -65,11 +65,10 @@ export default function DashboardPage() {
   const inProgressJobs = numericMetric(bookingStats, ["inProgress", "ongoing"]);
   const cancelledJobs = numericMetric(bookingStats, ["cancelledJobs", "cancelled"]);
   const pendingJobs = numericMetric(bookingStats, ["pendingRequests", "pending"]);
-  const expiredJobs = numericMetric(bookingStats, ["expiredJobs", "expired"]);
   const totalJobs = numericMetric(bookingStats, ["totalRequests", "totalBookings", "total"]) || (bookingsQuery.data?.length ?? 0);
   const jobsOverview = ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : Array.isArray(analytics.jobs) ? analytics.jobs : []) as Array<Record<string, string | number>>).length
     ? ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : analytics.jobs) as Array<Record<string, string | number>>)
-    : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs, expired: expiredJobs }];
+    : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs}];
   const revenueOverview = (Array.isArray(analytics.revenueOverview) ? analytics.revenueOverview : Array.isArray(analytics.revenue) ? analytics.revenue : []) as Array<Record<string, string | number>>;
   const statusData = (Array.isArray(analytics.jobStatus) ? analytics.jobStatus : Array.isArray(summary.jobStatus) ? summary.jobStatus : []) as Array<{ name: string; value: number; percent?: string; color?: string }>;
   const liveStatusData: Array<{ name: string; value: number; percent?: string; color?: string }> = statusData.length
@@ -78,7 +77,6 @@ export default function DashboardPage() {
         { name: "Completed", value: completedJobs, color: "#16A34A" },
         { name: "In Progress", value: inProgressJobs, color: "#2563EB" },
         { name: "Pending", value: pendingJobs, color: "#F59E0B" },
-        { name: "Expired", value: expiredJobs, color: "#F97316" },
         { name: "Cancelled", value: cancelledJobs, color: "#DC2626" },
       ].filter((item) => item.value > 0);
   const jobStatus = liveStatusData.map((item, index) => {

@@ -1,7 +1,7 @@
 import { CardShell } from "@/components/shared/CardShell";
-import { topServices } from "@/lib/mock-data";
 
-export function TopServices({ services = topServices }: { services?: Array<{ name: string; count: string; percent: number }> }) {
+
+export function TopServices({ services = [] }: { services?: Array<{ name: string; count: string; percent: number }> }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <h2 className="mb-4 text-base font-black tracking-normal">Top Services</h2>

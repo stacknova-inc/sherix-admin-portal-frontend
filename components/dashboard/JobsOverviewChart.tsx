@@ -3,9 +3,9 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CardShell } from "@/components/shared/CardShell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { jobsOverview } from "@/lib/mock-data";
 
-export function JobsOverviewChart({ data = jobsOverview }: { data?: Array<Record<string, string | number>> }) {
+
+export function JobsOverviewChart({ data }: { data?: Array<Record<string, string | number>> }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -13,15 +13,7 @@ export function JobsOverviewChart({ data = jobsOverview }: { data?: Array<Record
           <h2 className="text-base font-black tracking-normal">Jobs Overview</h2>
           <p className="text-xs text-muted-foreground">Completed, in progress, expired, and cancelled jobs</p>
         </div>
-        <Select defaultValue="week">
-          <SelectTrigger className="w-32" aria-label="Jobs overview date range">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-          </SelectContent>
-        </Select>
+        
       </div>
       <div className="h-[260px]">
         <ResponsiveContainer width="100%" height="100%">

@@ -1,7 +1,6 @@
 import { api, unwrapData } from "@/lib/api";
 
 export const ADMIN_PORTAL_ROLE = "sherix_admin";
-export const DEVICE_ID = "1234";
 
 export interface AuthUser {
   _id?: string;
@@ -19,28 +18,44 @@ export interface LoginInput {
   password: string;
 }
 
-export interface AuthSession {
-  token: string;
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAt: number;
+  refreshTokenExpiresAt: number;
+}
+
+export interface AuthSession extends AuthTokens {
   role: string;
   user: AuthUser;
-  expiresAt: number;
 }
+
+const DEFAULT_ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
-function pickToken(payload: Record<string, unknown>) {
-  return (
-    payload.token ??
-    payload.accessToken ??
-    payload.access_token ??
-    payload.jwt ??
-    payload.access ??
-    asRecord(payload.auth).token ??
-    asRecord(payload.session).token ??
-    asRecord(payload.tokens).accessToken
-  );
+/**
+ * Backend returns durations as strings like "24h" / "30d" rather than absolute
+ * timestamps, so expiry has to be computed client-side from the duration it gives us
+ * (instead of being invented outright, as the previous implementation did).
+ */
+function parseDurationMs(value: unknown, fallbackMs: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value * 1000; // numeric durations follow the JWT `expiresIn`-seconds convention
+  }
+  if (typeof value === "string") {
+    const match = value.trim().match(/^(\d+)\s*(ms|s|m|h|d)$/i);
+    if (match) {
+      const amount = Number(match[1]);
+      const unitMs = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2].toLowerCase() as "ms" | "s" | "m" | "h" | "d"];
+      return amount * unitMs;
+    }
+  }
+  console.warn("[Sherix Auth] Unable to parse token duration, using fallback", { value, fallbackMs });
+  return fallbackMs;
 }
 
 function pickUser(payload: Record<string, unknown>) {
@@ -57,39 +72,31 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function persistAuthSession(session: AuthSession) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem("sherix_admin_token", session.token);
-  window.localStorage.setItem("SHERIX_ADMIN_AT", session.token);
-  window.localStorage.setItem("sherix_role", session.role);
-  window.localStorage.setItem("sherix_session_expires_at", String(session.expiresAt));
-  window.localStorage.setItem("sherix_device_id", DEVICE_ID);
-}
+/**
+ * Shared by login and refresh: builds the token bundle from the backend's
+ * { access_token, refresh_token, access_token_expires_in, refresh_token_expires_in } contract.
+ * `previous` lets a refresh response that omits `refresh_token` (rotation behavior is
+ * unconfirmed against the live backend) fall back to the refresh token already on hand
+ * instead of silently dropping the session.
+ */
+function buildTokens(payload: Record<string, unknown>, previous?: AuthTokens): AuthTokens {
+  const now = Date.now();
+  const accessToken = String(payload.access_token ?? payload.accessToken ?? "");
+  const refreshToken = String(payload.refresh_token ?? payload.refreshToken ?? previous?.refreshToken ?? "");
 
-export function clearAuthSession() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem("sherix_admin_token");
-  window.localStorage.removeItem("SHERIX_ADMIN_AT");
-  window.localStorage.removeItem("sherix_role");
-  window.localStorage.removeItem("sherix_session_expires_at");
-  window.sessionStorage.removeItem("sherix_admin_token");
-  window.sessionStorage.removeItem("SHERIX_ADMIN_AT");
+  return {
+    accessToken,
+    refreshToken,
+    accessTokenExpiresAt: now + parseDurationMs(payload.access_token_expires_in ?? payload.accessTokenExpiresIn, DEFAULT_ACCESS_TOKEN_TTL_MS),
+    refreshTokenExpiresAt: now + parseDurationMs(payload.refresh_token_expires_in ?? payload.refreshTokenExpiresIn, DEFAULT_REFRESH_TOKEN_TTL_MS),
+  };
 }
 
 export const authApi = {
   async login(input: LoginInput): Promise<AuthSession> {
-    const response = await api.post(
-      "/auth/login",
-      input,
-      {
-        headers: {
-          "x-device-id": DEVICE_ID,
-        },
-      },
-    );
-
+    const response = await api.post("/auth/login", input, { skipAuthRefresh: true });
     const payload = asRecord(unwrapData<unknown>(response.data));
-    const token = pickToken(payload);
+    const tokens = buildTokens(payload);
     const rawUser = pickUser(payload);
     const role = String(rawUser.role ?? payload.role ?? "");
     const email = String(rawUser.email ?? input.email);
@@ -102,18 +109,19 @@ export const authApi = {
     );
     const name = fullName || email.split("@")[0] || "Admin";
 
-    if (typeof token !== "string" || !token) {
+    if (!tokens.accessToken) {
       throw new Error("Login succeeded but no access token was returned.");
     }
-
+    if (!tokens.refreshToken) {
+      throw new Error("Login succeeded but no refresh token was returned.");
+    }
     if (!role) {
       throw new Error("Login succeeded but no user role was returned.");
     }
 
     return {
-      token,
+      ...tokens,
       role,
-      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       user: {
         ...rawUser,
         email,
@@ -123,5 +131,21 @@ export const authApi = {
         initials: String(rawUser.initials ?? initials(name)),
       } as AuthUser,
     };
+  },
+
+  async refresh(refreshToken: string, previous: AuthTokens): Promise<AuthTokens> {
+    const response = await api.post(
+      "/auth/refresh-tokens",
+      { refresh_token: refreshToken },
+      { skipAuthRefresh: true },
+    );
+    const payload = asRecord(unwrapData<unknown>(response.data));
+    const tokens = buildTokens(payload, previous);
+
+    if (!tokens.accessToken) {
+      throw new Error("Refresh succeeded but no access token was returned.");
+    }
+
+    return tokens;
   },
 };

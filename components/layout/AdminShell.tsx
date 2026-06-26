@@ -11,8 +11,8 @@ import { useUiStore } from "@/store/use-ui-store";
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useUiStore((state) => state.user);
-  const token = useUiStore((state) => state.token);
-  const expiresAt = useUiStore((state) => state.expiresAt);
+  const refreshToken = useUiStore((state) => state.refreshToken);
+  const refreshTokenExpiresAt = useUiStore((state) => state.refreshTokenExpiresAt);
   const signOut = useUiStore((state) => state.signOut);
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -25,13 +25,17 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!user || !token || !expiresAt || expiresAt <= Date.now()) {
-      if (user || token) signOut();
+    // Only the refresh token's expiry determines whether the session is still alive —
+    // the access token is allowed to be stale here; the Axios interceptor renews it
+    // transparently on the first 401 a page triggers.
+    const sessionValid = Boolean(user && refreshToken && refreshTokenExpiresAt && refreshTokenExpiresAt > Date.now());
+    if (!sessionValid) {
+      if (user || refreshToken) signOut();
       router.replace("/sign-in");
     }
-  }, [expiresAt, hasHydrated, router, signOut, token, user]);
+  }, [hasHydrated, refreshToken, refreshTokenExpiresAt, router, signOut, user]);
 
-  if (!hasHydrated || !user || !token) {
+  if (!hasHydrated || !user || !refreshToken) {
     return null;
   }
 

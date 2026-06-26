@@ -399,8 +399,6 @@ export default function NotificationsPage() {
     () => [
       { label: "Total Notifications", value: String(rows.length), change: "Loaded from backend", direction: "up", tone: "red", icon: Bell },
       { label: "Sent", value: String(rows.filter((row) => row.status.toLowerCase().includes("sent")).length), change: "Loaded from backend", direction: "up", tone: "green", icon: Bell },
-      { label: "Scheduled", value: String(rows.filter((row) => row.status.toLowerCase().includes("scheduled")).length), change: "Loaded from backend", direction: "up", tone: "amber", icon: Bell },
-      { label: "Drafts", value: String(rows.filter((row) => row.status.toLowerCase().includes("draft")).length), change: "Loaded from backend", direction: "down", tone: "slate", icon: FileText },
       { label: "Channels", value: String(new Set(rows.flatMap((row) => row.channels)).size), change: "Derived from backend", direction: "up", tone: "blue", icon: Upload },
     ],
     [rows],
@@ -418,7 +416,6 @@ export default function NotificationsPage() {
           <ToolbarCard>
             <SearchBox placeholder="Search by title, type, audience or template..." value={query} onChange={setQuery} />
             <FilterSelect placeholder="All Channels" values={["All Channels", "Email", "SMS", "Push"]} value={channel} onChange={setChannel} />
-            <FilterSelect placeholder="All Status" values={["All Status", "Sent", "Scheduled", "Draft"]} value={status} onChange={setStatus} />
             <Button onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4" />
               Create Notification

@@ -54,7 +54,7 @@ const bookingColumns: ColumnDef<BookingRow>[] = [
 export default function JobsPage() {
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All Statuses");
-  const bookingsQuery = useBookings();
+  const bookingsQuery = useBookings({ limit: 100 });
   const statsQuery = useBookingStats();
   const rows = React.useMemo(() => (bookingsQuery.data ?? []).map(mapBooking), [bookingsQuery.data]);
   const filteredRows = React.useMemo(() => {
@@ -70,7 +70,9 @@ export default function JobsPage() {
     { label: "Total Requests", value: metricValue(stats, ["totalRequests", "totalBookings", "total"], String(rows.length)), change: metricChange(stats, ["totalRequests", "totalBookings", "total"]), direction: metricDirection(stats, ["totalRequests", "totalBookings", "total"]), tone: "blue", icon: Briefcase },
     { label: "Pending Requests", value: metricValue(stats, ["pendingRequests", "pending"]), change: metricChange(stats, ["pendingRequests", "pending"]), direction: metricDirection(stats, ["pendingRequests", "pending"], "down"), tone: "amber", icon: Clock3 },
     { label: "Completed Jobs", value: metricValue(stats, ["completedJobs", "completed"]), change: metricChange(stats, ["completedJobs", "completed"]), direction: metricDirection(stats, ["completedJobs", "completed"]), tone: "green", icon: CheckCircle2 },
-    { label: "Expired Jobs", value: metricValue(stats, ["expiredJobs", "expired"], String(rows.filter((row) => row.status.toLowerCase() === "expired").length)), change: metricChange(stats, ["expiredJobs", "expired"]), direction: metricDirection(stats, ["expiredJobs", "expired"], "down"), tone: "purple", icon: CalendarX },
+    { label: "InProgress Jobs", value: metricValue(stats, ["inProgressJobs", "inProgress"], String(rows.filter((row) => row.status.toLowerCase() === "in progress").length)), change: metricChange(stats, ["inProgressJobs", "inProgress"]), direction: metricDirection(stats, ["inProgressJobs", "inProgress"], "down"), tone: "purple", icon: CalendarX },
+      { label: "Expired Jobs", value: metricValue(stats, ["expiredJobs", "expired"], String(rows.filter((row) => row.status.toLowerCase() === "expired").length)), change: metricChange(stats, ["expiredJobs", "expired"]), direction: metricDirection(stats, ["expiredJobs", "expired"], "down"), tone: "red", icon: CalendarX },
+
   ];
 
   const exportData = React.useMemo(

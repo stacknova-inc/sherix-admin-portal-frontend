@@ -1,6 +1,16 @@
 import axios, { AxiosError } from "axios";
+import { useUiStore } from "@/store/use-ui-store";
 
-const DEFAULT_DEVICE_ID = "1234";
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    /** Set once a request has already been retried after a token refresh, to stop retry loops. */
+    _retry?: boolean;
+    /** Set on auth endpoints (login, refresh) so a 401 from them never triggers another refresh attempt. */
+    skipAuthRefresh?: boolean;
+  }
+}
+
+const DEVICE_ID = "1234";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??
@@ -14,30 +24,6 @@ function getApiBaseUrl() {
     window.localStorage.getItem("sherix_api_base_url") ??
     "/api/backend"
   );
-}
-
-function getStoredToken() {
-  if (typeof window === "undefined") return undefined;
-
-  const directToken =
-    window.localStorage.getItem("sherix_admin_token") ??
-    window.localStorage.getItem("SHERIX_ADMIN_AT") ??
-    window.sessionStorage.getItem("sherix_admin_token") ??
-    window.sessionStorage.getItem("SHERIX_ADMIN_AT");
-
-  if (directToken) return directToken;
-
-  try {
-    const persisted = window.localStorage.getItem("sherix-ui");
-    const parsed = persisted ? JSON.parse(persisted) : null;
-    return (
-      parsed?.state?.token ??
-      parsed?.state?.accessToken ??
-      parsed?.state?.user?.token
-    );
-  } catch {
-    return undefined;
-  }
 }
 
 export const api = axios.create({
@@ -101,30 +87,59 @@ api.interceptors.request.use((config) => {
     );
   }
 
-  const token = getStoredToken();
-  const deviceId =
-    typeof window !== "undefined"
-      ? (window.localStorage.getItem("sherix_device_id") ??
-        window.localStorage.getItem("x-device-id") ??
-        DEFAULT_DEVICE_ID)
-      : DEFAULT_DEVICE_ID;
+  // useUiStore (persisted via Zustand) is the single source of truth for the access token —
+  // there is no separate localStorage key to fall out of sync with.
+  const { accessToken } = useUiStore.getState();
 
   config.baseURL = baseURL.replace(/\/+$/, "");
-  config.headers.set("x-device-id", deviceId);
-  if (token)
-    config.headers.set(
-      "Authorization",
-      `Bearer ${token.replace(/^Bearer\s+/i, "")}`,
-    );
+  config.headers.set("x-device-id", DEVICE_ID);
+  if (accessToken) {
+    config.headers.set("Authorization", `Bearer ${accessToken}`);
+  }
 
   return config;
 });
 
+function redirectToSignIn() {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname.startsWith("/sign-in")) return;
+  window.location.assign("/sign-in");
+}
+
+// Ensures concurrent 401s triggered by parallel requests share a single in-flight
+// refresh call instead of each firing their own POST /auth/refresh-tokens.
+let refreshPromise: Promise<string> | null = null;
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error: AxiosError) => {
     logApiError(error);
-    return Promise.reject(error);
+
+    const config = error.config;
+    const status = error.response?.status;
+
+    if (status !== 401 || !config || config.skipAuthRefresh || config._retry) {
+      return Promise.reject(error);
+    }
+
+    config._retry = true;
+
+    try {
+      if (!refreshPromise) {
+        refreshPromise = useUiStore
+          .getState()
+          .refreshSession()
+          .finally(() => {
+            refreshPromise = null;
+          });
+      }
+      await refreshPromise;
+      return api(config);
+    } catch (refreshError) {
+      useUiStore.getState().signOut();
+      redirectToSignIn();
+      return Promise.reject(refreshError);
+    }
   },
 );
 

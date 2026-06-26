@@ -3,11 +3,11 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CardShell } from "@/components/shared/CardShell";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { revenueOverview } from "@/lib/mock-data";
+
 
 export function RevenueOverview({
-  data = revenueOverview,
-  total = "GHS 128,540",
+  data = [],
+  total = "0",
 }: {
   data?: Array<Record<string, string | number>>;
   total?: string;
@@ -20,15 +20,7 @@ export function RevenueOverview({
           <p className="mt-1.5 text-xl font-black">{total}</p>
           <p className="mt-1 text-xs font-bold text-green-600">Live backend data</p>
         </div>
-        <Select defaultValue="week">
-          <SelectTrigger className="w-32" aria-label="Revenue date range">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">This Week</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
-          </SelectContent>
-        </Select>
+        
       </div>
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">

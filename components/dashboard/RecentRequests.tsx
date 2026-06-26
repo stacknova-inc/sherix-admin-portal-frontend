@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CardShell } from "@/components/shared/CardShell";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { recentRequests } from "@/lib/mock-data";
+
 
 function initials(name: string) {
   return name.split(" ").map((part) => part[0]).join("").slice(0, 2);
 }
 
-export function RecentRequests({ requests = recentRequests }: { requests?: Array<{ id: string; name: string; location: string; status: string; time: string }> }) {
+export function RecentRequests({ requests = [] }: { requests?: Array<{ id: string; name: string; location: string; status: string; time: string }> }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
