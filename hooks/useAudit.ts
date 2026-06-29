@@ -12,7 +12,7 @@ export function useAuditLogs(params?: Record<string, string | number | undefined
 }
 
 export function useAuditStats() {
-  const token = useUiStore((state) => state.token);
+  const token = useUiStore((state) => state.accessToken);
   return useQuery({
     queryKey: ["audit", "stats"],
     queryFn: auditApi.stats,

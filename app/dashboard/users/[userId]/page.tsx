@@ -6,6 +6,7 @@ import { CardShell } from "@/components/shared/CardShell";
 import { StatusCell } from "@/components/shared/AdminPrimitives";
 import { useUser } from "@/hooks/useUsers";
 import { activeStatus, asRecord, dateText, firstText } from "@/lib/live-data";
+import { ArrowLeft } from "lucide-react";
 
 export default function UserDetailsPage() {
   const params = useParams<{ userId: string }>();
@@ -16,6 +17,10 @@ export default function UserDetailsPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] space-y-5">
+      <span className="text-[#e2030f] hover:underline cursor-pointer flex items-center " onClick={() => window.history.back()}>
+     <ArrowLeft className="inline-block mr-2 h-4 w-4" />
+        Back
+      </span>
       <PageHeader title={name} subtitle="User profile and account details from the backend." />
       <CardShell className="p-5">
         {userQuery.isLoading ? (

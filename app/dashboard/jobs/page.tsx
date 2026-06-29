@@ -2,7 +2,7 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
-import { Briefcase, CheckCircle2, Clock3, RefreshCcw, XCircle } from "lucide-react";
+import { Briefcase, CalendarX, CheckCircle2, Clock3, RefreshCcw, XCircle } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { ExportButton, FilterSelect, MetricGrid, PaginationFooter, SearchBox, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
@@ -54,7 +54,7 @@ const bookingColumns: ColumnDef<BookingRow>[] = [
 export default function JobsPage() {
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All Statuses");
-  const bookingsQuery = useBookings();
+  const bookingsQuery = useBookings({ limit: 100 });
   const statsQuery = useBookingStats();
   const rows = React.useMemo(() => (bookingsQuery.data ?? []).map(mapBooking), [bookingsQuery.data]);
   const filteredRows = React.useMemo(() => {
@@ -69,9 +69,10 @@ export default function JobsPage() {
   const metrics = [
     { label: "Total Requests", value: metricValue(stats, ["totalRequests", "totalBookings", "total"], String(rows.length)), change: metricChange(stats, ["totalRequests", "totalBookings", "total"]), direction: metricDirection(stats, ["totalRequests", "totalBookings", "total"]), tone: "blue", icon: Briefcase },
     { label: "Pending Requests", value: metricValue(stats, ["pendingRequests", "pending"]), change: metricChange(stats, ["pendingRequests", "pending"]), direction: metricDirection(stats, ["pendingRequests", "pending"], "down"), tone: "amber", icon: Clock3 },
-    { label: "In Progress", value: metricValue(stats, ["inProgress", "ongoing"]), change: metricChange(stats, ["inProgress", "ongoing"]), direction: metricDirection(stats, ["inProgress", "ongoing"]), tone: "blue", icon: RefreshCcw },
     { label: "Completed Jobs", value: metricValue(stats, ["completedJobs", "completed"]), change: metricChange(stats, ["completedJobs", "completed"]), direction: metricDirection(stats, ["completedJobs", "completed"]), tone: "green", icon: CheckCircle2 },
-    { label: "Cancelled Jobs", value: metricValue(stats, ["cancelledJobs", "cancelled"]), change: metricChange(stats, ["cancelledJobs", "cancelled"]), direction: metricDirection(stats, ["cancelledJobs", "cancelled"], "down"), tone: "red", icon: XCircle },
+    { label: "InProgress Jobs", value: metricValue(stats, ["inProgressJobs", "inProgress"], String(rows.filter((row) => row.status.toLowerCase() === "in progress").length)), change: metricChange(stats, ["inProgressJobs", "inProgress"]), direction: metricDirection(stats, ["inProgressJobs", "inProgress"], "down"), tone: "purple", icon: CalendarX },
+      { label: "Expired Jobs", value: metricValue(stats, ["expiredJobs", "expired"], String(rows.filter((row) => row.status.toLowerCase() === "expired").length)), change: metricChange(stats, ["expiredJobs", "expired"]), direction: metricDirection(stats, ["expiredJobs", "expired"], "down"), tone: "red", icon: CalendarX },
+
   ];
 
   const exportData = React.useMemo(
@@ -97,8 +98,7 @@ export default function JobsPage() {
       <CardShell>
         <ToolbarCard>
           <SearchBox placeholder="Search by job, customer, provider or service..." value={query} onChange={setQuery} />
-          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Pending", "Ongoing", "Completed", "Cancelled"]} value={status} onChange={setStatus} />
-          <FilterSelect placeholder="All Services" values={["All Services"]} />
+          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Pending", "Completed", "Expired"]} value={status} onChange={setStatus} />
           <div className="flex gap-3">
             <ExportButton data={exportData} filename="jobs" />
           </div>
