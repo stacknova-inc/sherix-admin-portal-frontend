@@ -16,7 +16,7 @@ export function useCompanies() {
 }
 
 export function useCompanyStats() {
-  const token = useUiStore((state) => state.token);
+  const token = useUiStore((state) => state.accessToken);
   return useQuery({
     queryKey: ["companies", "stats"],
     queryFn: companiesApi.stats,

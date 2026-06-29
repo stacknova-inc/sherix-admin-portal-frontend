@@ -156,6 +156,45 @@ export interface AdminNotification extends ApiTimestamped {
   updatedAt?: string;
 }
 
+export type NotificationRoleValue =
+  | "customer"
+  | "mechanic"
+  | "company_admin"
+  | "sherix_admin"
+  | "finance_admin"
+  | "human_resources_admin"
+  | "customer_support_admin"
+  | "operations_admin"
+  | "marketing_admin"
+  | "compliance_admin"
+  | "technical_support_admin"
+  | "business_development_admin";
+
+export type NotificationChannelValue = "push" | "sms" | "email";
+
+export type NotificationCategoryValue =
+  | "job_update"
+  | "announcement"
+  | "reminder"
+  | "alert"
+  | "security"
+  | "promotion"
+  | "system";
+
+export interface BroadcastNotificationInput {
+  title: string;
+  description: string;
+  roles: NotificationRoleValue[];
+  channel: NotificationChannelValue;
+  category: NotificationCategoryValue;
+}
+
+export interface BroadcastNotificationResult {
+  message?: string;
+  data?: unknown;
+  [key: string]: unknown;
+}
+
 export interface DashboardSummary {
   [key: string]: unknown;
 }

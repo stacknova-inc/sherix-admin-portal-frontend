@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Menu } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DateRangePickerButton } from "@/components/shared/DateRangePickerButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -17,9 +18,11 @@ export function Topbar() {
       </Button>
       <div className="flex items-center gap-2 sm:gap-3">
         <DateRangePickerButton />
-        <Button variant="outline" size="icon" className="relative bg-card" aria-label="Notifications">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-black text-white">12</span>
+        <Button variant="outline" size="icon" className="relative bg-card" aria-label="Notifications" asChild>
+          <Link href="/dashboard/notifications">
+            <Bell className="h-4 w-4" />
+            <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[9px] font-black text-white">12</span>
+          </Link>
         </Button>
         <ThemeToggle />
         <UserMenu />

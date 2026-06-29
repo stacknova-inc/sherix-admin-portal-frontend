@@ -7,7 +7,7 @@ import { useUiStore } from "@/store/use-ui-store";
 export const usersQueryKey = ["users"] as const;
 
 export function useUsers() {
-  const token = useUiStore((state) => state.token);
+  const token = useUiStore((state) => state.accessToken);
   return useQuery({
     queryKey: usersQueryKey,
     queryFn: usersApi.list,
