@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useUiStore } from "@/store/use-ui-store";
 import { getErrorMessage } from "@/lib/api";
+import { getDefaultRoute } from "@/lib/rbac";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -22,8 +23,8 @@ export default function SignInPage() {
     setError("");
 
     try {
-      await login(email, password);
-      router.replace("/dashboard");
+      const session = await login(email, password);
+      router.replace(getDefaultRoute(session.role));
     } catch (loginError) {
       setError(getErrorMessage(loginError, "Unable to sign in"));
     }
@@ -39,19 +40,29 @@ export default function SignInPage() {
           </div>
           <div>
             <p className="text-xl font-black tracking-normal">SHERIX</p>
-            <p className="text-[10px] font-semibold tracking-[0.2em] text-white/55">ADMIN PORTAL</p>
+            <p className="text-[10px] font-semibold tracking-[0.2em] text-white/55">
+              ADMIN PORTAL
+            </p>
           </div>
         </div>
         <div className="relative max-w-lg">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-red-100/70">Marketplace operations</p>
-          <h1 className="text-4xl font-black leading-tight tracking-normal">Control center for service delivery, payments, and trust.</h1>
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.22em] text-red-100/70">
+            Marketplace operations
+          </p>
+          <h1 className="text-4xl font-black leading-tight tracking-normal">
+            Control center for service delivery, payments, and trust.
+          </h1>
           <p className="mt-5 text-sm leading-6 text-slate-300">
-            Manage requests, providers, revenue, disputes, and platform health from a single polished admin workspace.
+            Manage requests, providers, revenue, disputes, and platform health
+            from a single polished admin workspace.
           </p>
         </div>
         <div className="relative grid grid-cols-3 gap-3 text-xs text-slate-300">
           {["12,458 users", "3,892 jobs", "GHS 128k revenue"].map((item) => (
-            <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur">
+            <div
+              key={item}
+              className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur"
+            >
               {item}
             </div>
           ))}
@@ -67,21 +78,40 @@ export default function SignInPage() {
               <ShieldCheck className="h-7 w-7" />
             </div>
             <h1 className="text-2xl font-black tracking-normal">SHERIX</h1>
-            <p className="text-[10px] font-bold tracking-[0.24em] text-muted-foreground">ADMIN PORTAL</p>
+            <p className="text-[10px] font-bold tracking-[0.24em] text-muted-foreground">
+              ADMIN PORTAL
+            </p>
           </div>
-          <form onSubmit={onSubmit} className="rounded-xl border bg-card p-4 shadow-sherix sm:p-5">
+          <form
+            onSubmit={onSubmit}
+            className="rounded-xl border bg-card p-4 shadow-sherix sm:p-5"
+          >
             <div className="mb-5">
               <h2 className="text-xl font-bold tracking-normal">Sign in</h2>
-              <p className="mt-1.5 text-xs text-muted-foreground">Enter your admin credentials to continue.</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Enter your admin credentials to continue.
+              </p>
             </div>
             <div className="space-y-3">
               <label className="block text-xs font-semibold">
                 Email
-                <Input className="mt-2" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+                <Input
+                  className="mt-2"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
               </label>
               <label className="block text-xs font-semibold">
                 Password
-                <Input className="mt-2" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+                <Input
+                  className="mt-2"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
               </label>
             </div>
             {error && (
@@ -91,14 +121,25 @@ export default function SignInPage() {
             )}
             <div className="mt-4 flex items-center justify-between gap-3 text-xs">
               <label className="flex items-center gap-2 text-muted-foreground">
-                <input type="checkbox" className="h-4 w-4 rounded border-border accent-[#E30613]" defaultChecked />
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border accent-[#E30613]"
+                  defaultChecked
+                />
                 Remember me
               </label>
-              <a href="#" className="font-semibold text-primary hover:underline">
+              <a
+                href="#"
+                className="font-semibold text-primary hover:underline"
+              >
                 Forgot password?
               </a>
             </div>
-            <Button className="mt-5 w-full" type="submit" disabled={isAuthenticating}>
+            <Button
+              className="mt-5 w-full"
+              type="submit"
+              disabled={isAuthenticating}
+            >
               {isAuthenticating && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign In
             </Button>

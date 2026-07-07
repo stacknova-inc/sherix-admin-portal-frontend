@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { filterRoutesForRole } from "@/lib/rbac";
 import { dashboardRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/use-ui-store";
@@ -16,6 +17,8 @@ export function Sidebar({ className }: { className?: string }) {
   const toggleCollapsed = useUiStore((state) => state.toggleSidebarCollapsed);
   const signOut = useUiStore((state) => state.signOut);
   const user = useUiStore((state) => state.user);
+  const role = useUiStore((state) => state.role);
+  const visibleRoutes = filterRoutesForRole(dashboardRoutes, role ?? user?.role);
 
   return (
     <aside
@@ -41,7 +44,7 @@ export function Sidebar({ className }: { className?: string }) {
       <Separator />
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {dashboardRoutes.map((route) => (
+          {visibleRoutes.map((route) => (
             <SidebarItem key={route.href} route={route} compact={collapsed} />
           ))}
         </nav>
@@ -71,3 +74,4 @@ export function Sidebar({ className }: { className?: string }) {
     </aside>
   );
 }
+

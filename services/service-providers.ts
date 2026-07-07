@@ -1,7 +1,10 @@
 import { api, assertApiId, unwrapArray, unwrapData } from "@/lib/api";
 import type { ServiceProvider } from "@/types";
 
-export type ServiceProviderAction = "suspend" | "activate";
+export type ServiceProviderAction =
+  | "reject"
+  | "suspend"
+  | "activate";
 
 export const serviceProvidersApi = {
   async list(isEmployee?: boolean) {
@@ -9,36 +12,48 @@ export const serviceProvidersApi = {
       params: typeof isEmployee === "boolean" ? { isEmployee } : undefined,
     });
     const providers = unwrapArray<ServiceProvider>(response.data);
+    
 
     if (typeof isEmployee !== "boolean") return providers;
     return providers.filter((provider) => provider.isEmployee === isEmployee);
   },
 
-  async action(id: string, action: ServiceProviderAction, payload?: { reason?: string }) {
-    const providerId = assertApiId(id, `Service provider ${action}`);
-    console.info("[Sherix Providers] Running provider action", {
+  async action(
+  id: string,
+  action: ServiceProviderAction,
+  payload?: { reason?: string }
+) {
+  const providerId = assertApiId(id, `Company ${action}`);
+
+  console.info("[Sherix Companies] Running company action", {
+    id: providerId,
+    action,
+    payload,
+    endpoint: `/companies/${providerId}/${action}`,
+  });
+
+  try {
+    const response = await api.patch(
+      `/companies/${providerId}/${action}`,
+      payload
+    );
+
+    console.info("[Sherix Companies] Company action succeeded", {
+      id: providerId,
+      action,
+      response: response.data,
+    });
+
+    return unwrapData<ServiceProvider>(response.data);
+  } catch (error) {
+    console.error("[Sherix Companies] Company action failed", {
       id: providerId,
       action,
       payload,
-      endpoint: `/users/${providerId}/${action}`,
+      error,
     });
 
-    try {
-      const response = await api.patch(`/users/${providerId}/${action}`, payload);
-      console.info("[Sherix Providers] Provider action succeeded", {
-        id: providerId,
-        action,
-        response: response.data,
-      });
-      return unwrapData<ServiceProvider>(response.data);
-    } catch (error) {
-      console.error("[Sherix Providers] Provider action failed", {
-        id: providerId,
-        action,
-        payload,
-        error,
-      });
-      throw error;
-    }
-  },
+    throw error;
+  }
+}
 };

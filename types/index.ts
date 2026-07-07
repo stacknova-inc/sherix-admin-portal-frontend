@@ -307,3 +307,48 @@ export interface StaffNotification {
   timestamp: string;
   message: string;
 }
+
+export interface ReviewStats {
+  averageRating?: number;
+  totalReviews?: number;
+  reviewsThisWeek?: number;
+  positiveReviews?: number;
+  negativeReviews?: number;
+  pendingReviews?: number;
+}
+
+export interface Review extends ApiTimestamped {
+  customerId?: string;
+  reviewerName?: string;
+  mechanicId?: string;
+  providerName?: string;
+  referenceId?: string;
+  referenceType?: string;
+  relatedToId?: string;
+  relatedToType?: string;
+  rating?: number;
+  comment?: string;
+  images?: string[];
+  status?: string;
+  isVerified?: boolean;
+}
+
+export interface GeneralSettings {
+  platformName?: string;
+  platformDomain?: string;
+  supportEmail?: string;
+  supportPhone?: string;
+  currency?: string;
+  currencyPosition?: string;
+  timezone?: string;
+  dateFormat?: string;
+  timeFormat?: string;
+  maintenanceMode?: boolean;
+  sessionTimeout?: string;
+  [key: string]: unknown;
+}
+
+export interface Settings {
+  general?: GeneralSettings;
+  [key: string]: unknown;
+}
