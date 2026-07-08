@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { ADMIN_PORTAL_ROLE, authApi, type AuthSession, type AuthUser } from "@/services/auth";
+import { authApi, type AuthSession, type AuthUser } from "@/services/auth";
 
 type UiStore = {
   sidebarOpen: boolean;
@@ -42,19 +42,7 @@ export const useUiStore = create<UiStore>()(
         set({ isAuthenticating: true });
         try {
           const session = await authApi.login({ email, password });
-          if (session.role !== ADMIN_PORTAL_ROLE) {
-            set({
-              user: null,
-              accessToken: null,
-              refreshToken: null,
-              role: null,
-              accessTokenExpiresAt: null,
-              refreshTokenExpiresAt: null,
-              isAuthenticating: false,
-              sidebarOpen: false,
-            });
-            throw new Error("This portal is only available to Sherix administrators.");
-          }
+
           set({
             accessToken: session.accessToken,
             refreshToken: session.refreshToken,
@@ -130,3 +118,4 @@ export const useUiStore = create<UiStore>()(
     },
   ),
 );
+

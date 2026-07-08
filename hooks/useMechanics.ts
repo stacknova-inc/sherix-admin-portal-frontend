@@ -12,7 +12,9 @@ export function useIndividualMechanics() {
   return useQuery({
     queryKey: individualMechanicsQueryKey,
     queryFn: individualMechanicsApi.list,
+    
   });
+
 }
 
 export function useIndividualMechanicStats() {
