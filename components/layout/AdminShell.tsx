@@ -1,19 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { canAccessPath } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/use-ui-store";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useUiStore((state) => state.user);
   const refreshToken = useUiStore((state) => state.refreshToken);
   const refreshTokenExpiresAt = useUiStore((state) => state.refreshTokenExpiresAt);
   const signOut = useUiStore((state) => state.signOut);
+  const role = useUiStore((state) => state.role);
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -32,8 +35,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (!sessionValid) {
       if (user || refreshToken) signOut();
       router.replace("/sign-in");
+      return;
     }
-  }, [hasHydrated, refreshToken, refreshTokenExpiresAt, router, signOut, user]);
+
+    if (!canAccessPath(role ?? user?.role, pathname)) {
+      router.replace("/dashboard/unauthorized");
+    }
+  }, [hasHydrated, pathname, refreshToken, refreshTokenExpiresAt, role, router, signOut, user]);
 
   if (!hasHydrated || !user || !refreshToken) {
     return null;
@@ -52,3 +60,4 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

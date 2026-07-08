@@ -5,14 +5,8 @@ import { LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { displayRole } from "@/lib/rbac";
 import { useUiStore } from "@/store/use-ui-store";
-
-function displayRole(role?: string | null) {
-  if (!role) return "Administrator";
-  return role
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
 
 export function UserMenu() {
   const router = useRouter();
@@ -58,3 +52,4 @@ export function UserMenu() {
     </DropdownMenu>
   );
 }
+

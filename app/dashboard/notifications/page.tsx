@@ -137,6 +137,7 @@ const roleOptions: Array<{ value: NotificationRoleValue; label: string }> = [
   { value: "compliance_admin", label: "Compliance Admin" },
   { value: "technical_support_admin", label: "Technical Support Admin" },
   { value: "business_development_admin", label: "Business Development Admin" },
+  
 ];
 
 const channelOptions: Array<{ value: NotificationChannelValue; label: string }> = [

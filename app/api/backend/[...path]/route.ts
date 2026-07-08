@@ -1,10 +1,13 @@
 import { NextRequest } from "next/server";
-
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??
   "";
 
+
+function isAuthPath(path: string[]) {
+  return path[0] === "auth";
+}
 function backendUrl(path: string[], search: string) {
   const baseUrl = API_BASE_URL.replace(/\/+$/, "");
   if (!baseUrl) {
@@ -17,10 +20,16 @@ function backendUrl(path: string[], search: string) {
 async function proxy(request: NextRequest, context: { params: Promise<{ path?: string[] }> }) {
   try {
     const { path = [] } = await context.params;
+    const authorization = request.headers.get("authorization");
+    if (!isAuthPath(path)) {
+      if (!authorization) {
+        return Response.json({ message: "Unauthorized" }, { status: 401 });
+      }
+    }
+
     const url = backendUrl(path, request.nextUrl.search);
     const headers = new Headers();
     const contentType = request.headers.get("content-type");
-    const authorization = request.headers.get("authorization");
     const deviceId = request.headers.get("x-device-id");
 
     if (contentType) headers.set("content-type", contentType);
@@ -56,3 +65,4 @@ export const POST = proxy;
 export const PUT = proxy;
 export const PATCH = proxy;
 export const DELETE = proxy;
+

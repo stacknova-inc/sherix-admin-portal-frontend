@@ -10,7 +10,7 @@ declare module "axios" {
   }
 }
 
-const DEVICE_ID = "1234";
+const DEVICE_ID = "12345";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??

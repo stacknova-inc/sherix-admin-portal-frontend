@@ -1,6 +1,7 @@
 import { api, unwrapData } from "@/lib/api";
+import { normalizeRole, StaffRole } from "@/lib/rbac";
 
-export const ADMIN_PORTAL_ROLE = "sherix_admin";
+export const ADMIN_PORTAL_ROLE = StaffRole.SUPER_ADMIN;
 
 export interface AuthUser {
   _id?: string;
@@ -72,6 +73,22 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  const [, payload] = token.split(".");
+  if (!payload) return {};
+
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded =
+      typeof window === "undefined"
+        ? Buffer.from(normalized, "base64").toString("utf8")
+        : window.atob(normalized);
+    return asRecord(JSON.parse(decoded));
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Shared by login and refresh: builds the token bundle from the backend's
  * { access_token, refresh_token, access_token_expires_in, refresh_token_expires_in } contract.
@@ -97,8 +114,17 @@ export const authApi = {
     const response = await api.post("/auth/login", input, { skipAuthRefresh: true });
     const payload = asRecord(unwrapData<unknown>(response.data));
     const tokens = buildTokens(payload);
+    const tokenPayload = decodeJwtPayload(tokens.accessToken);
     const rawUser = pickUser(payload);
-    const role = String(rawUser.role ?? payload.role ?? "");
+    const role = String(
+      rawUser.role ??
+      payload.role ??
+      tokenPayload.role ??
+      tokenPayload.userRole ??
+      tokenPayload.type ??
+      "",
+    );
+    const normalizedRole = normalizeRole(role);
     const email = String(rawUser.email ?? input.email);
     const fullName = String(
       rawUser.fullName ??
@@ -118,16 +144,19 @@ export const authApi = {
     if (!role) {
       throw new Error("Login succeeded but no user role was returned.");
     }
+    if (!normalizedRole) {
+      throw new Error("This portal is only available to Sherix administrators.");
+    }
 
     return {
       ...tokens,
-      role,
+      role: normalizedRole,
       user: {
         ...rawUser,
         email,
         name,
         fullName,
-        role,
+        role: normalizedRole,
         initials: String(rawUser.initials ?? initials(name)),
       } as AuthUser,
     };
