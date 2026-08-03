@@ -188,16 +188,46 @@ export function unwrapArray<T>(response: unknown): T[] {
   return [];
 }
 
+// export function getErrorMessage(
+//   error: unknown,
+//   fallback = "Something went wrong",
+// ) {
+//   if (error instanceof AxiosError) {
+//     const data = error.response?.data as
+//       | { message?: string; error?: string }
+//       | string
+//       | undefined;
+//     if (typeof data === "string") return data;
+//     return data?.message ?? data?.error ?? error.message ?? fallback;
+//   }
+
+//   return error instanceof Error ? error.message : fallback;
+// }
 export function getErrorMessage(
   error: unknown,
   fallback = "Something went wrong",
 ) {
   if (error instanceof AxiosError) {
     const data = error.response?.data as
-      | { message?: string; error?: string }
+      | {
+          message?: string;
+          error?: string;
+          errors?: Array<{
+            path: string;
+            msg: string;
+          }>;
+        }
       | string
       | undefined;
-    if (typeof data === "string") return data;
+
+    if (typeof data === "string") {
+      return data;
+    }
+
+    if (data?.errors?.length) {
+      return data.errors.map((e) => e.msg).join(", ");
+    }
+
     return data?.message ?? data?.error ?? error.message ?? fallback;
   }
 
