@@ -10,20 +10,23 @@ declare module "axios" {
   }
 }
 
-const DEVICE_ID = "12345";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??
   "";
 
 function getApiBaseUrl() {
-  if (typeof window === "undefined") return API_BASE_URL;
+  return API_BASE_URL;
+}
 
-  return (
-    window.localStorage.getItem("NEXT_PUBLIC_API_BASE_URL") ??
-    window.localStorage.getItem("sherix_api_base_url") ??
-    "/api/backend"
-  );
+function getDeviceId() {
+  if (typeof window === "undefined") return "server";
+  const storageKey = "sherix_device_id";
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+  const deviceId = window.crypto?.randomUUID?.() ?? String(Date.now()) + "-" + String(Math.random());
+  window.localStorage.setItem(storageKey, deviceId);
+  return deviceId;
 }
 
 export const api = axios.create({
@@ -40,11 +43,7 @@ function logApiError(error: unknown) {
     console.error("[Sherix API Error]", {
       method: error.config?.method?.toUpperCase(),
       url: error.config?.url,
-      data: error.response?.data,
-      baseURL: error.config?.baseURL,
       status: error.response?.status,
-      statusText: error.response?.statusText,
-      response: error.response?.data,
       message: error.message,
     });
     return;
@@ -92,7 +91,7 @@ api.interceptors.request.use((config) => {
   const { accessToken } = useUiStore.getState();
 
   config.baseURL = baseURL.replace(/\/+$/, "");
-  config.headers.set("x-device-id", DEVICE_ID);
+  config.headers.set("x-device-id", getDeviceId());
   if (accessToken) {
     config.headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -103,7 +102,7 @@ api.interceptors.request.use((config) => {
 function redirectToSignIn() {
   if (typeof window === "undefined") return;
   if (window.location.pathname.startsWith("/sign-in")) return;
-  window.location.assign("/sign-in");
+  window.location.assign("/sign-in?reason=session-expired");
 }
 
 // Ensures concurrent 401s triggered by parallel requests share a single in-flight
