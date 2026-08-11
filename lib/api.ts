@@ -1,11 +1,12 @@
 import axios, { AxiosError } from "axios";
 import { useUiStore } from "@/store/use-ui-store";
+import config from "@/tailwind.config";
 
 declare module "axios" {
   export interface AxiosRequestConfig {
-    /** Set once a request has already been retried after a token refresh, to stop retry loops. */
+    
     _retry?: boolean;
-    /** Set on auth endpoints (login, refresh) so a 401 from them never triggers another refresh attempt. */
+    
     skipAuthRefresh?: boolean;
   }
 }
@@ -19,15 +20,9 @@ function getApiBaseUrl() {
   return API_BASE_URL;
 }
 
-function getDeviceId() {
-  if (typeof window === "undefined") return "server";
-  const storageKey = "sherix_device_id";
-  const existing = window.localStorage.getItem(storageKey);
-  if (existing) return existing;
-  const deviceId = window.crypto?.randomUUID?.() ?? String(Date.now()) + "-" + String(Math.random());
-  window.localStorage.setItem(storageKey, deviceId);
-  return deviceId;
-}
+const DEVICE_ID = "12345";
+
+
 
 export const api = axios.create({
   baseURL: undefined,
@@ -86,12 +81,10 @@ api.interceptors.request.use((config) => {
     );
   }
 
-  // useUiStore (persisted via Zustand) is the single source of truth for the access token —
-  // there is no separate localStorage key to fall out of sync with.
   const { accessToken } = useUiStore.getState();
 
   config.baseURL = baseURL.replace(/\/+$/, "");
-  config.headers.set("x-device-id", getDeviceId());
+  config.headers.set("x-device-id", DEVICE_ID);
   if (accessToken) {
     config.headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -105,8 +98,7 @@ function redirectToSignIn() {
   window.location.assign("/sign-in?reason=session-expired");
 }
 
-// Ensures concurrent 401s triggered by parallel requests share a single in-flight
-// refresh call instead of each firing their own POST /auth/refresh-tokens.
+
 let refreshPromise: Promise<string> | null = null;
 
 api.interceptors.response.use(
@@ -187,21 +179,7 @@ export function unwrapArray<T>(response: unknown): T[] {
   return [];
 }
 
-// export function getErrorMessage(
-//   error: unknown,
-//   fallback = "Something went wrong",
-// ) {
-//   if (error instanceof AxiosError) {
-//     const data = error.response?.data as
-//       | { message?: string; error?: string }
-//       | string
-//       | undefined;
-//     if (typeof data === "string") return data;
-//     return data?.message ?? data?.error ?? error.message ?? fallback;
-//   }
 
-//   return error instanceof Error ? error.message : fallback;
-// }
 export function getErrorMessage(
   error: unknown,
   fallback = "Something went wrong",
