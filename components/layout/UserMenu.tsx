@@ -1,24 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LogOut, User } from "lucide-react";
+import { Loader2, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useLogout } from "@/hooks/useAuth";
 import { displayRole } from "@/lib/rbac";
 import { useUiStore } from "@/store/use-ui-store";
 
 export function UserMenu() {
   const router = useRouter();
   const user = useUiStore((state) => state.user);
-  const signOut = useUiStore((state) => state.signOut);
+  const logoutMutation = useLogout();
   const adminName = user?.fullName ?? user?.name ?? "Admin";
   const adminEmail = user?.email ?? "admin@sherix.com";
   const adminRole = displayRole(user?.role);
 
-  function logout() {
-    signOut();
-    router.replace("/sign-in");
+  async function logout() {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch {
+      // Local authentication state is still cleared by the mutation's onSettled handler.
+    } finally {
+      router.replace("/sign-in");
+    }
   }
 
   return (
@@ -44,9 +50,9 @@ export function UserMenu() {
             <span className="text-xs text-muted-foreground">{adminRole}</span>
           </span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={logout} className="text-primary">
-          <LogOut className="h-4 w-4" />
-          Logout
+        <DropdownMenuItem onClick={logout} className="text-primary" disabled={logoutMutation.isPending}>
+          {logoutMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+          {logoutMutation.isPending ? "Logging out..." : "Logout"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

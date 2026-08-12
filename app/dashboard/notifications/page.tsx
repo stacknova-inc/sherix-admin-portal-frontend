@@ -38,6 +38,8 @@ import type {
   NotificationRoleValue,
 } from "@/types";
 
+
+
 type NotificationRow = {
   id: string;
   title: string;
@@ -396,9 +398,10 @@ export default function NotificationsPage() {
       return matchesSearch && matchesChannel && matchesStatus;
     });
   }, [channel, query, rows, status]);
+  const { data: notifications } = useNotifications();
   const metrics = React.useMemo(
     () => [
-      { label: "Total Notifications", value: String(rows.length), change: "Loaded from backend", direction: "up", tone: "red", icon: Bell },
+      { label: "Total Notifications", value: String(notifications?.length ?? 0), change: "Loaded from backend", direction: "up", tone: "red", icon: Bell },
       { label: "Sent", value: String(rows.filter((row) => row.status.toLowerCase().includes("sent")).length), change: "Loaded from backend", direction: "up", tone: "green", icon: Bell },
       { label: "Channels", value: String(new Set(rows.flatMap((row) => row.channels)).size), change: "Derived from backend", direction: "up", tone: "blue", icon: Upload },
     ],

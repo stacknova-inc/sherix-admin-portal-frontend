@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authApi, type AuthSession, type AuthUser } from "@/services/auth";
+import { clearProtectedQueryCache } from "@/lib/query-client";
 
 type UiStore = {
   sidebarOpen: boolean;
@@ -78,6 +79,7 @@ export const useUiStore = create<UiStore>()(
         return tokens.accessToken;
       },
       signOut: () => {
+        clearProtectedQueryCache();
         set({
           user: null,
           accessToken: null,
@@ -107,12 +109,7 @@ export const useUiStore = create<UiStore>()(
         // token means the session itself is actually over.
         const sessionValid = Boolean(state.refreshToken && state.refreshTokenExpiresAt && state.refreshTokenExpiresAt > Date.now());
         if (!sessionValid) {
-          state.user = null;
-          state.accessToken = null;
-          state.refreshToken = null;
-          state.role = null;
-          state.accessTokenExpiresAt = null;
-          state.refreshTokenExpiresAt = null;
+          state.signOut();
         }
       },
     },
