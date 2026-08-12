@@ -6,9 +6,10 @@ import type { BroadcastNotificationInput } from "@/types";
 
 export const notificationsQueryKey = ["notifications"] as const;
 
-export function useNotifications() {
+export function useNotifications(enabled = true) {
   return useQuery({
     queryKey: notificationsQueryKey,
+    enabled,
     queryFn: notificationsApi.list,
   });
 }

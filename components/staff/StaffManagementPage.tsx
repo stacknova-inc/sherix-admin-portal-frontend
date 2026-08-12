@@ -240,7 +240,10 @@ function StaffFormModal({
   const isEdit = mode === "edit";
   const pending = createStaff.isPending || updateStaff.isPending;
   const availableRoles = rolesForDepartment(form.department);
-
+  const [fieldErrors, setFieldErrors] = React.useState({
+    email: "",
+    phoneNumber: "",
+  });
   React.useEffect(() => {
     if (!open) return;
     setError("");
@@ -278,10 +281,22 @@ function StaffFormModal({
           ...current,
           department,
           role: defaultRole(department),
-        } as CreateStaffInput;
+        };
       }
-      return { ...current, [key]: value } as CreateStaffInput;
+
+      return {
+        ...current,
+        [key]: value,
+      };
     });
+
+    if (key === "email") {
+      setFieldErrors((prev) => ({ ...prev, email: "" }));
+    }
+
+    if (key === "phoneNumber") {
+      setFieldErrors((prev) => ({ ...prev, phoneNumber: "" }));
+    }
   }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -307,8 +322,32 @@ function StaffFormModal({
         onSaved("Staff invitation created and notification sent.");
       }
       onOpenChange(false);
-    } catch (submitError) {
-      setError(getErrorMessage(submitError, "Unable to save staff member."));
+    } catch (submitError: any) {
+      const message = getErrorMessage(
+        submitError,
+        "Unable to save staff member.",
+      );
+
+      if (message.toLowerCase().includes("email")) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          email: "This email is already registered.",
+        }));
+        return;
+      }
+
+      if (
+        message.toLowerCase().includes("phone") ||
+        message.toLowerCase().includes("number")
+      ) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          phoneNumber: "This phone number is already registered.",
+        }));
+        return;
+      }
+
+      setError(message);
     }
   }
 
@@ -349,21 +388,42 @@ function StaffFormModal({
                 Email Address
                 <Input
                   value={form.email}
-                  onChange={(event) => setField("email", event.target.value)}
+                  onChange={(e) => setField("email", e.target.value)}
                   type="email"
                   required
                   disabled={isEdit}
+                  className={fieldErrors.email ? "border-red-500" : ""}
                 />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-500">{fieldErrors.email}</p>
+                )}
               </label>
               <label className="grid gap-1.5 text-xs font-bold">
                 Phone Number
-                <Input
-                  value={form.phoneNumber}
-                  onChange={(event) =>
-                    setField("phoneNumber", event.target.value)
-                  }
-                  required
-                />
+                <div className="flex">
+                  <div className="flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-sm font-medium">
+                    +233
+                  </div>
+
+                  <Input
+                    className={`rounded-l-none ${
+                      fieldErrors.phoneNumber ? "border-red-500" : ""
+                    }`}
+                    type="tel"
+                    value={form.phoneNumber.replace(/^(\+?233)/, "")}
+                    onChange={(e) => {
+                      const number = e.target.value.replace(/\D/g, "");
+                      const cleaned = number.replace(/^0/, "");
+                      setField("phoneNumber", `+233${cleaned}`);
+                    }}
+                    required
+                  />
+                </div>
+                {fieldErrors.phoneNumber && (
+                  <p className="text-xs text-red-500">
+                    {fieldErrors.phoneNumber}
+                  </p>
+                )}
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="grid gap-1.5 text-xs font-bold">
@@ -598,8 +658,7 @@ function buildColumns(
       header: "Status",
       cell: ({ row }) => <StatusCell status={row.original.status} />,
     },
-   
-    
+
     {
       id: "actions",
       header: "Actions",
@@ -681,7 +740,6 @@ export function StaffManagementPage() {
         tone: "red",
         icon: ShieldAlert,
       },
-      
     ],
     [auditQuery.data?.length, staff],
   );
@@ -769,9 +827,7 @@ export function StaffManagementPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
-           
               <SelectItem value="fullName">Name</SelectItem>
-             
             </SelectContent>
           </Select>
         </ToolbarCard>
@@ -793,8 +849,6 @@ export function StaffManagementPage() {
           />
         )}
       </CardShell>
-
-      
 
       <StaffFormModal
         open={sheetOpen}

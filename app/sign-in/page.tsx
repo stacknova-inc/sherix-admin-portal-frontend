@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useUiStore } from "@/store/use-ui-store";
-import { getErrorMessage } from "@/lib/api";
 import { getDefaultRoute } from "@/lib/rbac";
 
 export default function SignInPage() {
@@ -17,7 +17,12 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
 
+
+  useEffect(() => {
+    setSessionExpired(new URLSearchParams(window.location.search).get("reason") === "session-expired");
+  }, []);
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -25,8 +30,8 @@ export default function SignInPage() {
     try {
       const session = await login(email, password);
       router.replace(getDefaultRoute(session.role));
-    } catch (loginError) {
-      setError(getErrorMessage(loginError, "Unable to sign in"));
+    } catch {
+      setError("We couldn't sign you in. Check your credentials and try again.");
     }
   }
 
@@ -85,6 +90,7 @@ export default function SignInPage() {
           <form
             onSubmit={onSubmit}
             className="rounded-xl border bg-card p-4 shadow-sherix sm:p-5"
+            aria-busy={isAuthenticating}
           >
             <div className="mb-5">
               <h2 className="text-xl font-bold tracking-normal">Sign in</h2>
@@ -98,6 +104,8 @@ export default function SignInPage() {
                 <Input
                   className="mt-2"
                   type="email"
+                  autoComplete="username"
+                  aria-invalid={Boolean(error)}
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
@@ -108,6 +116,8 @@ export default function SignInPage() {
                 <Input
                   className="mt-2"
                   type="password"
+                  autoComplete="current-password"
+                  aria-invalid={Boolean(error)}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
@@ -115,33 +125,36 @@ export default function SignInPage() {
               </label>
             </div>
             {error && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300" role="alert">
                 {error}
               </div>
             )}
-            <div className="mt-4 flex items-center justify-between gap-3 text-xs">
-              <label className="flex items-center gap-2 text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-border accent-[#E30613]"
-                  defaultChecked
-                />
-                Remember me
-              </label>
-              <a
-                href="#"
+            {sessionExpired && !error && (
+              <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200" role="status">
+                Your session has expired. Please sign in again.
+              </p>
+            )}
+            <div className="mt-4 flex justify-end text-xs">
+              <Link
+                href="/forgot-password"
                 className="font-semibold text-primary hover:underline"
               >
                 Forgot password?
-              </a>
+              </Link>
             </div>
             <Button
               className="mt-5 w-full"
               type="submit"
               disabled={isAuthenticating}
             >
-              {isAuthenticating && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sign In
+              {isAuthenticating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
         </div>

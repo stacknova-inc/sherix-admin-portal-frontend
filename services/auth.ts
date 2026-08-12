@@ -19,6 +19,16 @@ export interface LoginInput {
   password: string;
 }
 
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  new_password: string;
+  confirm_new_password: string;
+}
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
@@ -89,13 +99,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   }
 }
 
-/**
- * Shared by login and refresh: builds the token bundle from the backend's
- * { access_token, refresh_token, access_token_expires_in, refresh_token_expires_in } contract.
- * `previous` lets a refresh response that omits `refresh_token` (rotation behavior is
- * unconfirmed against the live backend) fall back to the refresh token already on hand
- * instead of silently dropping the session.
- */
+
 function buildTokens(payload: Record<string, unknown>, previous?: AuthTokens): AuthTokens {
   const now = Date.now();
   const accessToken = String(payload.access_token ?? payload.accessToken ?? "");
@@ -176,5 +180,17 @@ export const authApi = {
     }
 
     return tokens;
+  },
+
+  async forgotPassword(input: ForgotPasswordInput): Promise<void> {
+    await api.post("/auth/forgot-password", input, { skipAuthRefresh: true });
+  },
+
+  async resetPassword(input: ResetPasswordInput): Promise<void> {
+    await api.post("/auth/reset-password", input, { skipAuthRefresh: true });
+  },
+
+  async logout(): Promise<void> {
+    await api.post("/auth/logout", undefined, { skipAuthRefresh: true });
   },
 };
