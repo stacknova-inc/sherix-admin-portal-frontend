@@ -1,24 +1,37 @@
 "use client";
 
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { SidebarItem } from "@/components/layout/SidebarItem";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useLogout } from "@/hooks/useAuth";
 import { filterRoutesForRole } from "@/lib/rbac";
 import { dashboardRoutes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/use-ui-store";
 
 export function Sidebar({ className }: { className?: string }) {
+  const router = useRouter();
   const collapsed = useUiStore((state) => state.sidebarCollapsed);
   const toggleCollapsed = useUiStore((state) => state.toggleSidebarCollapsed);
-  const signOut = useUiStore((state) => state.signOut);
+  const logoutMutation = useLogout();
   const user = useUiStore((state) => state.user);
   const role = useUiStore((state) => state.role);
   const visibleRoutes = filterRoutesForRole(dashboardRoutes, role ?? user?.role);
+
+  async function logout() {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch {
+      // Local authentication state is still cleared by the mutation's onSettled handler.
+    } finally {
+      router.replace("/sign-in");
+    }
+  }
 
   return (
     <aside
@@ -64,11 +77,12 @@ export function Sidebar({ className }: { className?: string }) {
         <Button
           variant="ghost"
           className={cn("w-full justify-start text-muted-foreground hover:text-primary", collapsed && "justify-center px-0")}
-          onClick={signOut}
+          onClick={logout}
+          disabled={logoutMutation.isPending}
           aria-label="Log out"
         >
           <LogOut className="h-4 w-4" />
-          {!collapsed && "Logout"}
+          {!collapsed && (logoutMutation.isPending ? "Logging out..." : "Logout")}
         </Button>
       </div>
     </aside>
