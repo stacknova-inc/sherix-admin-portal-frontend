@@ -26,15 +26,26 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!hasHydrated || !refreshTokenExpiresAt) return;
+
+    const expireSession = () => {
+      if (refreshTokenExpiresAt > Date.now()) return;
+      signOut();
+      router.replace("/sign-in?reason=session-expired");
+    };
+
+    expireSession();
+    const interval = window.setInterval(expireSession, 30_000);
+    return () => window.clearInterval(interval);
+  }, [hasHydrated, refreshTokenExpiresAt, router, signOut]);
+
+  useEffect(() => {
     if (!hasHydrated) return;
 
-    // Only the refresh token's expiry determines whether the session is still alive —
-    // the access token is allowed to be stale here; the Axios interceptor renews it
-    // transparently on the first 401 a page triggers.
     const sessionValid = Boolean(user && refreshToken && refreshTokenExpiresAt && refreshTokenExpiresAt > Date.now());
     if (!sessionValid) {
       if (user || refreshToken) signOut();
-      router.replace("/sign-in");
+      router.replace("/sign-in?reason=session-expired");
       return;
     }
 
@@ -43,10 +54,23 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     }
   }, [hasHydrated, pathname, refreshToken, refreshTokenExpiresAt, role, router, signOut, user]);
 
-  if (!hasHydrated || !user || !refreshToken) {
-    return null;
+  function FullScreenSpinner() {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+      </div>
+    );
   }
 
+  if (
+    !hasHydrated ||
+    !user ||
+    !refreshToken ||
+    !refreshTokenExpiresAt ||
+    refreshTokenExpiresAt <= Date.now()
+  ) {
+    return <FullScreenSpinner />;
+  }
   return (
     <div className="min-h-screen bg-background">
       <MobileSidebar />
@@ -60,4 +84,3 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
