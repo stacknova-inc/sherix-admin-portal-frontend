@@ -93,7 +93,22 @@ export interface LegalDocument extends ApiTimestamped {
   uploadedAt?: string;
 }
 
+export interface CompanyEvidence {
+  url?: string;
+  label?: string;
+  type?: string;
+}
+
+export interface CompanyMembership {
+  plan?: string;
+  status?: string;
+  joinedAt?: string;
+  expiresAt?: string;
+}
+
 export interface Company extends ApiTimestamped {
+  /** The ID required by the company verification/account endpoints. */
+  companyId?: ApiId;
   name?: string;
   companyName?: string;
   businessName?: string;
@@ -101,13 +116,24 @@ export interface Company extends ApiTimestamped {
   phone?: string;
   services?: Array<string | Service>;
   location?: string;
+  coverageArea?: string;
   address?: string;
   rating?: number;
   reviews?: number;
-  status?: string;
-  verificationStatus?: string;
+  status?: "Active" | "Suspended" | string;
+  verificationStatus?: "Approved" | "Rejected" | string;
+  isApproved?: boolean;
   isActive?: boolean;
   isEmployee?: boolean;
+  /** Not yet returned by the backend; the details modal reads these defensively. */
+  businessRegistrationNumber?: string;
+  brn?: string;
+  responsibleContact?: string | { name?: string; phone?: string; email?: string };
+  personnelCount?: number | string;
+  staffCount?: number | string;
+  identityEvidence?: CompanyEvidence[];
+  businessEvidence?: CompanyEvidence[];
+  membership?: CompanyMembership;
 }
 
 export interface ServiceProvider extends Company {
@@ -351,4 +377,24 @@ export interface GeneralSettings {
 export interface Settings {
   general?: GeneralSettings;
   [key: string]: unknown;
+}
+
+export interface Mechanic extends ApiTimestamped {
+  /** The user ID required by the mechanic verification/account endpoints. */
+  userId?: ApiId;
+  name?: string;
+  role?: string;
+  email?: string;
+  phoneNumber?: string;
+  company?: string;
+  businessName?: string;
+  services?: string | Array<string | Service>;
+  location?: string;
+  profilePhoto?: { url?: string; publicId?: string };
+  status?: "Active" | "Suspended" | string;
+  verificationStatus?: "Approved" | "Rejected" | string;
+  isAccountApproved?: boolean;
+  isActive?: boolean;
+  completedJobs?: number;
+  completedJobsCount?: number;
 }

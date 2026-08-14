@@ -38,7 +38,7 @@ type DisputeRow = {
 
 function mapDispute(dispute: Dispute): DisputeRow {
   const record = dispute as unknown as Record<string, unknown>;
-  const raisedBy = text(record.raisedBy, "Unknown user");
+  const raisedBy = text(record.raisedBy, "Unknown customer");
   const against = text(record.against, "Unknown provider");
   const booking = asRecord(record.booking);
   return {
@@ -143,7 +143,7 @@ export default function DisputesPage() {
       <section className="grid gap-4">
         <CardShell>
           <ToolbarCard>
-            <SearchBox placeholder="Search by job, user, provider or reason..." value={query} onChange={setQuery} />
+            <SearchBox placeholder="Search by job, customer, provider or reason..." value={query} onChange={setQuery} />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} value={status} onChange={setStatus} />
           </ToolbarCard>
           {disputesQuery.isLoading ? (

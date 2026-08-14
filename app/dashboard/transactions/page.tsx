@@ -176,7 +176,7 @@ export default function TransactionsPage() {
 
       <CardShell>
         <ToolbarCard>
-          <SearchBox placeholder="Search by transaction, user, provider or job..." value={query} onChange={setQuery} />
+          <SearchBox placeholder="Search by transaction, customer, provider or job..." value={query} onChange={setQuery} />
           <FilterSelect placeholder="All Types" values={["All Types", "Payment", "Payout", "Refund", "Commission"]} value={type} onChange={setType} />
           <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} value={status} onChange={setStatus} />
           <FilterSelect placeholder="All Payment Methods" values={["All Payment Methods", "Mobile Money", "Bank Transfer", "Card Payment"]} className="lg:w-[210px]" />

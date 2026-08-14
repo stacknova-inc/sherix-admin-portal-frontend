@@ -10,10 +10,10 @@ import { TopServices } from "@/components/dashboard/TopServices";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useAuditStats } from "@/hooks/useAudit";
 import { useBookingStats, useBookings } from "@/hooks/useBookings";
-import { useCompanyStats } from "@/hooks/useCompanies";
+import { useCompanies } from "@/hooks/useCompanies";
 import { useDashboardAnalytics, useDashboardSummary } from "@/hooks/useDashboard";
 import { useFinancialEarnings } from "@/hooks/useFinancial";
-import { useCompanyMechanics, useIndividualMechanics } from "@/hooks/useMechanics";
+import { useIndividualMechanics } from "@/hooks/useMechanics";
 import { useUsers } from "@/hooks/useUsers";
 import { activeStatus, asRecord, firstText, metricChange, metricValue, money, text, timeText } from "@/lib/live-data";
 
@@ -33,26 +33,24 @@ export default function DashboardPage() {
   const usersQuery = useUsers();
   const bookingStatsQuery = useBookingStats();
   const bookingsQuery = useBookings();
-  const companyStatsQuery = useCompanyStats();
+  const companyProvidersQuery = useCompanies();
   const earningsQuery = useFinancialEarnings();
   const auditStatsQuery = useAuditStats();
   const individualProvidersQuery = useIndividualMechanics();
-  const companyProvidersQuery = useCompanyMechanics();
   const summary = asRecord(summaryQuery.data);
   const analytics = asRecord(analyticsQuery.data);
   const bookingStats = asRecord(bookingStatsQuery.data);
-  const companyStats = asRecord(companyStatsQuery.data);
   const earnings = asRecord(earningsQuery.data);
   const individualProvidersCount = individualProvidersQuery.data?.length ?? 0;
   const companyProvidersCount = companyProvidersQuery.data?.length ?? 0;
   const totalServiceProviders = individualProvidersCount + companyProvidersCount;
   const cards = [
-    { label: "Total Users", value: usersQuery.data?.length !== undefined ? String(usersQuery.data.length) : metricValue(summary, ["totalUsers", "users"]), change: usersQuery.data ? "Derived from loaded users" : "Live backend data", icon: Users, tone: "red" },
+    { label: "Total Customers", value: usersQuery.data?.length !== undefined ? String(usersQuery.data.length) : metricValue(summary, ["totalUsers", "users"]), change: usersQuery.data ? "Derived from loaded customers" : "Live backend data", icon: Users, tone: "red" },
     {
       label: "Service Providers",
       value: individualProvidersQuery.data || companyProvidersQuery.data
         ? String(totalServiceProviders)
-        : metricValue(companyStats, ["totalProviders", "serviceProviders", "totalCompanies", "total"], metricValue(summary, ["serviceProviders", "totalProviders", "providers"])),
+        : metricValue(summary, ["serviceProviders", "totalProviders", "providers"]),
       change: `${individualProvidersCount} individual • ${companyProvidersCount} company`,
       icon: ShieldCheck,
       tone: "red",
@@ -114,11 +112,11 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader title="Dashboard" subtitle="Welcome back, Admin! Here's what's happening with Sherix today." />
-      {summaryQuery.isLoading && usersQuery.isLoading && bookingStatsQuery.isLoading && companyStatsQuery.isLoading ? (
+      {summaryQuery.isLoading && usersQuery.isLoading && bookingStatsQuery.isLoading && companyProvidersQuery.isLoading ? (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-32 animate-pulse rounded-xl bg-muted" />)}
         </section>
-      ) : summaryQuery.isError && usersQuery.isError && bookingStatsQuery.isError && companyStatsQuery.isError && earningsQuery.isError && auditStatsQuery.isError ? (
+      ) : summaryQuery.isError && usersQuery.isError && bookingStatsQuery.isError && companyProvidersQuery.isError && earningsQuery.isError && auditStatsQuery.isError ? (
         <div className="rounded-xl border bg-card p-5 text-sm font-semibold text-red-600">Unable to load dashboard stats.</div>
       ) : (
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">

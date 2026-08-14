@@ -1,24 +1,24 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  Clock3,
+  Check,
+  Eye,
   Loader2,
   MapPin,
   MoreVertical,
-  ShieldCheck,
   UserCheck,
+  UserRound,
   UserRoundX,
-  Users,
-  XCircle,
-  Wrench,
+  X,
 } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
+import { AccountStateDialog } from "@/components/shared/AccountStateDialog";
+import { RejectReasonDialog } from "@/components/shared/RejectReasonDialog";
+import { DetailGrid } from "@/components/shared/DetailField";
 import {
-  ExportButton,
   FilterSelect,
-  MetricGrid,
   PersonCell,
   SearchBox,
   ServiceTags,
@@ -29,202 +29,253 @@ import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
+import { hasPermission, Permission } from "@/lib/rbac";
+import { activeStatus, asRecord, firstText, recordId, text } from "@/lib/live-data";
 import {
-  activeStatus,
-  asRecord,
-  firstText,
-  initials,
-  metricChange,
-  metricDirection,
-  metricValue,
-  recordId,
-  text,
-  uniqueRecordIds,
-} from "@/lib/live-data";
-import {
+  useMechanicStatus,
+  useMechanicVerification,
   useIndividualMechanics,
-  useIndividualMechanicStats,
-  useIndividualMechanicAction,
 } from "@/hooks/useMechanics";
-import type { Company } from "@/types";
+import { useUiStore } from "@/store/use-ui-store";
+import type { Mechanic } from "@/types";
 
-type MechanicRow = {
-  id: string;
-  actionId: string;
+type Row = {
+  userId: string;
   name: string;
   email: string;
-  services: string[];
-  extraServices: number;
   phone: string;
+  company: string;
+  services: string[];
   location: string;
-  status: string;
-  initials: string;
-  avatarTone: string;
+  verificationStatus: "Approved" | "Rejected";
+  status: "Active" | "Suspended";
 };
+const values = (source: unknown) =>
+  Array.isArray(source)
+    ? source
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : String((item as { name?: string }).name ?? ""),
+        )
+        .filter(Boolean)
+    : typeof source === "string"
+      ? [source]
+      : [];
+const map = (item: Mechanic): Row => ({
+  userId: item.userId ?? item.id ?? item._id ?? "",
+  name: item.name ?? "Unnamed mechanic",
+  email: item.email ?? "-",
+  phone: item.phoneNumber ?? "-",
+  company: item.company ?? item.businessName ?? "-",
+  services: values(item.services),
+  location: item.location ?? "-",
+  verificationStatus:
+    item.verificationStatus?.toLowerCase() === "rejected" ||
+    item.isAccountApproved === false
+      ? "Rejected"
+      : "Approved",
+  status:
+    item.status?.toLowerCase() === "suspended" || item.isActive === false
+      ? "Suspended"
+      : "Active",
+});
 
-function serviceLabel(service: unknown) {
-  if (typeof service === "string") return service;
-  const record = asRecord(service);
-  return text(
-    record.name ??
-      record.title ??
-      record.serviceName ??
-      record.categoryName ??
-      record.label ??
-      record.issueTitle,
-    "",
+function MechanicDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange: (open: boolean) => void }) {
+  const query = useIndividualMechanics();
+  const mechanic = (query.data ?? []).find(
+    (item) => recordId(item) === id || String(asRecord(item).userId ?? "") === id,
   );
-}
+  const record = asRecord(mechanic);
+  const photo = firstText(asRecord(record.profilePhoto).url ? asRecord(record.profilePhoto) : record, ["url", "profilePhotoUrl"], "");
+  const name = firstText(record, ["name", "fullName"], "Mechanic details");
+  const [photoFailed, setPhotoFailed] = React.useState(false);
+  const fields: Array<[string, React.ReactNode]> = [
+    ["Email", firstText(record, ["email"])],
+    ["Phone", firstText(record, ["phone", "phoneNumber"])],
+    ["Company", firstText(record, ["company", "businessName"])],
+    ["Services", text(record.services)],
+    ["Location", firstText(record, ["location", "address"])],
+    ["Completed jobs", text(record.completedJobsCount ?? record.completedJobs, "0")],
+  ];
 
-function collectServices(...sources: unknown[]) {
-  const services = sources.flatMap((source) => {
-    if (!source) return [];
-    if (Array.isArray(source)) return source.map(serviceLabel);
-    return [serviceLabel(source)];
-  });
-  return Array.from(new Set(services.map((s) => s.trim()).filter(Boolean)));
-}
-
-function mapMechanic(item: Company): MechanicRow {
-  const root = item as unknown as Record<string, unknown>;
-  const nested = asRecord(
-    root.mechanic ?? root.provider ?? root.serviceProvider ?? root.user,
-  );
-  const record = { ...root, ...nested };
-  const name = firstText(
-    record,
-    ["name", "fullName", "firstName"],
-    text(nested, "Unnamed mechanic"),
-  );
-  const ids = uniqueRecordIds(
-    root.userId,
-    root.mechanicId,
-    root.providerId,
-    root.user,
-    nested,
-    item,
-  );
-  const allServices = collectServices(
-    record.services,
-    record.service,
-    record.serviceOffered,
-    record.serviceCategories,
-    record.specializations,
-    record.skills,
-    asRecord(record.profile).services,
-  );
-  return {
-    id:
-      recordId(item) ||
-      String(root.providerId ?? root.mechanicId ?? root.userId ?? ""),
-    actionId: ids[0] ?? "",
-    name,
-    email: firstText(record, ["email"]),
-    services: allServices.slice(0, 2),
-    extraServices: Math.max(0, allServices.length - 2),
-    phone: firstText(record, ["phone", "phoneNumber"]),
-    location: firstText(record, ["location", "address"]),
-    status: activeStatus(record),
-    initials: initials(name),
-    avatarTone: "bg-blue-600 text-white",
-  };
-}
-
-function Toast({ message, onClose }: { message: string; onClose: () => void }) {
-  React.useEffect(() => {
-    const timer = window.setTimeout(onClose, 2600);
-    return () => window.clearTimeout(timer);
-  }, [onClose]);
   return (
-    <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">
-      {message}
-    </div>
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{name}</DialogTitle>
+          <DialogDescription>Mechanic profile and account details from the backend.</DialogDescription>
+        </DialogHeader>
+        {query.isLoading ? (
+          <p className="text-sm font-semibold text-muted-foreground">Loading mechanic details...</p>
+        ) : query.isError || !mechanic ? (
+          <p className="text-sm font-semibold text-red-600">Unable to load mechanic details.</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              {photo && !photoFailed ? (
+                <img src={photo} alt={`${name} profile`} className="h-20 w-20 rounded-full object-cover" onError={() => setPhotoFailed(true)} />
+              ) : (
+                <div className="grid h-20 w-20 place-items-center rounded-full bg-muted">
+                  <UserRound className="h-8 w-8 text-muted-foreground" />
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-black">{name}</p>
+                <StatusCell status={activeStatus(record)} />
+              </div>
+            </div>
+            <DetailGrid fields={fields} />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function MechanicActions({
-  mechanic,
-  onToast,
+function Actions({
+  row,
+  notify,
+  onView,
 }: {
-  mechanic: MechanicRow;
-  onToast: (msg: string) => void;
+  row: Row;
+  notify: (message: string) => void;
+  onView: (id: string) => void;
 }) {
-  const action = useIndividualMechanicAction();
-
-  async function runAction(nextAction: "suspend" | "activate") {
+  const role = useUiStore((state) => state.role ?? state.user?.role);
+  const allowed = hasPermission(role, Permission.SERVICES);
+  const verification = useMechanicVerification();
+  const status = useMechanicStatus();
+  const [pending, setPending] = React.useState<"activate" | "suspend" | null>(
+    null,
+  );
+  const [reason, setReason] = React.useState("");
+  const [rejecting, setRejecting] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState("");
+  async function approve() {
     try {
-      let reason: string | undefined;
-
-      if (nextAction === "suspend") {
-        reason = window.prompt("Reason for suspension?") ?? undefined;
-
-        if (reason === undefined) return;
-      }
-
-      await action.mutateAsync({
-        id: mechanic.actionId || mechanic.id,
-        action: nextAction as Parameters<
-          typeof action.mutateAsync
-        >[0]["action"],
-        reason,
-      });
-
-      onToast(
-        `Mechanic ${
-          nextAction === "activate" ? "activated" : "suspended"
-        } successfully.`,
-      );
+      await verification.mutateAsync({ userId: row.userId, action: "approve" });
+      notify("Mechanic approved. An email notification will be sent to the mechanic.");
     } catch (error) {
-      onToast(getErrorMessage(error, `Unable to ${nextAction} mechanic`));
+      notify(getErrorMessage(error, "Unable to approve mechanic"));
     }
   }
-
-  const status = mechanic.status.toLowerCase();
-
-  const isSuspended = status.includes("suspend") || status.includes("inactive");
-  const isActive = status.includes("active") || status.includes("verified");
-
+  async function confirmReject() {
+    try {
+      await verification.mutateAsync({ userId: row.userId, action: "reject", reason: rejectReason });
+      notify("Mechanic rejected. An email notification will be sent to the mechanic.");
+      setRejecting(false);
+      setRejectReason("");
+    } catch (error) {
+      notify(getErrorMessage(error, "Unable to reject mechanic"));
+    }
+  }
+  async function confirm() {
+    if (!pending) return;
+    try {
+      await status.mutateAsync({
+        userId: row.userId,
+        action: pending,
+        reason: pending === "suspend" ? reason : undefined,
+      });
+      notify(`Mechanic ${pending === "activate" ? "activated" : "suspended"}. An email notification will be sent to the mechanic.`);
+      setPending(null);
+      setReason("");
+    } catch (error) {
+      notify(getErrorMessage(error, `Unable to ${pending} mechanic`));
+    }
+  }
+  const isBusy = verification.isPending || status.isPending;
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="bg-white">
-        {isActive && (
-          <DropdownMenuItem onClick={() => runAction("suspend")}>
-            <UserRoundX className="mr-2 h-4 w-4" />
-            Suspend Mechanic
+    <>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Actions for ${row.name}`}
+            disabled={!allowed || isBusy}
+          >
+            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreVertical className="h-4 w-4" />}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-white">
+          <DropdownMenuItem onSelect={() => setTimeout(() => onView(row.userId), 0)}>
+            <Eye className="mr-2 h-4 w-4" />
+            View mechanic
           </DropdownMenuItem>
-        )}
-
-        {isSuspended && (
-          <DropdownMenuItem onClick={() => runAction("activate")}>
+          <DropdownMenuItem
+            onClick={() => void approve()}
+            disabled={row.verificationStatus === "Approved"}
+          >
+            <Check className="mr-2 h-4 w-4" />
+            Approve
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => setTimeout(() => setRejecting(true), 0)}
+            disabled={row.verificationStatus === "Rejected"}
+            className="text-red-600"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Reject
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => setTimeout(() => setPending("activate"), 0)}
+            disabled={row.status === "Active"}
+          >
             <UserCheck className="mr-2 h-4 w-4" />
-            Activate Mechanic
+            Activate
           </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem
+            onSelect={() => setTimeout(() => setPending("suspend"), 0)}
+            disabled={row.status === "Suspended"}
+          >
+            <UserRoundX className="mr-2 h-4 w-4" />
+            Suspend
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {pending && (
+        <AccountStateDialog
+          open
+          accountLabel="Mechanic"
+          action={pending}
+          reason={reason}
+          onReasonChange={setReason}
+          pending={status.isPending}
+          onOpenChange={(open) => !open && setPending(null)}
+          onConfirm={() => void confirm()}
+        />
+      )}
+      {rejecting && (
+        <RejectReasonDialog
+          open
+          accountLabel="Mechanic"
+          reason={rejectReason}
+          onReasonChange={setRejectReason}
+          pending={verification.isPending}
+          onOpenChange={(open) => !open && setRejecting(false)}
+          onConfirm={() => void confirmReject()}
+        />
+      )}
+    </>
   );
 }
-
-const mechanicColumns = (
-  onToast: (msg: string) => void,
-): ColumnDef<MechanicRow>[] => [
-  {
-    accessorKey: "id",
-    header: "Mechanic ID",
-    cell: ({ row }) => <span className="font-semibold">{row.original.id}</span>,
-  },
+const columns = (notify: (message: string) => void, onView: (id: string) => void): ColumnDef<Row>[] => [
+  { accessorKey: "userId", header: "Mechanic ID" },
   {
     accessorKey: "name",
     header: "Mechanic",
@@ -232,36 +283,32 @@ const mechanicColumns = (
       <PersonCell
         name={row.original.name}
         sub={row.original.email}
-        initials={row.original.initials}
-        avatarTone={row.original.avatarTone}
+        initials={row.original.name.slice(0, 2)}
+        avatarTone="bg-blue-600 text-white"
       />
     ),
   },
+  { accessorKey: "company", header: "Company" },
   {
     accessorKey: "services",
-    header: "Service(s)",
-    cell: ({ row }) =>
-      row.original.services.length ? (
-        <ServiceTags
-          services={row.original.services}
-          extra={row.original.extraServices}
-        />
-      ) : (
-        <span className="text-xs font-semibold text-muted-foreground">
-          No services listed
-        </span>
-      ),
+    header: "Services",
+    cell: ({ row }) => <ServiceTags services={row.original.services} />,
   },
   { accessorKey: "phone", header: "Phone" },
   {
     accessorKey: "location",
     header: "Location",
     cell: ({ row }) => (
-      <span className="flex min-w-[160px] items-center gap-2">
-        <MapPin className="h-4 w-4 text-muted-foreground" />
+      <span className="flex gap-2">
+        <MapPin className="h-4 w-4" />
         {row.original.location}
       </span>
     ),
+  },
+  {
+    accessorKey: "verificationStatus",
+    header: "Verification Status",
+    cell: ({ row }) => <StatusCell status={row.original.verificationStatus} />,
   },
   {
     accessorKey: "status",
@@ -271,150 +318,93 @@ const mechanicColumns = (
   {
     id: "actions",
     header: "Actions",
-    cell: ({ row }) => (
-      <MechanicActions mechanic={row.original} onToast={onToast} />
-    ),
+    cell: ({ row }) => <Actions row={row.original} notify={notify} onView={onView} />,
   },
 ];
 
 export default function IndividualMechanicsPage() {
+  const query = useIndividualMechanics();
   const [toast, setToast] = React.useState("");
-  const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState("All Status");
-
-  const mechanicsQuery = useIndividualMechanics();
-  const statsQuery = useIndividualMechanicStats();
-
-  const rows = React.useMemo(
-    () => (mechanicsQuery.data ?? []).map(mapMechanic),
-    [mechanicsQuery.data],
-  );
-  const filteredRows = React.useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return rows.filter((row) => {
-      const matchesSearch =
-        !search ||
-        [
-          row.name,
-          row.email,
-          row.phone,
-          row.location,
-          row.status,
-          ...row.services,
-        ]
+  const [viewingId, setViewingId] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [status, setStatus] = React.useState("Status");
+  const [verification, setVerification] = React.useState("Verification");
+  const rows = React.useMemo(() => (query.data ?? []).map(map), [query.data]);
+  const filtered = rows.filter(
+    (row) =>
+      (!search ||
+        [row.name, row.email, row.phone, row.company, ...row.services]
           .join(" ")
           .toLowerCase()
-          .includes(search);
-      const matchesStatus =
-        status === "All Status" ||
-        row.status.toLowerCase().includes(status.toLowerCase());
-      return matchesSearch && matchesStatus;
-    });
-  }, [query, rows, status]);
-
-  const stats = asRecord(statsQuery.data);
-  const metrics = [
-    {
-      label: "Total Mechanics",
-      value: metricValue(
-        stats,
-        ["total", "totalMechanics"],
-        String(rows.length),
-      ),
-      change: metricChange(stats, ["total", "totalMechanics"]),
-      direction: metricDirection(stats, ["total", "totalMechanics"]),
-      tone: "red",
-      icon: Users,
-    },
-    {
-      label: "Approved",
-      value: metricValue(
-        stats,
-        ["approved", "approvedMechanics"],
-        String(
-          rows.filter(
-            (r) =>
-              r.status.toLowerCase().includes("approved") ||
-              r.status.toLowerCase().includes("verified"),
-          ).length,
-        ),
-      ),
-      change: metricChange(stats, ["approved"]),
-      direction: metricDirection(stats, ["approved"]),
-      tone: "green",
-      icon: ShieldCheck,
-    },
-
-    {
-      label: "Active Mechanics",
-      value: metricValue(
-        stats,
-        ["active", "activeMechanics"],
-        String(
-          rows.filter((r) => r.status.toLowerCase().includes("active")).length,
-        ),
-      ),
-      change: metricChange(stats, ["active"]),
-      direction: metricDirection(stats, ["active"]),
-      tone: "blue",
-      icon: Wrench,
-    },
-  ];
-
+          .includes(search.toLowerCase())) &&
+      (status === "Status" || row.status === status) &&
+      (verification === "Verification" || row.verificationStatus === verification),
+  );
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <PageHeader
         title="Individual Mechanics"
-        subtitle="Manage and verify individual mechanic service providers."
+        subtitle="Manage individual mechanic verification and account status."
       />
-      <MetricGrid metrics={metrics} />
       <CardShell>
         <ToolbarCard>
           <SearchBox
-            placeholder="Search mechanics by name, email, phone or service..."
-            value={query}
-            onChange={setQuery}
+            placeholder="Search mechanics by name, email, phone or company..."
+            value={search}
+            onChange={setSearch}
           />
           <FilterSelect
-            placeholder="All Status"
-            values={["All Status", "Verified"]}
+            placeholder="Status"
+            values={["Status", "Active", "Suspended"]}
             value={status}
             onChange={setStatus}
           />
           <FilterSelect
-            placeholder="All Services"
-            values={[
-              "All Services",
-              "Battery",
-              "Diagnostics",
-              "Tire Change",
-              "Towing",
-            ]}
+            placeholder="Verification"
+            values={["Verification", "Approved", "Rejected"]}
+            value={verification}
+            onChange={setVerification}
           />
-          <FilterSelect
-            placeholder="Location"
-            values={["Location", "Accra", "Tema", "Kasoa", "Madina"]}
-          />
-          {/* <ExportButton data={exportData} filename="individual-mechanics" /> */}
         </ToolbarCard>
-        {mechanicsQuery.isLoading ? (
-          <div className="p-6 text-sm font-semibold text-muted-foreground">
+        {query.isLoading ? (
+          <div className="flex gap-2 p-6 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
             Loading mechanics...
           </div>
-        ) : mechanicsQuery.isError ? (
-          <div className="p-6 text-sm font-semibold text-red-600">
+        ) : query.isError ? (
+          <div className="flex gap-3 p-6 text-red-600">
             Unable to load mechanics.
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void query.refetch()}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            {search || status !== "Status" || verification !== "Verification"
+              ? "No mechanics match the current filters."
+              : "No individual mechanics found."}
           </div>
         ) : (
           <AdminDataTable
-            data={filteredRows}
-            columns={mechanicColumns(setToast)}
-            minWidth="1340px"
+            data={filtered}
+            columns={columns(setToast, setViewingId)}
+            minWidth="1320px"
             rowLabel="mechanics"
           />
         )}
       </CardShell>
-      {toast && <Toast message={toast} onClose={() => setToast("")} />}
+      {toast && (
+        <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-sm font-bold">
+          {toast}
+        </div>
+      )}
+      {viewingId && (
+        <MechanicDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} />
+      )}
     </div>
   );
 }

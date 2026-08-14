@@ -1,272 +1,6 @@
-// import type { NavRoute } from "@/lib/routes";
 
-// export enum StaffRole {
-//   SUPER_ADMIN = "SUPER_ADMIN",
-//   HR_ADMIN = "human_resource_admin",
-//   FINANCE_ADMIN = "finance_admin",
-//   SUPPORT_ADMIN = "customer_support_admin",
-//   MARKETING_ADMIN = "marketing_admin",
-//   OPERATIONS_ADMIN = "operations_admin",
-//   COMPLIANCE_ADMIN = "compliance_admin",
-//   TECHNICAL_SUPPORT_ADMIN = "technical_support_admin",
-//   BUSINESS_DEVELOPMENT_ADMIN = "business_development_admin",
-// }
-
-// export enum Permission {
-//   DASHBOARD = "dashboard",
-//   STAFF_MANAGEMENT = "staff_management",
-//   USERS = "users",
-//   SERVICE_PROVIDERS = "service_providers",
-//   ORGANIZATION_DATA = "organization_data",
-//   JOBS = "jobs",
-//   EARNINGS_PAYMENTS = "earnings_payments",
-//   TRANSACTIONS = "transactions",
-//   NOTIFICATIONS = "notifications",
-//   DISPUTES = "disputes",
-//   RATINGS_REVIEWS = "ratings_reviews",
-//   SETTINGS = "settings",
-//   AUDIT_LOGS = "audit_logs",
-//   REPORTS_ANALYTICS = "reports_analytics",
-// }
-
-// export const SUPER_ADMIN_ALIASES = new Set([
-//   "SUPER_ADMIN",
-//   "super_admin",
-//   "sherix_admin",
-//   "admin",
-//   "administrator",
-// ]);
-
-// const ROLE_ALIASES: Record<string, StaffRole> = {
-//   super_admin: StaffRole.SUPER_ADMIN,
-//   sherix_admin: StaffRole.SUPER_ADMIN,
-//   human_resources_admin: StaffRole.HR_ADMIN,
-//   finance_admin: StaffRole.FINANCE_ADMIN,
-//   customer_support_admin: StaffRole.SUPPORT_ADMIN,
-//   compliance_admin: StaffRole.COMPLIANCE_ADMIN,
-//   operations_admin: StaffRole.OPERATIONS_ADMIN,
-//   technical_support_admin: StaffRole.TECHNICAL_SUPPORT_ADMIN,
-//   business_development_admin: StaffRole.BUSINESS_DEVELOPMENT_ADMIN,
-// };
-
-// export const roleLabels: Record<StaffRole, string> = {
-//   [StaffRole.SUPER_ADMIN]: "Super Admin",
-//   [StaffRole.HR_ADMIN]: "Human Resource Admin",
-//   [StaffRole.FINANCE_ADMIN]: "Finance Admin",
-//   [StaffRole.SUPPORT_ADMIN]: "Customer Support Admin",
-//   [StaffRole.MARKETING_ADMIN]: "Marketing Admin",
-//   [StaffRole.OPERATIONS_ADMIN]: "Operations Admin",
-//   [StaffRole.COMPLIANCE_ADMIN]: "Compliance Admin",
-//   [StaffRole.TECHNICAL_SUPPORT_ADMIN]: "Technical Support Admin",
-//   [StaffRole.BUSINESS_DEVELOPMENT_ADMIN]: "Business Development Admin",
-// };
-
-// export const rolePermissions: Record<StaffRole, Permission[]> = {
-//   [StaffRole.SUPER_ADMIN]: Object.values(Permission),
-
-//   [StaffRole.HR_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.USERS,
-//     Permission.SERVICE_PROVIDERS,
-//     Permission.ORGANIZATION_DATA,
-//     Permission.JOBS,
-//   ],
-
-//   [StaffRole.FINANCE_ADMIN]: [
-//     Permission.EARNINGS_PAYMENTS,
-//     Permission.TRANSACTIONS,
-//   ],
-
-//   [StaffRole.SUPPORT_ADMIN]: [Permission.ORGANIZATION_DATA],
-
-//   [StaffRole.MARKETING_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.RATINGS_REVIEWS,
-//     Permission.ORGANIZATION_DATA
-//   ],
-
-//   [StaffRole.OPERATIONS_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.ORGANIZATION_DATA,
-//     Permission.JOBS,
-//     Permission.NOTIFICATIONS,
-//   ],
-
-//   [StaffRole.COMPLIANCE_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.ORGANIZATION_DATA,
-//     Permission.AUDIT_LOGS,
-//     Permission.REPORTS_ANALYTICS,
-//   ],
-
-//   [StaffRole.TECHNICAL_SUPPORT_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.NOTIFICATIONS,
-//     Permission.DISPUTES,
-//   ],
-
-//   [StaffRole.BUSINESS_DEVELOPMENT_ADMIN]: [
-//     Permission.DASHBOARD,
-//     Permission.USERS,
-//     Permission.SERVICE_PROVIDERS,
-//     Permission.REPORTS_ANALYTICS,
-//   ],
-// };
-
-// const routePermissions: Array<{
-//   path: string;
-//   permission: Permission;
-//   exact?: boolean;
-// }> = [
-//   { path: "/dashboard", permission: Permission.DASHBOARD, exact: true },
-//   { path: "/dashboard/users", permission: Permission.USERS },
-//   {
-//     path: "/dashboard/service-providers",
-//     permission: Permission.SERVICE_PROVIDERS,
-//   },
-//   {
-//     path: "/dashboard/organization-data",
-//     permission: Permission.ORGANIZATION_DATA,
-//   },
-//   {
-//     path: "/dashboard/service-categories",
-//     permission: Permission.ORGANIZATION_DATA,
-//   },
-//   {
-//     path: "/dashboard/pricing-services",
-//     permission: Permission.ORGANIZATION_DATA,
-//   },
-//   { path: "/dashboard/jobs", permission: Permission.JOBS },
-//   {
-//     path: "/dashboard/earnings-payments",
-//     permission: Permission.EARNINGS_PAYMENTS,
-//   },
-//   { path: "/dashboard/transactions", permission: Permission.TRANSACTIONS },
-//   { path: "/dashboard/notifications", permission: Permission.NOTIFICATIONS },
-//   { path: "/dashboard/disputes", permission: Permission.DISPUTES },
-//   {
-//     path: "/dashboard/ratings-reviews",
-//     permission: Permission.RATINGS_REVIEWS,
-//   },
-//   {
-//     path: "/dashboard/staff-management",
-//     permission: Permission.STAFF_MANAGEMENT,
-//   },
-//   { path: "/dashboard/settings", permission: Permission.SETTINGS },
-//   { path: "/dashboard/audit-logs", permission: Permission.AUDIT_LOGS },
-//   {
-//     path: "/dashboard/reports-analytics",
-//     permission: Permission.REPORTS_ANALYTICS,
-//   },
-// ];
-
-// const apiPermissions: Array<{ path: string; permission: Permission }> = [
-//   { path: "/dashboard", permission: Permission.DASHBOARD },
-//   {
-//     path: "/users/service-providers",
-//     permission: Permission.SERVICE_PROVIDERS,
-//   },
-//   { path: "/users", permission: Permission.USERS },
-//   { path: "/services", permission: Permission.ORGANIZATION_DATA },
-//   { path: "/issues", permission: Permission.ORGANIZATION_DATA },
-//   { path: "/bookings/admin/bookings", permission: Permission.JOBS },
-//   { path: "/financial/earnings", permission: Permission.EARNINGS_PAYMENTS },
-//   { path: "/financial/transactions", permission: Permission.TRANSACTIONS },
-//   { path: "/admin/notifications", permission: Permission.NOTIFICATIONS },
-//   { path: "/disputes", permission: Permission.DISPUTES },
-//   { path: "/reviews", permission: Permission.RATINGS_REVIEWS },
-//   { path: "/settings", permission: Permission.SETTINGS },
-//   { path: "/staff", permission: Permission.STAFF_MANAGEMENT },
-//   { path: "/audit", permission: Permission.AUDIT_LOGS },
-// ];
-
-// export function normalizeRole(role?: string | null): StaffRole | null {
-//   if (!role) return null;
-//   const trimmed = role.trim();
-//   return ROLE_ALIASES[trimmed] ?? ROLE_ALIASES[trimmed.toLowerCase()] ?? null;
-// }
-
-// export function isAuthorizedPortalRole(role?: string | null) {
-//   return normalizeRole(role) !== null;
-// }
-
-// export function hasPermission(
-//   role: string | null | undefined,
-//   permission: Permission,
-// ) {
-//   const normalized = normalizeRole(role);
-//   if (!normalized) return false;
-//   return rolePermissions[normalized].includes(permission);
-// }
-
-// function matchesPath(pathname: string, configPath: string, exact = false) {
-//   if (exact) return pathname === configPath;
-//   return pathname === configPath || pathname.startsWith(`${configPath}/`);
-// }
-
-// export function permissionForPath(pathname: string) {
-//   return routePermissions
-//     .filter((entry) => matchesPath(pathname, entry.path, entry.exact))
-//     .sort((a, b) => b.path.length - a.path.length)[0]?.permission;
-// }
-
-// export function canAccessPath(
-//   role: string | null | undefined,
-//   pathname: string,
-// ) {
-//   if (pathname === "/dashboard/unauthorized") return true;
-//   const permission = permissionForPath(pathname);
-//   return permission
-//     ? hasPermission(role, permission)
-//     : hasPermission(role, Permission.DASHBOARD);
-// }
-
-// export function permissionForApiPath(pathname: string) {
-//   return apiPermissions
-//     .filter((entry) => matchesPath(pathname, entry.path))
-//     .sort((a, b) => b.path.length - a.path.length)[0]?.permission;
-// }
-
-// export function canAccessApiPath(
-//   role: string | null | undefined,
-//   pathname: string,
-// ) {
-//   const permission = permissionForApiPath(pathname);
-//   return permission
-//     ? hasPermission(role, permission)
-//     : hasPermission(role, Permission.DASHBOARD);
-// }
-
-// export function filterRoutesForRole(
-//   routes: NavRoute[],
-//   role: string | null | undefined,
-// ): NavRoute[] {
-//   return routes.reduce<NavRoute[]>((allowedRoutes, route) => {
-//     const children = route.children
-//       ? filterRoutesForRole(route.children, role)
-//       : undefined;
-//     const routeAllowed = canAccessPath(role, route.href);
-//     if (!routeAllowed && !children?.length) return allowedRoutes;
-
-//     allowedRoutes.push(children ? { ...route, children } : { ...route });
-//     return allowedRoutes;
-//   }, []);
-// }
-
-// export function displayRole(role?: string | null) {
-//   const normalized = normalizeRole(role);
-//   if (normalized) return roleLabels[normalized];
-//   return role
-//     ? role
-//         .replace(/[_-]+/g, " ")
-//         .replace(/\b\w/g, (letter) => letter.toUpperCase())
-//     : "Administrator";
-// }
 import type { NavRoute } from "@/lib/routes";
 
-/* =========================
-   ROLES
-========================= */
 
 export enum StaffRole {
   SUPER_ADMIN = "SUPER_ADMIN",
@@ -279,10 +13,6 @@ export enum StaffRole {
   TECHNICAL_SUPPORT_ADMIN = "technical_support_admin",
   BUSINESS_DEVELOPMENT_ADMIN = "business_development_admin",
 }
-
-/* =========================
-   PERMISSIONS (API-ALIGNED)
-========================= */
 
 export enum Permission {
   DASHBOARD = "dashboard",
@@ -319,9 +49,7 @@ export enum Permission {
   LEGAL = "legal",
 }
 
-/* =========================
-   ROLE LABELS
-========================= */
+
 
 export const roleLabels: Record<StaffRole, string> = {
   [StaffRole.SUPER_ADMIN]: "Super Admin",
@@ -335,9 +63,6 @@ export const roleLabels: Record<StaffRole, string> = {
   [StaffRole.BUSINESS_DEVELOPMENT_ADMIN]: "Business Development Admin",
 };
 
-/* =========================
-   ROLE ALIASES (FIXED)
-========================= */
 
 const ROLE_ALIASES: Record<string, StaffRole> = {
   super_admin: StaffRole.SUPER_ADMIN,
@@ -354,9 +79,7 @@ const ROLE_ALIASES: Record<string, StaffRole> = {
   business_development_admin: StaffRole.BUSINESS_DEVELOPMENT_ADMIN,
 };
 
-/* =========================
-   ROLE PERMISSIONS (FIXED + ALIGNED TO API)
-========================= */
+
 
 export const rolePermissions: Record<StaffRole, Permission[]> = {
   [StaffRole.SUPER_ADMIN]: Object.values(Permission),
@@ -425,9 +148,7 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   ],
 };
 
-/* =========================
-   ROUTE PERMISSIONS (UI)
-========================= */
+
 
 const routePermissions: Array<{
   path: string;
@@ -436,7 +157,7 @@ const routePermissions: Array<{
 }> = [
   { path: "/dashboard", permission: Permission.DASHBOARD, exact: true },
 
-  { path: "/dashboard/users", permission: Permission.USERS },
+  { path: "/dashboard/customers", permission: Permission.USERS },
   { path: "/dashboard/service-providers", permission: Permission.SERVICES },
 
   { path: "/dashboard/organization-data", permission: Permission.SERVICES },
@@ -466,9 +187,7 @@ const routePermissions: Array<{
   { path: "/dashboard/reports-analytics", permission: Permission.REPORTS },
 ];
 
-/* =========================
-   API PERMISSIONS (BACKEND MATCHED)
-========================= */
+
 
 const apiPermissions: Array<{ path: string; permission: Permission }> = [
   { path: "/auth", permission: Permission.AUTH },
@@ -483,7 +202,7 @@ const apiPermissions: Array<{ path: string; permission: Permission }> = [
   { path: "/issues", permission: Permission.ISSUES },
   { path: "/disputes", permission: Permission.DISPUTES },
 
-  { path: "/users", permission: Permission.USERS },
+  { path: "/customers", permission: Permission.USERS },
   { path: "/staff", permission: Permission.STAFF_MANAGEMENT },
 
   { path: "/companies", permission: Permission.COMPANIES },
@@ -504,9 +223,7 @@ const apiPermissions: Array<{ path: string; permission: Permission }> = [
   { path: "/dashboard", permission: Permission.DASHBOARD },
 ];
 
-/* =========================
-   HELPERS
-========================= */
+
 
 export function normalizeRole(role?: string | null): StaffRole | null {
   if (!role) return null;
@@ -599,7 +316,7 @@ export function displayRole(role?: string | null) {
 export function getDefaultRoute(role: string | null | undefined) {
   const routes = [
     "/dashboard",
-    "/dashboard/users",
+    "/dashboard/customers",
     "/dashboard/staff-management",
     "/dashboard/service-providers",
     "/dashboard/jobs",

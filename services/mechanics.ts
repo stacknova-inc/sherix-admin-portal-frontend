@@ -1,80 +1,37 @@
-import {
-  api,
-  assertApiId,
-  unwrapData,
-} from "@/lib/api";
+import { api, assertApiId, unwrapArray, unwrapData } from "@/lib/api";
 import { serviceProvidersApi } from "@/services/service-providers";
-import type { ServiceProvider } from "@/types";
+import type { Mechanic } from "@/types";
 
-export type MechanicAction =
-  | "activate"
-  | "suspend";
+export type MechanicVerificationAction = "approve" | "reject";
+export type MechanicStatusAction = "activate" | "suspend";
 
-async function mechanicAction(
-  id: string,
-  action: MechanicAction,
-  payload?: { reason?: string }
-) {
-  const mechanicId = assertApiId(id, `Mechanic ${action}`);
-
-  console.info("[Sherix Mechanics] Running mechanic action", {
-    id: mechanicId,
-    action,
-    payload,
-    endpoint: `/users/${mechanicId}/${action}`,
-  });
-
-  try {
-    const response = await api.patch(
-      `/users/${mechanicId}/${action}`,
-      payload
+export const mechanicsApi = {
+  async list() {
+    const response = await serviceProvidersApi.list();
+    return unwrapArray<Mechanic>(response).filter(
+      (mechanic) => mechanic.role === "mechanic",
     );
-
-    console.info("[Sherix Mechanics] Mechanic action succeeded", {
-      id: mechanicId,
-      action,
-      response: response.data,
-    });
-
-    return unwrapData<ServiceProvider>(response.data);
-  } catch (error) {
-    console.error("[Sherix Mechanics] Mechanic action failed", {
-      id: mechanicId,
-      action,
-      payload,
-      error,
-    });
-
-    throw error;
-  }
-}
-
-export const individualMechanicsApi = {
-  list: async () => {
-    const providers = await serviceProvidersApi.list(true);
-
-    console.log("========== INDIVIDUAL MECHANICS ==========");
-    console.log(providers);
-
-    return providers;
   },
 
-  stats: async () => ({} as Record<string, unknown>),
+  async verification(userId: string, action: MechanicVerificationAction, payload?: { reason?: string }) {
+    const mechanicUserId = assertApiId(userId, `Mechanic ${action}`);
+    const verb = action === "approve" ? "approve" : "reject";
+    const endpoint = `/admin/verification/mechanics/${verb}/${mechanicUserId}`;
 
-  action: mechanicAction,
-};
-
-export const companyMechanicsApi = {
-  list: async () => {
-    const providers = await serviceProvidersApi.list(false);
-
-    console.log("========== COMPANY MECHANICS ==========");
-    console.log(providers);
-
-    return providers;
+    const response = await api.patch(endpoint, payload);
+    return unwrapData<Mechanic>(response.data);
   },
 
-  stats: async () => ({} as Record<string, unknown>),
+  async status(
+    userId: string,
+    action: MechanicStatusAction,
+    payload?: { reason?: string },
+  ) {
+    const mechanicUserId = assertApiId(userId, `Mechanic ${action}`);
+    const verb = action === "activate" ? "reactivate" : "suspend";
+    const endpoint = `/admin/verification/accounts/users/${verb}/${mechanicUserId}`;
 
-  action: mechanicAction,
+    const response = await api.patch(endpoint, payload);
+    return unwrapData<Mechanic>(response.data);
+  },
 };

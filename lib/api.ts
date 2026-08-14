@@ -35,6 +35,9 @@ function logApiError(error: unknown) {
   if (typeof window === "undefined") return;
 
   if (error instanceof AxiosError) {
+    if (error.response?.status === 409) {
+      return "This record was changed by another administrator. Refresh the data and try again.";
+    }
     console.error("[Sherix API Error]", {
       method: error.config?.method?.toUpperCase(),
       url: error.config?.url,

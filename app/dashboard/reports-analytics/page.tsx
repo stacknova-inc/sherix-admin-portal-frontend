@@ -67,7 +67,7 @@ export default function ReportsAnalyticsPage() {
   ].filter((item) => item.value > 0);
  
   const metrics = [
-    { label: "Users", value: String(users.length), change: "Loaded user records", direction: "up", tone: "purple", icon: Users },
+    { label: "Customers", value: String(users.length), change: "Loaded customer records", direction: "up", tone: "purple", icon: Users },
     { label: "Service Providers", value: String(companies.length), change: "Loaded provider records", direction: "up", tone: "amber", icon: ShieldCheck },
     { label: "Total Jobs", value: String(totalJobs), change: metricValue(bookingStats, ["totalRequests", "totalBookings", "total"], "Booking stats"), direction: "up", tone: "blue", icon: Briefcase },
     { label: "Revenue", value: money(revenueTotal), change: "Financial earnings/transactions", direction: "up", tone: "green", icon: DollarSign },

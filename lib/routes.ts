@@ -32,7 +32,7 @@ export type NavRoute = {
 
 export const dashboardRoutes: NavRoute[] = [
   { title: "Dashboard", href: "/dashboard", icon: Gauge },
-  { title: "Users", href: "/dashboard/users", icon: Users },
+  { title: "Customers", href: "/dashboard/customers", icon: Users },
   {
     title: "Service Providers",
     href: "/dashboard/service-providers",

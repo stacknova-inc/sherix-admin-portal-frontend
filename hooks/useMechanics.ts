@@ -1,70 +1,27 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { individualMechanicsApi, companyMechanicsApi, type MechanicAction } from "@/services/mechanics";
-import { companyProvidersQueryKey, individualProvidersQueryKey, serviceProvidersQueryKey } from "@/hooks/useServiceProviders";
+import { mechanicsApi, type MechanicStatusAction, type MechanicVerificationAction } from "@/services/mechanics";
 
-// ── Individual Mechanics ──────────────────────────────────────────────────────
-
-export const individualMechanicsQueryKey = ["service-providers", "individual"] as const;
+export const mechanicsQueryKey = ["mechanics"] as const;
 
 export function useIndividualMechanics() {
-  return useQuery({
-    queryKey: individualMechanicsQueryKey,
-    queryFn: individualMechanicsApi.list,
-    
-  });
-
+  return useQuery({ queryKey: mechanicsQueryKey, queryFn: mechanicsApi.list });
 }
 
-export function useIndividualMechanicStats() {
-  return useQuery({
-    queryKey: [...individualMechanicsQueryKey, "stats"],
-    queryFn: individualMechanicsApi.stats,
-  });
-}
-
-export function useIndividualMechanicAction() {
+export function useMechanicVerification() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: MechanicAction; reason?: string }) =>
-      individualMechanicsApi.action(id, action, reason ? { reason } : undefined),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: individualProvidersQueryKey });
-      queryClient.invalidateQueries({ queryKey: serviceProvidersQueryKey });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: ({ userId, action, reason }: { userId: string; action: MechanicVerificationAction; reason?: string }) =>
+      mechanicsApi.verification(userId, action, reason ? { reason } : undefined),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: mechanicsQueryKey }),
   });
 }
 
-// ── Company Mechanics ─────────────────────────────────────────────────────────
-
-export const companyMechanicsQueryKey = ["service-providers", "company"] as const;
-
-export function useCompanyMechanics() {
-  return useQuery({
-    queryKey: companyMechanicsQueryKey,
-    queryFn: companyMechanicsApi.list,
-  });
-}
-
-export function useCompanyMechanicStats() {
-  return useQuery({
-    queryKey: [...companyMechanicsQueryKey, "stats"],
-    queryFn: companyMechanicsApi.stats,
-  });
-}
-
-export function useCompanyMechanicAction() {
+export function useMechanicStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: MechanicAction; reason?: string }) =>
-      companyMechanicsApi.action(id, action, reason ? { reason } : undefined),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: companyProvidersQueryKey });
-      queryClient.invalidateQueries({ queryKey: serviceProvidersQueryKey });
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: ({ userId, action, reason }: { userId: string; action: MechanicStatusAction; reason?: string }) => mechanicsApi.status(userId, action, reason ? { reason } : undefined),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: mechanicsQueryKey }),
   });
 }
