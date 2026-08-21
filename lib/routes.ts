@@ -42,7 +42,7 @@ export const dashboardRoutes: NavRoute[] = [
       { title: "Company Providers", href: "/dashboard/service-providers/company", icon: Tags },
     ],
   },
-  { title: "Jobs / Requests", href: "/dashboard/jobs", icon: BriefcaseBusiness },
+  { title: "Service Requests", href: "/dashboard/requests", icon: BriefcaseBusiness },
   { title: "Earnings & Payments", href: "/dashboard/earnings-payments", icon: DollarSign },
   { title: "Transactions", href: "/dashboard/transactions", icon: CreditCard },
   { title: "Notifications", href: "/dashboard/notifications", icon: Bell },

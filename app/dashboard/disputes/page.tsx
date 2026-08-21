@@ -40,11 +40,11 @@ function mapDispute(dispute: Dispute): DisputeRow {
   const record = dispute as unknown as Record<string, unknown>;
   const raisedBy = text(record.raisedBy, "Unknown customer");
   const against = text(record.against, "Unknown provider");
-  const booking = asRecord(record.booking);
+  const serviceRequest = asRecord(record.serviceRequest ?? record.booking);
   return {
     id: recordId(dispute),
-    jobId: firstText(record, ["jobId"], firstText(booking, ["id", "_id", "requestId"], "-")),
-    jobName: text(booking.service, "-"),
+    jobId: firstText(record, ["jobId"], firstText(serviceRequest, ["id", "_id", "requestId"], "-")),
+    jobName: text(serviceRequest.service, "-"),
     raisedBy,
     raisedInitials: initials(raisedBy),
     against,
@@ -61,10 +61,10 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
   { accessorKey: "id", header: "Dispute ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
   {
     accessorKey: "jobId",
-    header: "Job ID",
+    header: "Request ID",
     cell: ({ row }) => (
       <div className="min-w-[150px]">
-        <Link href={`/dashboard/jobs/${row.original.jobId}`} className="font-black hover:text-primary">
+        <Link href={`/dashboard/requests/${row.original.jobId}`} className="font-black hover:text-primary">
           {row.original.jobId}
         </Link>
         <p className="text-xs text-muted-foreground">{row.original.jobName}</p>
@@ -143,7 +143,7 @@ export default function DisputesPage() {
       <section className="grid gap-4">
         <CardShell>
           <ToolbarCard>
-            <SearchBox placeholder="Search by job, customer, provider or reason..." value={query} onChange={setQuery} />
+            <SearchBox placeholder="Search by request, customer, provider or reason..." value={query} onChange={setQuery} />
             <FilterSelect placeholder="All Statuses" values={["All Statuses", "Open", "Under Review", "Resolved", "Rejected"]} value={status} onChange={setStatus} />
           </ToolbarCard>
           {disputesQuery.isLoading ? (

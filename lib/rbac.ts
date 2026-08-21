@@ -20,7 +20,7 @@ export enum Permission {
   AUTH = "auth",
   NOTIFICATIONS = "notifications",
 
-  BOOKINGS = "bookings",
+  SERVICE_REQUESTS = "service_requests",
   VEHICLES = "vehicles",
   ONBOARDING = "onboarding",
 
@@ -85,18 +85,21 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   [StaffRole.SUPER_ADMIN]: Object.values(Permission),
 
   [StaffRole.HR_ADMIN]: [
+    Permission.DASHBOARD,
     Permission.USERS,
     Permission.STAFF_MANAGEMENT,
     Permission.NOTIFICATIONS,
   ],
 
   [StaffRole.FINANCE_ADMIN]: [
+    Permission.DASHBOARD,
     Permission.FINANCIAL,
     Permission.EARNINGS,
     Permission.TRANSACTIONS,
   ],
 
   [StaffRole.SUPPORT_ADMIN]: [
+    Permission.DASHBOARD,
     Permission.USERS,
     Permission.DISPUTES,
     Permission.ISSUES,
@@ -105,7 +108,7 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   ],
 
   [StaffRole.MARKETING_ADMIN]: [
-
+    Permission.DASHBOARD,
     Permission.MARKETING,
     Permission.ANALYTICS,
     Permission.REPORTS,
@@ -114,8 +117,8 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   ],
 
   [StaffRole.OPERATIONS_ADMIN]: [
-
-    Permission.BOOKINGS,
+    Permission.DASHBOARD,
+    Permission.SERVICE_REQUESTS,
     Permission.SERVICES,
     Permission.COMPANIES,
     Permission.NOTIFICATIONS,
@@ -123,7 +126,7 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   ],
 
   [StaffRole.COMPLIANCE_ADMIN]: [
-
+    Permission.DASHBOARD,
     Permission.AUDIT_LOGS,
     Permission.LEGAL,
     Permission.DISPUTES,
@@ -132,14 +135,14 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
   ],
 
   [StaffRole.TECHNICAL_SUPPORT_ADMIN]: [
-
+    Permission.DASHBOARD,
     Permission.ISSUES,
     Permission.DISPUTES,
     Permission.NOTIFICATIONS,
   ],
 
   [StaffRole.BUSINESS_DEVELOPMENT_ADMIN]: [
-
+    Permission.DASHBOARD,
     Permission.COMPANIES,
     Permission.USERS,
     Permission.SERVICES,
@@ -164,7 +167,7 @@ const routePermissions: Array<{
   { path: "/dashboard/service-categories", permission: Permission.SERVICES },
   { path: "/dashboard/pricing-services", permission: Permission.SERVICES },
 
-  { path: "/dashboard/jobs", permission: Permission.BOOKINGS },
+  { path: "/dashboard/requests", permission: Permission.SERVICE_REQUESTS },
 
   { path: "/dashboard/earnings-payments", permission: Permission.EARNINGS },
   { path: "/dashboard/transactions", permission: Permission.TRANSACTIONS },
@@ -194,7 +197,7 @@ const apiPermissions: Array<{ path: string; permission: Permission }> = [
 
   { path: "/notifications", permission: Permission.NOTIFICATIONS },
 
-  { path: "/bookings", permission: Permission.BOOKINGS },
+  { path: "/service-requests", permission: Permission.SERVICE_REQUESTS },
   { path: "/vehicles", permission: Permission.VEHICLES },
   { path: "/customer-onboarding", permission: Permission.ONBOARDING },
   { path: "/mechanic-onboarding", permission: Permission.ONBOARDING },
@@ -319,7 +322,7 @@ export function getDefaultRoute(role: string | null | undefined) {
     "/dashboard/customers",
     "/dashboard/staff-management",
     "/dashboard/service-providers",
-    "/dashboard/jobs",
+    "/dashboard/requests",
     "/dashboard/earnings-payments",
     "/dashboard/transactions",
     "/dashboard/disputes",

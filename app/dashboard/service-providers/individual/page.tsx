@@ -164,7 +164,7 @@ function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpe
             </ProviderDetailSection>
 
             <ProviderDetailSection title="Activity">
-              <ProviderDetailRow label="Completed jobs" value={text(record.completedJobsCount ?? record.completedJobs, "0")} />
+              <ProviderDetailRow label="Completed requests" value={text(record.completedJobsCount ?? record.completedJobs, "0")} />
             </ProviderDetailSection>
 
             <div className="flex justify-end gap-2 border-t pt-4">

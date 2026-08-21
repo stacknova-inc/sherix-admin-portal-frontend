@@ -240,6 +240,8 @@ export interface DashboardAnalytics {
 
 export interface Dispute extends ApiTimestamped {
   jobId?: string;
+  serviceRequest?: unknown;
+  /** @deprecated Kept for backends still nesting the linked record under `booking`. */
   booking?: unknown;
   raisedBy?: unknown;
   against?: unknown;
@@ -248,7 +250,7 @@ export interface Dispute extends ApiTimestamped {
   amount?: number;
 }
 
-export interface Booking extends ApiTimestamped {
+export interface ServiceRequest extends ApiTimestamped {
   requestId?: string;
   service?: unknown;
   customer?: unknown;

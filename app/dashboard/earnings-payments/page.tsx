@@ -114,7 +114,7 @@ export default function EarningsPaymentsPage() {
               ))}
               <div className="flex gap-3 rounded-xl bg-blue-50 p-4 text-sm font-semibold text-slate-700 dark:bg-blue-500/10 dark:text-blue-100">
                 <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                Platform commission is 8% of job amount excluding tax and discounts.
+                Platform commission is 8% of request amount excluding tax and discounts.
               </div>
             </div>
           </div>

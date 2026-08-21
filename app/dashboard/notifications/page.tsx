@@ -155,7 +155,7 @@ const categoryOptions: Array<{ value: NotificationCategoryValue; label: string }
   { value: "promotion", label: "Promotion" },
   { value: "system", label: "System" },
   { value: "security", label: "Security" },
-  { value: "job_update", label: "Job Update" },
+  { value: "job_update", label: "Request Update" },
 ];
 
 type NotificationFormState = {

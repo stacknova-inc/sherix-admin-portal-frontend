@@ -226,6 +226,7 @@ export function unwrapArray<T>(response: unknown): T[] {
     "serviceProviders",
     "providers",
     "users",
+    "serviceRequests",
     "bookings",
     "transactions",
     "disputes",
