@@ -106,6 +106,16 @@ export interface CompanyMembership {
   expiresAt?: string;
 }
 
+
+export interface ProviderKyc {
+  status?: "pending" | "approved" | "rejected" | string;
+  submittedAt?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  documents?: unknown[];
+}
+
 export interface Company extends ApiTimestamped {
   /** The ID required by the company verification/account endpoints. */
   companyId?: ApiId;
@@ -120,10 +130,9 @@ export interface Company extends ApiTimestamped {
   address?: string;
   rating?: number;
   reviews?: number;
-  status?: "Active" | "Suspended" | string;
-  verificationStatus?: "Approved" | "Rejected" | string;
-  isApproved?: boolean;
-  isActive?: boolean;
+  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
+  status?: "Pending" | "Active" | "Suspended" | string;
+  kyc?: ProviderKyc;
   isEmployee?: boolean;
   /** Not yet returned by the backend; the details modal reads these defensively. */
   businessRegistrationNumber?: string;
@@ -391,10 +400,9 @@ export interface Mechanic extends ApiTimestamped {
   services?: string | Array<string | Service>;
   location?: string;
   profilePhoto?: { url?: string; publicId?: string };
-  status?: "Active" | "Suspended" | string;
-  verificationStatus?: "Approved" | "Rejected" | string;
-  isAccountApproved?: boolean;
-  isActive?: boolean;
+  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
+  status?: "Pending" | "Active" | "Suspended" | string;
+  kyc?: ProviderKyc;
   completedJobs?: number;
   completedJobsCount?: number;
 }

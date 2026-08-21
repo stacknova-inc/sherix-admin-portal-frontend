@@ -32,6 +32,8 @@ export const mechanicsApi = {
     const endpoint = `/admin/verification/accounts/users/${verb}/${mechanicUserId}`;
 
     const response = await api.patch(endpoint, payload);
+    
+    console.warn(`[${action.toUpperCase()} MECHANIC DEBUG] raw response.data:`, JSON.stringify(response.data, null, 2));
     return unwrapData<Mechanic>(response.data);
   },
 };

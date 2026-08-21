@@ -1,4 +1,4 @@
-import { api, assertApiId, unwrapArray, unwrapData } from "@/lib/api";
+import { api, assertApiId, logDetailedAxiosError, unwrapArray, unwrapData } from "@/lib/api";
 import type { Company } from "@/types";
 
 export type CompanyVerificationAction = "approve" | "reject";
@@ -29,12 +29,15 @@ export const companiesApi = {
     payload?: { reason?: string }
   ) {
     const targetCompanyId = assertApiId(companyId, `Company ${action}`);
-    const endpoint =
-      action === "activate"
-        ? `/admin/verification/accounts/company/suspend/${targetCompanyId}`
-        : `/companies/${targetCompanyId}/suspend`;
+    const verb = action === "activate" ? "reactivate" : "suspend";
+    const endpoint = `/admin/verification/accounts/companies/${verb}/${targetCompanyId}`;
 
-    const response = await api.patch(endpoint, payload);
-    return unwrapData<Company>(response.data);
+    try {
+      const response = await api.patch(endpoint, payload);
+      return unwrapData<Company>(response.data);
+    } catch (error) {
+      logDetailedAxiosError(`${action.toUpperCase()} COMPANY DEBUG`, error);
+      throw error;
+    }
   },
 };

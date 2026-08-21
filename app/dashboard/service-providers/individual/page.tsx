@@ -3,7 +3,6 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  Check,
   Eye,
   Loader2,
   MapPin,
@@ -11,12 +10,11 @@ import {
   UserCheck,
   UserRound,
   UserRoundX,
-  X,
 } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { AccountStateDialog } from "@/components/shared/AccountStateDialog";
 import { RejectReasonDialog } from "@/components/shared/RejectReasonDialog";
-import { DetailGrid } from "@/components/shared/DetailField";
+import { ProviderDetailRow, ProviderDetailSection } from "@/components/shared/ProviderDetails";
 import {
   FilterSelect,
   PersonCell,
@@ -43,7 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
-import { activeStatus, asRecord, firstText, recordId, text } from "@/lib/live-data";
+import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
 import {
   useMechanicStatus,
   useMechanicVerification,
@@ -60,8 +58,7 @@ type Row = {
   company: string;
   services: string[];
   location: string;
-  verificationStatus: "Approved" | "Rejected";
-  status: "Active" | "Suspended";
+  status: ProviderStatus;
 };
 const values = (source: unknown) =>
   Array.isArray(source)
@@ -83,39 +80,49 @@ const map = (item: Mechanic): Row => ({
   company: item.company ?? item.businessName ?? "-",
   services: values(item.services),
   location: item.location ?? "-",
-  verificationStatus:
-    item.verificationStatus?.toLowerCase() === "rejected" ||
-    item.isAccountApproved === false
-      ? "Rejected"
-      : "Approved",
-  status:
-    item.status?.toLowerCase() === "suspended" || item.isActive === false
-      ? "Suspended"
-      : "Active",
+  status: getProviderStatus(item),
 });
 
-function MechanicDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange: (open: boolean) => void }) {
+function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useIndividualMechanics();
+  const verification = useMechanicVerification();
+  const [rejecting, setRejecting] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState("");
+
   const mechanic = (query.data ?? []).find(
     (item) => recordId(item) === id || String(asRecord(item).userId ?? "") === id,
   );
   const record = asRecord(mechanic);
   const photo = firstText(asRecord(record.profilePhoto).url ? asRecord(record.profilePhoto) : record, ["url", "profilePhotoUrl"], "");
   const name = firstText(record, ["name", "fullName"], "Mechanic details");
+  const status: ProviderStatus = mechanic ? getProviderStatus(mechanic) : "Pending";
+  const kycStatus = mechanic ? getKycStatus(mechanic) : "Pending";
   const [photoFailed, setPhotoFailed] = React.useState(false);
-  const fields: Array<[string, React.ReactNode]> = [
-    ["Email", firstText(record, ["email"])],
-    ["Phone", firstText(record, ["phone", "phoneNumber"])],
-    ["Company", firstText(record, ["company", "businessName"])],
-    ["Services", text(record.services)],
-    ["Location", firstText(record, ["location", "address"])],
-    ["Completed jobs", text(record.completedJobsCount ?? record.completedJobs, "0")],
-  ];
+
+  async function approve() {
+    try {
+      await verification.mutateAsync({ userId: id, action: "approve" });
+      notify("Mechanic approved successfully. An email notification will be sent to the mechanic.");
+    } catch (error) {
+      notify(getErrorMessage(error, "Unable to approve mechanic"));
+    }
+  }
+
+  async function confirmReject() {
+    try {
+      await verification.mutateAsync({ userId: id, action: "reject", reason: rejectReason });
+      notify("Mechanic rejected successfully. An email notification will be sent to the mechanic.");
+      setRejecting(false);
+      setRejectReason("");
+    } catch (error) {
+      notify(getErrorMessage(error, "Unable to reject mechanic"));
+    }
+  }
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="sr-only">
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>Mechanic profile and account details from the backend.</DialogDescription>
         </DialogHeader>
@@ -124,24 +131,69 @@ function MechanicDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange:
         ) : query.isError || !mechanic ? (
           <p className="text-sm font-semibold text-red-600">Unable to load mechanic details.</p>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              {photo && !photoFailed ? (
-                <img src={photo} alt={`${name} profile`} className="h-20 w-20 rounded-full object-cover" onError={() => setPhotoFailed(true)} />
-              ) : (
-                <div className="grid h-20 w-20 place-items-center rounded-full bg-muted">
-                  <UserRound className="h-8 w-8 text-muted-foreground" />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4 border-b pb-4">
+              <div className="flex items-center gap-4">
+                {photo && !photoFailed ? (
+                  <img src={photo} alt={`${name} profile`} className="h-14 w-14 rounded-full object-cover" onError={() => setPhotoFailed(true)} />
+                ) : (
+                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-muted">
+                    <UserRound className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-lg font-black">{name}</p>
+                  <p className="text-xs text-muted-foreground">Individual mechanic</p>
                 </div>
-              )}
-              <div>
-                <p className="text-lg font-black">{name}</p>
-                <StatusCell status={activeStatus(record)} />
               </div>
+              <StatusCell status={status} />
             </div>
-            <DetailGrid fields={fields} />
+
+            <ProviderDetailSection title="Provider overview">
+              <ProviderDetailRow label="Email" value={firstText(record, ["email"])} />
+              <ProviderDetailRow label="Phone" value={firstText(record, ["phone", "phoneNumber"])} />
+              <ProviderDetailRow label="Provider type" value="Mechanic" />
+              <ProviderDetailRow label="Account status" value={status} />
+              <ProviderDetailRow label="KYC status" value={kycStatus} />
+            </ProviderDetailSection>
+
+            <ProviderDetailSection title="Business information">
+              <ProviderDetailRow label="Company" value={firstText(record, ["company", "businessName"])} />
+              <ProviderDetailRow label="Location" value={firstText(record, ["location", "address"])} />
+              <ProviderDetailRow label="Services" value={text(record.services)} />
+            </ProviderDetailSection>
+
+            <ProviderDetailSection title="Activity">
+              <ProviderDetailRow label="Completed jobs" value={text(record.completedJobsCount ?? record.completedJobs, "0")} />
+            </ProviderDetailSection>
+
+            <div className="flex justify-end gap-2 border-t pt-4">
+              {kycStatus !== "Rejected" && (
+                <Button variant="outline" className="text-red-600 hover:text-red-600" onClick={() => setRejecting(true)} disabled={verification.isPending}>
+                  Reject
+                </Button>
+              )}
+              {kycStatus !== "Approved" && (
+                <Button onClick={() => void approve()} disabled={verification.isPending}>
+                  {verification.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Approve
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>
+      {rejecting && (
+        <RejectReasonDialog
+          open
+          accountLabel="Mechanic"
+          reason={rejectReason}
+          onReasonChange={setRejectReason}
+          pending={verification.isPending}
+          onOpenChange={(open) => !open && setRejecting(false)}
+          onConfirm={() => void confirmReject()}
+        />
+      )}
     </Dialog>
   );
 }
@@ -157,32 +209,11 @@ function Actions({
 }) {
   const role = useUiStore((state) => state.role ?? state.user?.role);
   const allowed = hasPermission(role, Permission.SERVICES);
-  const verification = useMechanicVerification();
   const status = useMechanicStatus();
   const [pending, setPending] = React.useState<"activate" | "suspend" | null>(
     null,
   );
   const [reason, setReason] = React.useState("");
-  const [rejecting, setRejecting] = React.useState(false);
-  const [rejectReason, setRejectReason] = React.useState("");
-  async function approve() {
-    try {
-      await verification.mutateAsync({ userId: row.userId, action: "approve" });
-      notify("Mechanic approved. An email notification will be sent to the mechanic.");
-    } catch (error) {
-      notify(getErrorMessage(error, "Unable to approve mechanic"));
-    }
-  }
-  async function confirmReject() {
-    try {
-      await verification.mutateAsync({ userId: row.userId, action: "reject", reason: rejectReason });
-      notify("Mechanic rejected. An email notification will be sent to the mechanic.");
-      setRejecting(false);
-      setRejectReason("");
-    } catch (error) {
-      notify(getErrorMessage(error, "Unable to reject mechanic"));
-    }
-  }
   async function confirm() {
     if (!pending) return;
     try {
@@ -191,14 +222,14 @@ function Actions({
         action: pending,
         reason: pending === "suspend" ? reason : undefined,
       });
-      notify(`Mechanic ${pending === "activate" ? "activated" : "suspended"}. An email notification will be sent to the mechanic.`);
+      notify(`Mechanic ${pending === "activate" ? "activated" : "suspended"} successfully.`);
       setPending(null);
       setReason("");
     } catch (error) {
       notify(getErrorMessage(error, `Unable to ${pending} mechanic`));
     }
   }
-  const isBusy = verification.isPending || status.isPending;
+  const isBusy = status.isPending;
   return (
     <>
       <DropdownMenu modal={false}>
@@ -217,35 +248,17 @@ function Actions({
             <Eye className="mr-2 h-4 w-4" />
             View mechanic
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => void approve()}
-            disabled={row.verificationStatus === "Approved"}
-          >
-            <Check className="mr-2 h-4 w-4" />
-            Approve
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setRejecting(true), 0)}
-            disabled={row.verificationStatus === "Rejected"}
-            className="text-red-600"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Reject
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setPending("activate"), 0)}
-            disabled={row.status === "Active"}
-          >
-            <UserCheck className="mr-2 h-4 w-4" />
-            Activate
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setPending("suspend"), 0)}
-            disabled={row.status === "Suspended"}
-          >
-            <UserRoundX className="mr-2 h-4 w-4" />
-            Suspend
-          </DropdownMenuItem>
+          {row.status === "Active" ? (
+            <DropdownMenuItem onSelect={() => setTimeout(() => setPending("suspend"), 0)}>
+              <UserRoundX className="mr-2 h-4 w-4" />
+              Suspend
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onSelect={() => setTimeout(() => setPending("activate"), 0)}>
+              <UserCheck className="mr-2 h-4 w-4" />
+              Activate
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {pending && (
@@ -260,22 +273,10 @@ function Actions({
           onConfirm={() => void confirm()}
         />
       )}
-      {rejecting && (
-        <RejectReasonDialog
-          open
-          accountLabel="Mechanic"
-          reason={rejectReason}
-          onReasonChange={setRejectReason}
-          pending={verification.isPending}
-          onOpenChange={(open) => !open && setRejecting(false)}
-          onConfirm={() => void confirmReject()}
-        />
-      )}
     </>
   );
 }
 const columns = (notify: (message: string) => void, onView: (id: string) => void): ColumnDef<Row>[] => [
-  { accessorKey: "userId", header: "Mechanic ID" },
   {
     accessorKey: "name",
     header: "Mechanic",
@@ -306,11 +307,6 @@ const columns = (notify: (message: string) => void, onView: (id: string) => void
     ),
   },
   {
-    accessorKey: "verificationStatus",
-    header: "Verification Status",
-    cell: ({ row }) => <StatusCell status={row.original.verificationStatus} />,
-  },
-  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => <StatusCell status={row.original.status} />,
@@ -328,7 +324,6 @@ export default function IndividualMechanicsPage() {
   const [viewingId, setViewingId] = React.useState<string | null>(null);
   const [search, setSearch] = React.useState("");
   const [status, setStatus] = React.useState("Status");
-  const [verification, setVerification] = React.useState("Verification");
   const rows = React.useMemo(() => (query.data ?? []).map(map), [query.data]);
   const filtered = rows.filter(
     (row) =>
@@ -337,8 +332,7 @@ export default function IndividualMechanicsPage() {
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase())) &&
-      (status === "Status" || row.status === status) &&
-      (verification === "Verification" || row.verificationStatus === verification),
+      (status === "Status" || row.status === status),
   );
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
@@ -355,15 +349,9 @@ export default function IndividualMechanicsPage() {
           />
           <FilterSelect
             placeholder="Status"
-            values={["Status", "Active", "Suspended"]}
+            values={["Status", "Pending", "Active", "Suspended"]}
             value={status}
             onChange={setStatus}
-          />
-          <FilterSelect
-            placeholder="Verification"
-            values={["Verification", "Approved", "Rejected"]}
-            value={verification}
-            onChange={setVerification}
           />
         </ToolbarCard>
         {query.isLoading ? (
@@ -384,7 +372,7 @@ export default function IndividualMechanicsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">
-            {search || status !== "Status" || verification !== "Verification"
+            {search || status !== "Status"
               ? "No mechanics match the current filters."
               : "No individual mechanics found."}
           </div>
@@ -392,7 +380,7 @@ export default function IndividualMechanicsPage() {
           <AdminDataTable
             data={filtered}
             columns={columns(setToast, setViewingId)}
-            minWidth="1320px"
+            minWidth="1240px"
             rowLabel="mechanics"
           />
         )}
@@ -403,7 +391,7 @@ export default function IndividualMechanicsPage() {
         </div>
       )}
       {viewingId && (
-        <MechanicDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} />
+        <MechanicDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} notify={setToast} />
       )}
     </div>
   );

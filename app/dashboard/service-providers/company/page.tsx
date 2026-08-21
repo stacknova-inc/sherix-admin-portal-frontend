@@ -2,11 +2,11 @@
 
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Building2, Check, Eye, Loader2, MapPin, MoreVertical, UserCheck, UserRoundX, X } from "lucide-react";
+import { Building2, Eye, Loader2, MapPin, MoreVertical, UserCheck, UserRoundX } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { AccountStateDialog } from "@/components/shared/AccountStateDialog";
 import { RejectReasonDialog } from "@/components/shared/RejectReasonDialog";
-import { DetailGrid, DetailSection } from "@/components/shared/DetailField";
+import { ProviderDetailEmpty, ProviderDetailRow, ProviderDetailSection } from "@/components/shared/ProviderDetails";
 import { FilterSelect, PersonCell, SearchBox, ServiceTags, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -15,14 +15,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { getErrorMessage } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
-import { activeStatus, asRecord, firstText, recordId, text } from "@/lib/live-data";
+import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
 import { useCompanies, useCompanyStatus, useCompanyVerification } from "@/hooks/useCompanies";
 import { useUiStore } from "@/store/use-ui-store";
 import type { Company } from "@/types";
 
-type Row = { companyId: string; name: string; email: string; phone: string; services: string[]; location: string; verificationStatus: "Approved" | "Rejected"; status: "Active" | "Suspended" };
+type Row = { companyId: string; name: string; email: string; phone: string; services: string[]; location: string; status: ProviderStatus };
 const services = (source: unknown) => Array.isArray(source) ? source.map((item) => typeof item === "string" ? item : String((item as { name?: string }).name ?? "")).filter(Boolean) : [];
-const map = (company: Company): Row => ({ companyId: company.companyId ?? company.id ?? company._id ?? "", name: company.name ?? company.companyName ?? "Unnamed company", email: company.email ?? "-", phone: company.phone ?? "-", services: services(company.services), location: company.coverageArea ?? company.location ?? company.address ?? "-", verificationStatus: company.verificationStatus?.toLowerCase() === "rejected" || company.isApproved === false ? "Rejected" : "Approved", status: company.status?.toLowerCase() === "suspended" || company.isActive === false ? "Suspended" : "Active" });
+const map = (company: Company): Row => ({ companyId: company.companyId ?? company.id ?? company._id ?? "", name: company.name ?? company.companyName ?? "Unnamed company", email: company.email ?? "-", phone: company.phone ?? "-", services: services(company.services), location: company.coverageArea ?? company.location ?? company.address ?? "-", status: getProviderStatus(company) });
 
 function contactText(value: unknown) {
   if (value === null || value === undefined || value === "") return "Not available";
@@ -41,21 +41,47 @@ function evidenceList(...sources: unknown[]) {
     .filter((item) => typeof item.url === "string" && item.url);
 }
 
-function CompanyDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange: (open: boolean) => void }) {
+function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useCompanies();
+  const verification = useCompanyVerification();
+  const [rejecting, setRejecting] = React.useState(false);
+  const [rejectReason, setRejectReason] = React.useState("");
+
   const company = (query.data ?? []).find(
     (item) => recordId(item) === id || String(asRecord(item).companyId ?? "") === id,
   );
   const record = asRecord(company);
   const name = firstText(record, ["name", "companyName", "businessName"], "Company details");
+  const status: ProviderStatus = company ? getProviderStatus(company) : "Pending";
+  const kycStatus = company ? getKycStatus(company) : "Pending";
   const evidence = evidenceList(record.identityEvidence, record.businessEvidence);
   const membership = asRecord(record.membership);
   const hasMembership = Object.values(membership).some((value) => value !== undefined && value !== null && value !== "");
 
+  async function approve() {
+    try {
+      await verification.mutateAsync({ companyId: id, action: "approve" });
+      notify("Company approved successfully. An email notification will be sent to the company.");
+    } catch (error) {
+      notify(getErrorMessage(error, "Unable to approve company"));
+    }
+  }
+
+  async function confirmReject() {
+    try {
+      await verification.mutateAsync({ companyId: id, action: "reject", reason: rejectReason });
+      notify("Company rejected successfully. An email notification will be sent to the company.");
+      setRejecting(false);
+      setRejectReason("");
+    } catch (error) {
+      notify(getErrorMessage(error, "Unable to reject company"));
+    }
+  }
+
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="sr-only">
           <DialogTitle>{name}</DialogTitle>
           <DialogDescription>Company profile and account details from the backend.</DialogDescription>
         </DialogHeader>
@@ -64,82 +90,99 @@ function CompanyDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange: 
         ) : query.isError || !company ? (
           <p className="text-sm font-semibold text-red-600">Unable to load company details.</p>
         ) : (
-          <div className="space-y-5">
-            <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-muted">
-                <Building2 className="h-7 w-7 text-muted-foreground" />
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4 border-b pb-4">
+              <div className="flex items-center gap-4">
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-muted">
+                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-lg font-black">{name}</p>
+                  <p className="text-xs text-muted-foreground">Company provider</p>
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-black">{name}</p>
-                <StatusCell status={activeStatus(record)} />
-              </div>
+              <StatusCell status={status} />
             </div>
 
-            <DetailSection title="Business">
-              <DetailGrid
-                fields={[
-                  ["Email", firstText(record, ["email"])],
-                  ["Phone", firstText(record, ["phone"])],
-                  ["Coverage area", firstText(record, ["coverageArea", "location", "address"])],
-                  ["Verification status", firstText(record, ["verificationStatus"], "Approved")],
-                  ["Business registration number", firstText(record, ["businessRegistrationNumber", "brn"], "Not available")],
-                  ["Responsible contact", contactText(record.responsibleContact)],
-                  ["Personnel count", firstText(record, ["personnelCount", "staffCount"], "Not available")],
-                  ["Services", text(record.services)],
-                ]}
-              />
-            </DetailSection>
+            <ProviderDetailSection title="Provider overview">
+              <ProviderDetailRow label="Email" value={firstText(record, ["email"])} />
+              <ProviderDetailRow label="Phone" value={firstText(record, ["phone"])} />
+              <ProviderDetailRow label="Provider type" value="Company" />
+              <ProviderDetailRow label="Account status" value={status} />
+              <ProviderDetailRow label="KYC status" value={kycStatus} />
+            </ProviderDetailSection>
 
-            <DetailSection title="Identity & business evidence">
+            <ProviderDetailSection title="Business information">
+              <ProviderDetailRow label="Business name" value={firstText(record, ["companyName", "businessName", "name"])} />
+              <ProviderDetailRow label="Coverage area" value={firstText(record, ["coverageArea", "location", "address"])} />
+              <ProviderDetailRow label="Business registration number" value={firstText(record, ["businessRegistrationNumber", "brn"])} />
+              <ProviderDetailRow label="Personnel count" value={firstText(record, ["personnelCount", "staffCount"])} />
+              <ProviderDetailRow label="Services" value={text(record.services)} />
+              <ProviderDetailRow label="Responsible contact" value={contactText(record.responsibleContact)} />
+            </ProviderDetailSection>
+
+            {hasMembership && (
+              <ProviderDetailSection title="Membership">
+                <ProviderDetailRow label="Plan" value={firstText(membership, ["plan"])} />
+                <ProviderDetailRow label="Status" value={firstText(membership, ["status"])} />
+                <ProviderDetailRow label="Joined" value={firstText(membership, ["joinedAt"])} />
+                <ProviderDetailRow label="Expires" value={firstText(membership, ["expiresAt"])} />
+              </ProviderDetailSection>
+            )}
+
+            <ProviderDetailSection title="Documents & verification">
               {evidence.length ? (
-                <ul className="space-y-2">
+                <div className="divide-y">
                   {evidence.map((item, index) => (
-                    <li key={String(item.url) + index}>
-                      <a
-                        href={String(item.url)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm font-semibold text-primary underline"
-                      >
-                        {firstText(item, ["label", "type"], `Evidence ${index + 1}`)}
+                    <div key={String(item.url) + index} className="flex items-center justify-between px-4 py-2.5">
+                      <span className="text-xs font-semibold text-muted-foreground">{firstText(item, ["label", "type"], `Evidence ${index + 1}`)}</span>
+                      <a href={String(item.url)} target="_blank" rel="noreferrer" className="text-sm font-bold text-primary underline">
+                        View document
                       </a>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p className="text-sm font-semibold text-muted-foreground">No evidence on file.</p>
+                <ProviderDetailEmpty message="No documents on file." />
               )}
-            </DetailSection>
+            </ProviderDetailSection>
 
-            <DetailSection title="Membership">
-              {hasMembership ? (
-                <DetailGrid
-                  fields={[
-                    ["Plan", firstText(membership, ["plan"], "Not available")],
-                    ["Status", firstText(membership, ["status"], "Not available")],
-                    ["Joined", firstText(membership, ["joinedAt"], "Not available")],
-                    ["Expires", firstText(membership, ["expiresAt"], "Not available")],
-                  ]}
-                />
-              ) : (
-                <p className="text-sm font-semibold text-muted-foreground">No membership information available.</p>
+            <div className="flex justify-end gap-2 border-t pt-4">
+              {kycStatus !== "Rejected" && (
+                <Button variant="outline" className="text-red-600 hover:text-red-600" onClick={() => setRejecting(true)} disabled={verification.isPending}>
+                  Reject
+                </Button>
               )}
-            </DetailSection>
+              {kycStatus !== "Approved" && (
+                <Button onClick={() => void approve()} disabled={verification.isPending}>
+                  {verification.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Approve
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>
+      {rejecting && (
+        <RejectReasonDialog
+          open
+          accountLabel="Company"
+          reason={rejectReason}
+          onReasonChange={setRejectReason}
+          pending={verification.isPending}
+          onOpenChange={(open) => !open && setRejecting(false)}
+          onConfirm={() => void confirmReject()}
+        />
+      )}
     </Dialog>
   );
 }
 
 function Actions({ row, notify, onView }: { row: Row; notify: (message: string) => void; onView: (id: string) => void }) {
   const role = useUiStore((state) => state.role ?? state.user?.role); const allowed = hasPermission(role, Permission.COMPANIES);
-  const verification = useCompanyVerification(); const status = useCompanyStatus(); const [pending, setPending] = React.useState<"activate" | "suspend" | null>(null); const [reason, setReason] = React.useState("");
-  const [rejecting, setRejecting] = React.useState(false); const [rejectReason, setRejectReason] = React.useState("");
-  async function approve() { try { await verification.mutateAsync({ companyId: row.companyId, action: "approve" }); notify("Company approved. An email notification will be sent to the company."); } catch (error) { notify(getErrorMessage(error, "Unable to approve company")); } }
-  async function confirmReject() { try { await verification.mutateAsync({ companyId: row.companyId, action: "reject", reason: rejectReason }); notify("Company rejected. An email notification will be sent to the company."); setRejecting(false); setRejectReason(""); } catch (error) { notify(getErrorMessage(error, "Unable to reject company")); } }
-  async function confirm() { if (!pending) return; try { await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined }); notify(`Company ${pending === "activate" ? "activated" : "suspended"}. An email notification will be sent to the company.`); setPending(null); setReason(""); } catch (error) { notify(getErrorMessage(error, `Unable to ${pending} company`)); } }
-  const isBusy = verification.isPending || status.isPending;
+  const status = useCompanyStatus(); const [pending, setPending] = React.useState<"activate" | "suspend" | null>(null); const [reason, setReason] = React.useState("");
+  async function confirm() { if (!pending) return; try { await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined }); notify(`Company ${pending === "activate" ? "activated" : "suspended"} successfully.`); setPending(null); setReason(""); } catch (error) { notify(getErrorMessage(error, `Unable to ${pending} company`)); } }
+  const isBusy = status.isPending;
   return (
     <>
       <DropdownMenu modal={false}>
@@ -153,32 +196,17 @@ function Actions({ row, notify, onView }: { row: Row; notify: (message: string) 
             <Eye className="mr-2 h-4 w-4" />
             View Company
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => void approve()} disabled={row.verificationStatus === "Approved"}>
-            <Check className="mr-2 h-4 w-4" />
-            Approve
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setRejecting(true), 0)}
-            disabled={row.verificationStatus === "Rejected"}
-            className="text-red-600"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Reject
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setPending("activate"), 0)}
-            disabled={row.status === "Active"}
-          >
-            <UserCheck className="mr-2 h-4 w-4" />
-            Activate
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => setTimeout(() => setPending("suspend"), 0)}
-            disabled={row.status === "Suspended"}
-          >
-            <UserRoundX className="mr-2 h-4 w-4" />
-            Suspend
-          </DropdownMenuItem>
+          {row.status === "Active" ? (
+            <DropdownMenuItem onSelect={() => setTimeout(() => setPending("suspend"), 0)}>
+              <UserRoundX className="mr-2 h-4 w-4" />
+              Suspend
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onSelect={() => setTimeout(() => setPending("activate"), 0)}>
+              <UserCheck className="mr-2 h-4 w-4" />
+              Activate
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {pending && (
@@ -193,24 +221,13 @@ function Actions({ row, notify, onView }: { row: Row; notify: (message: string) 
           onConfirm={() => void confirm()}
         />
       )}
-      {rejecting && (
-        <RejectReasonDialog
-          open
-          accountLabel="Company"
-          reason={rejectReason}
-          onReasonChange={setRejectReason}
-          pending={verification.isPending}
-          onOpenChange={(open) => !open && setRejecting(false)}
-          onConfirm={() => void confirmReject()}
-        />
-      )}
     </>
   );
 }
-const columns = (notify: (message: string) => void, onView: (id: string) => void): ColumnDef<Row>[] => [{ accessorKey: "companyId", header: "Company ID" }, { accessorKey: "name", header: "Company", cell: ({ row }) => <PersonCell name={row.original.name} sub={row.original.email} initials={row.original.name.slice(0, 2)} avatarTone="bg-black text-white" /> }, { accessorKey: "services", header: "Services", cell: ({ row }) => <ServiceTags services={row.original.services} /> }, { accessorKey: "phone", header: "Phone" }, { accessorKey: "location", header: "Coverage area", cell: ({ row }) => <span className="flex gap-2"><MapPin className="h-4 w-4" />{row.original.location}</span> }, { accessorKey: "verificationStatus", header: "Verification Status", cell: ({ row }) => <StatusCell status={row.original.verificationStatus} /> }, { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> }, { id: "actions", header: "Actions", cell: ({ row }) => <Actions row={row.original} notify={notify} onView={onView} /> }];
+const columns = (notify: (message: string) => void, onView: (id: string) => void): ColumnDef<Row>[] => [{ accessorKey: "name", header: "Company", cell: ({ row }) => <PersonCell name={row.original.name} sub={row.original.email} initials={row.original.name.slice(0, 2)} avatarTone="bg-black text-white" /> }, { accessorKey: "services", header: "Services", cell: ({ row }) => <ServiceTags services={row.original.services} /> }, { accessorKey: "phone", header: "Phone" }, { accessorKey: "location", header: "Coverage area", cell: ({ row }) => <span className="flex gap-2"><MapPin className="h-4 w-4" />{row.original.location}</span> }, { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> }, { id: "actions", header: "Actions", cell: ({ row }) => <Actions row={row.original} notify={notify} onView={onView} /> }];
 
 export default function CompanyMechanicsPage() {
-  const query = useCompanies(); const [toast, setToast] = React.useState(""); const [viewingId, setViewingId] = React.useState<string | null>(null); const [search, setSearch] = React.useState(""); const [status, setStatus] = React.useState("Status"); const [verification, setVerification] = React.useState("Verification");
-  const rows = React.useMemo(() => (query.data ?? []).map(map), [query.data]); const filtered = rows.filter((row) => (!search || [row.name, row.email, row.phone, row.location, ...row.services].join(" ").toLowerCase().includes(search.toLowerCase())) && (status === "Status" || row.status === status) && (verification === "Verification" || row.verificationStatus === verification));
-  return <div className="mx-auto max-w-[1600px] space-y-5"><PageHeader title="Companies" subtitle="Manage company verification and account status." /><CardShell><ToolbarCard><SearchBox placeholder="Search companies by name, email, phone or service..." value={search} onChange={setSearch} /><FilterSelect placeholder="Status" values={["Status", "Active", "Suspended"]} value={status} onChange={setStatus} /><FilterSelect placeholder="Verification" values={["Verification", "Approved", "Rejected"]} value={verification} onChange={setVerification} /></ToolbarCard>{query.isLoading ? <div className="flex gap-2 p-6 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading companies...</div> : query.isError ? <div className="flex gap-3 p-6 text-red-600">Unable to load companies.<Button size="sm" variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : filtered.length === 0 ? <div className="p-6 text-sm text-muted-foreground">{search || status !== "Status" || verification !== "Verification" ? "No companies match the current filters." : "No companies found."}</div> : <AdminDataTable data={filtered} columns={columns(setToast, setViewingId)} minWidth="1280px" rowLabel="companies" />}</CardShell>{toast && <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-sm font-bold">{toast}</div>}{viewingId && <CompanyDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} />}</div>;
+  const query = useCompanies(); const [toast, setToast] = React.useState(""); const [viewingId, setViewingId] = React.useState<string | null>(null); const [search, setSearch] = React.useState(""); const [status, setStatus] = React.useState("Status");
+  const rows = React.useMemo(() => (query.data ?? []).map(map), [query.data]); const filtered = rows.filter((row) => (!search || [row.name, row.email, row.phone, row.location, ...row.services].join(" ").toLowerCase().includes(search.toLowerCase())) && (status === "Status" || row.status === status));
+  return <div className="mx-auto max-w-[1600px] space-y-5"><PageHeader title="Companies" subtitle="Manage company verification and account status." /><CardShell><ToolbarCard><SearchBox placeholder="Search companies by name, email, phone or service..." value={search} onChange={setSearch} /><FilterSelect placeholder="Status" values={["Status", "Pending", "Active", "Suspended"]} value={status} onChange={setStatus} /></ToolbarCard>{query.isLoading ? <div className="flex gap-2 p-6 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading companies...</div> : query.isError ? <div className="flex gap-3 p-6 text-red-600">Unable to load companies.<Button size="sm" variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : filtered.length === 0 ? <div className="p-6 text-sm text-muted-foreground">{search || status !== "Status" ? "No companies match the current filters." : "No companies found."}</div> : <AdminDataTable data={filtered} columns={columns(setToast, setViewingId)} minWidth="1200px" rowLabel="companies" />}</CardShell>{toast && <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-sm font-bold">{toast}</div>}{viewingId && <CompanyDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} notify={setToast} />}</div>;
 }
