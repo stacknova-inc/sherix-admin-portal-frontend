@@ -32,6 +32,8 @@ export enum Permission {
 
   COMPANIES = "companies",
   SERVICES = "services",
+  COMMISSIONS = "commissions",
+  POLICY_CONFIG = "policy_config",
 
   FINANCIAL = "financial",
   EARNINGS = "earnings",
@@ -96,6 +98,8 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
     Permission.FINANCIAL,
     Permission.EARNINGS,
     Permission.TRANSACTIONS,
+    Permission.COMMISSIONS,
+    Permission.POLICY_CONFIG,
   ],
 
   [StaffRole.SUPPORT_ADMIN]: [
