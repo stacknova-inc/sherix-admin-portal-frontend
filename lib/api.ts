@@ -54,6 +54,10 @@ export function isApiNotFound(error: unknown) {
   return error instanceof AxiosError && error.response?.status === 404;
 }
 
+export function isApiConflict(error: unknown) {
+  return error instanceof AxiosError && error.response?.status === 409;
+}
+
 export function assertApiId(
   id: string | undefined | null,
   context: string,
@@ -222,6 +226,7 @@ export function unwrapArray<T>(response: unknown): T[] {
   for (const key of [
     "services",
     "issues",
+    "commissions",
     "companies",
     "serviceProviders",
     "providers",

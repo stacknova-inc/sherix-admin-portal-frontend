@@ -166,6 +166,8 @@ const routePermissions: Array<{
   { path: "/dashboard/organization-data", permission: Permission.SERVICES },
   { path: "/dashboard/service-categories", permission: Permission.SERVICES },
   { path: "/dashboard/pricing-services", permission: Permission.SERVICES },
+  { path: "/dashboard/commissions", permission: Permission.SERVICES },
+  { path: "/dashboard/operational-settings", permission: Permission.SERVICES },
 
   { path: "/dashboard/requests", permission: Permission.SERVICE_REQUESTS },
 

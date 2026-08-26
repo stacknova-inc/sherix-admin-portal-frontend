@@ -50,6 +50,143 @@ export type UpdateIssueInput = Partial<CreateIssueInput> & {
   isActive?: boolean;
 };
 
+export interface Commission extends ApiTimestamped {
+  serviceId?: string;
+  serviceName?: string;
+  serviceSlug?: string;
+  commissionPercent?: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  effectivePercent?: number;
+  source?: string;
+  isActive?: boolean;
+  version?: number;
+  createdBy?: string;
+}
+
+export interface CommissionInput {
+  serviceId: string;
+  commissionPercent: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+export interface BulkCommissionEntry {
+  serviceId: string;
+  commissionPercent: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+export interface BulkCommissionInput {
+  reason: string;
+  commissions: BulkCommissionEntry[];
+}
+
+export interface CallOutPolicy {
+  expiryMinutes?: number;
+  searchRadiusKm?: number;
+  escalationRadiusKm?: number;
+  escalationEnabled?: boolean;
+  arrivalRadiusMeters?: number;
+  etaSpeedKmh?: number;
+  maxConcurrentOffers?: number;
+  rebroadcastEnabled?: boolean;
+  smsEnabled?: boolean;
+}
+
+export interface CustomerFeesPolicy {
+  enabled?: boolean;
+  bookingFeeAmount?: number;
+  serviceFeePercent?: number;
+  minFee?: number;
+  maxFee?: number;
+}
+
+export interface GlobalCommissionPolicy {
+  mechanicServicePercent?: number;
+  storeSalePercent?: number;
+}
+
+export interface PayoutSplit {
+  label?: string;
+  entity?: "mechanic" | "platform" | string;
+  percent?: number;
+}
+
+export interface PayoutPolicy {
+  settlementEnabled?: boolean;
+  settlementPeriodDays?: number;
+  minPayoutAmount?: number;
+  splits?: PayoutSplit[];
+}
+
+export interface PaymentPolicy {
+  cashEnabled?: boolean;
+  enabledMethods?: string[];
+}
+
+export interface InvitationPolicy {
+  companyInvitationExpiryHours?: number;
+  mechanicInvitationExpiryHours?: number;
+}
+
+export interface AvailabilityPolicy {
+  enabled?: boolean;
+  open24Hours?: boolean;
+  defaultOpen?: string;
+  defaultClose?: string;
+  allowWeekends?: boolean;
+}
+
+export interface CoveragePolicy {
+  enabled?: boolean;
+  defaultRadiusKm?: number;
+  maxRadiusKm?: number;
+}
+
+export interface MatchingPolicy {
+  matchByService?: boolean;
+  requireOnline?: boolean;
+  requireAvailable?: boolean;
+  requireZeroBalanceDue?: boolean;
+  maxBroadcastMechanics?: number;
+  sortBy?: string;
+}
+
+export interface PolicyConfig {
+  callOut?: CallOutPolicy;
+  customerFees?: CustomerFeesPolicy;
+  commissions?: GlobalCommissionPolicy;
+  payout?: PayoutPolicy;
+  payment?: PaymentPolicy;
+  invitation?: InvitationPolicy;
+  availability?: AvailabilityPolicy;
+  coverage?: CoveragePolicy;
+  matching?: MatchingPolicy;
+  version?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+  [key: string]: unknown;
+}
+
+export type PolicyConfigUpdateInput = Partial<Omit<PolicyConfig, "version" | "updatedAt" | "updatedBy">> & {
+  expectedVersion: number;
+  reason?: string;
+};
+
+export interface PolicyConfigHistoryEntry extends ApiTimestamped {
+  version?: number;
+  reason?: string;
+  changedBy?: string;
+  changes?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface AdCampaign extends ApiTimestamped {
   title?: string;
   image?: string;
