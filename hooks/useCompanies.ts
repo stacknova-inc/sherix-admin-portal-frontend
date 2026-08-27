@@ -1,38 +1,38 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { companiesApi, type CompanyAction } from "@/services/companies";
-import { companyProvidersQueryKey, serviceProvidersQueryKey } from "@/hooks/useServiceProviders";
-import { useUiStore } from "@/store/use-ui-store";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { companiesApi, type CompanyStatusAction, type CompanyVerificationAction } from "@/services/companies";
+import { recordId } from "@/lib/live-data";
+import type { Company } from "@/types";
 
-export const companiesQueryKey = companyProvidersQueryKey;
+export const companiesQueryKey = ["companies"] as const;
+export function useCompanies() { return useQuery({ queryKey: companiesQueryKey, queryFn: companiesApi.list }); }
 
-export function useCompanies() {
-  return useQuery({
-    queryKey: companiesQueryKey,
-
-    queryFn: companiesApi.list,
-  });
+function mergeCompany(queryClient: QueryClient, companyId: string, updated: Company) {
+  if (!updated || typeof updated !== "object") return;
+  queryClient.setQueryData<Company[]>(companiesQueryKey, (old) =>
+    old?.map((company) =>
+      recordId(company) === companyId || String(company.companyId ?? "") === companyId
+        ? { ...company, ...updated }
+        : company,
+    ),
+  );
 }
 
-export function useCompanyStats() {
-  const token = useUiStore((state) => state.accessToken);
-  return useQuery({
-    queryKey: ["companies", "stats"],
-    queryFn: companiesApi.stats,
-    enabled: Boolean(token),
-  });
-}
-
-export function useCompanyAction() {
+export function useCompanyVerification() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: string; action: CompanyAction; reason?: string }) =>
-      companiesApi.action(id, action, reason ? { reason } : undefined),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: companiesQueryKey });
-      queryClient.invalidateQueries({ queryKey: serviceProvidersQueryKey });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: ({ companyId, action, reason }: { companyId: string; action: CompanyVerificationAction; reason?: string }) =>
+      companiesApi.verification(companyId, action, reason ? { reason } : undefined),
+    onSuccess: (updated, { companyId }) => mergeCompany(queryClient, companyId, updated),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
+  });
+}
+export function useCompanyStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ companyId, action, reason }: { companyId: string; action: CompanyStatusAction; reason?: string }) => companiesApi.status(companyId, action, reason ? { reason } : undefined),
+    onSuccess: (updated, { companyId }) => mergeCompany(queryClient, companyId, updated),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
   });
 }

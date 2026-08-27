@@ -2,8 +2,6 @@
 
 import * as React from "react";
 import {
-  AlignLeft,
-  BadgeCheck,
   CalendarClock,
   CheckCircle2,
   CloudUpload,
@@ -33,15 +31,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, asRecord, dateText, firstText, money, recordId, text } from "@/lib/live-data";
+import { activeStatus, asRecord, dateText, firstText, recordId, text } from "@/lib/live-data";
 import { cn } from "@/lib/utils";
 import { useAdCampaign, useAdCampaigns, useCreateAdCampaign, useDeleteAdCampaign, useToggleAdCampaignStatus, useUpdateAdCampaign } from "@/hooks/useAdCampaigns";
-import { useAddIssue, useIssues } from "@/hooks/useIssues";
 import { useLegalDocuments, useUploadLegalDocument } from "@/hooks/useLegalDocuments";
-import { useAddService, useServices } from "@/hooks/useServices";
-import type { AdCampaign, Issue, LegalDocument, Service } from "@/types";
+import type { AdCampaign, LegalDocument } from "@/types";
 
-type ModalType = "service" | "issue" | "campaign-create" | "campaign-edit" | "legal-upload" | "legal-replace" | null;
+type ModalType = "campaign-create" | "campaign-edit" | "legal-upload" | "legal-replace" | null;
 
 const statusStyles: Record<string, string> = {
   Active: "bg-emerald-50 text-emerald-700 ring-emerald-600/15 dark:bg-emerald-500/15 dark:text-emerald-300",
@@ -258,28 +254,6 @@ function uploadedBy(document: LegalDocument) {
   return firstText(user, ["fullName", "name", "email"], firstText(record, ["uploadedByName", "adminName"], "-"));
 }
 
-function ServiceActionMenu({ onAction }: { onAction: (message: string) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Open row actions" className="h-8 w-8">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => onAction("Record opened in detail view.")}>
-          <Eye className="h-4 w-4" />
-          View
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => onAction("Edit mode is not wired for this row yet.")}>
-          <Pencil className="h-4 w-4" />
-          Edit
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function Toolbar({
   placeholder,
   query,
@@ -322,107 +296,6 @@ function Toolbar({
         <Plus className="h-4 w-4" />
         {primaryLabel}
       </Button>
-    </div>
-  );
-}
-
-function ServicesTab({ services, isLoading, isError, onAdd, onAction }: { services: Service[]; isLoading: boolean; isError: boolean; onAdd: () => void; onAction: (message: string) => void }) {
-  const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState("all");
-  const filtered = React.useMemo(() => {
-    return services.filter((service) => {
-      const record = asRecord(service);
-      const haystack = [service.name, service.title, service.description, activeStatus(record)].join(" ").toLowerCase();
-      const statusMatch = status === "all" || activeStatus(record).toLowerCase() === status;
-      return haystack.includes(query.toLowerCase()) && statusMatch;
-    });
-  }, [query, services, status]);
-
-  return (
-    <div className="space-y-4">
-      <Toolbar placeholder="Search services by title, description, status..." query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} primaryLabel="Add Services" onPrimary={onAdd} />
-      <Card className="overflow-hidden rounded-xl shadow-sm">
-        <div className="overflow-x-auto sherix-scrollbar">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>{["Service", "Description", "Created Date", "Status", "Actions"].map((header) => <th key={header} className="px-5 py-4 text-left font-black">{header}</th>)}</tr>
-            </thead>
-            {isLoading ? (
-              <TableLoading columns={5} />
-            ) : (
-              <tbody className="divide-y">
-                {filtered.map((service) => {
-                  const serviceRecord = asRecord(service);
-                  return (
-                    <tr key={recordId(service)} className="group bg-card transition-colors hover:bg-muted/35">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><BadgeCheck className="h-5 w-5" /></span>
-                          <span className="font-black">{service.name ?? service.title ?? "Untitled service"}</span>
-                        </div>
-                      </td>
-                      <td className="max-w-md px-5 py-4 text-muted-foreground">{service.description ?? "-"}</td>
-                      <td className="px-5 py-4 font-semibold">{dateText(service.createdAt)}</td>
-                      <td className="px-5 py-4"><StatusBadge status={activeStatus(serviceRecord)} /></td>
-                      <td className="px-5 py-4 text-right"><ServiceActionMenu onAction={onAction} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-        </div>
-        {!isLoading && filtered.length === 0 && <div className="p-4"><EmptyState title={isError ? "Unable to load services" : "No services available"} description={isError ? "Check the API connection and try again." : "Services matching the current filters will appear here."} /></div>}
-      </Card>
-    </div>
-  );
-}
-
-function IssuesTab({ issues, isLoading, isError, onAdd, onAction }: { issues: Issue[]; isLoading: boolean; isError: boolean; onAdd: () => void; onAction: (message: string) => void }) {
-  const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState("all");
-  const filtered = React.useMemo(() => {
-    return issues.filter((issue) => {
-      const issueRecord = asRecord(issue);
-      const haystack = [issue.issueTitle, issue.title, issue.issueDescription, issue.description, activeStatus(issueRecord, "Open")].join(" ").toLowerCase();
-      const statusMatch = status === "all" || activeStatus(issueRecord, "Open").toLowerCase() === status;
-      return haystack.includes(query.toLowerCase()) && statusMatch;
-    });
-  }, [issues, query, status]);
-
-  return (
-    <div className="space-y-4">
-      <Toolbar placeholder="Search issues, requests, price bands..." query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} primaryLabel="Add Issue" onPrimary={onAdd} />
-      <Card className="overflow-hidden rounded-xl shadow-sm">
-        <div className="overflow-x-auto sherix-scrollbar">
-          <table className="w-full min-w-[960px] text-sm">
-            <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>{["Issue", "Description", "Minimum", "Maximum", "Date Created", "Status", "Actions"].map((header) => <th key={header} className="px-5 py-4 text-left font-black">{header}</th>)}</tr>
-            </thead>
-            {isLoading ? (
-              <TableLoading columns={7} />
-            ) : (
-              <tbody className="divide-y">
-                {filtered.map((issue) => {
-                  const issueRecord = asRecord(issue);
-                  return (
-                    <tr key={recordId(issue)} className="bg-card transition-colors hover:bg-muted/35">
-                      <td className="px-5 py-4 font-black">{issue.issueTitle ?? issue.title ?? "Untitled issue"}</td>
-                      <td className="max-w-sm px-5 py-4 text-muted-foreground">{issue.issueDescription ?? issue.description ?? "-"}</td>
-                      <td className="px-5 py-4 font-bold">{money(issue.issueMinPrice)}</td>
-                      <td className="px-5 py-4 font-bold">{money(issue.issueMaxPrice)}</td>
-                      <td className="px-5 py-4">{dateText(issue.createdAt)}</td>
-                      <td className="px-5 py-4"><StatusBadge status={activeStatus(issueRecord, "Open")} /></td>
-                      <td className="px-5 py-4 text-right"><ServiceActionMenu onAction={onAction} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            )}
-          </table>
-        </div>
-        {!isLoading && filtered.length === 0 && <div className="p-4"><EmptyState title={isError ? "Unable to load issues" : "No issues added"} description={isError ? "Check the API connection and try again." : "Issues matching the current filters will appear here."} /></div>}
-      </Card>
     </div>
   );
 }
@@ -928,105 +801,13 @@ function LegalDocumentModal({ open, mode, selectedDocument, documents, onClose, 
   );
 }
 
-function ServiceModal({ open, onClose, onSaved, onError }: { open: boolean; onClose: () => void; onSaved: () => void; onError: (message: string) => void }) {
-  const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [icon, setIcon] = React.useState("");
-  const addService = useAddService();
-  const titleError = title.length > 0 && title.length < 4 ? "Use at least 4 characters." : undefined;
-  const descriptionError = description.length > 180 ? "Description must be 180 characters or fewer." : undefined;
-
-  async function submit() {
-    try {
-      await addService.mutateAsync({ name: title, description, icon });
-      setTitle("");
-      setDescription("");
-      setIcon("");
-      onSaved();
-      onClose();
-    } catch (error) {
-      onError(getErrorMessage(error, "Unable to add service"));
-    }
-  }
-
-  return (
-    <ModalShell title="Add Services" subtitle="Create a managed service that admins can track and publish." open={open} onClose={onClose}>
-      <div className="grid gap-4 p-5">
-        <FormField label="Service Title" error={titleError} hint={`${title.length}/80 characters`}><Input value={title} onChange={(event) => setTitle(event.target.value.slice(0, 80))} placeholder="Fleet maintenance" /></FormField>
-        <FormField label="Service Description" error={descriptionError} hint={`${description.length}/180 characters`}>
-          <textarea value={description} onChange={(event) => setDescription(event.target.value.slice(0, 200))} className="min-h-28 rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring" placeholder="Describe what this service includes..." />
-        </FormField>
-        <FormField label="Icon" hint="Icon name or URL from the backend-supported icon set."><Input value={icon} onChange={(event) => setIcon(event.target.value)} placeholder="wrench" /></FormField>
-      </div>
-      <div className="flex flex-col-reverse gap-2 border-t bg-card p-5 sm:flex-row sm:justify-end">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => void submit()} disabled={!title || !description || Boolean(titleError || descriptionError) || addService.isPending}>{addService.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Save Service</Button>
-      </div>
-    </ModalShell>
-  );
-}
-
-function IssueModal({ open, onClose, services, onSaved, onError }: { open: boolean; onClose: () => void; services: Service[]; onSaved: () => void; onError: (message: string) => void }) {
-  const [service, setService] = React.useState("");
-  const [title, setTitle] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [min, setMin] = React.useState("100");
-  const [max, setMax] = React.useState("500");
-  const addIssue = useAddIssue();
-  const minValue = Number(min);
-  const maxValue = Number(max);
-  const priceError = minValue > 0 && maxValue > 0 && minValue >= maxValue ? "Maximum price must be greater than minimum price." : undefined;
-
-  async function submit() {
-    try {
-      await addIssue.mutateAsync({ service, issueTitle: title, issueDescription: description, issueMinPrice: minValue, issueMaxPrice: maxValue });
-      setService("");
-      setTitle("");
-      setDescription("");
-      setMin("100");
-      setMax("500");
-      onSaved();
-      onClose();
-    } catch (error) {
-      onError(getErrorMessage(error, "Unable to add issue"));
-    }
-  }
-
-  return (
-    <ModalShell title="Add Issue" subtitle="Define the issue, expected price range, and review details." open={open} onClose={onClose}>
-      <div className="grid gap-4 p-5">
-        <FormField label="Service" hint="Select the backend service this issue belongs to.">
-          <Select value={service} onValueChange={setService}>
-            <SelectTrigger><SelectValue placeholder={services.length ? "Select service" : "No services available"} /></SelectTrigger>
-            <SelectContent className="bg-white">{services.map((item) => <SelectItem key={recordId(item)} value={recordId(item)}>{text(item.name ?? item.title, "Untitled service")}</SelectItem>)}</SelectContent>
-          </Select>
-        </FormField>
-        <FormField label="Issue Title" hint="Keep it short and operationally clear."><Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Emergency towing price exception" /></FormField>
-        <FormField label="Issue Description" hint="Add enough context for reviewers."><textarea value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-24 rounded-lg border bg-card px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-ring" placeholder="Describe the request or issue..." /></FormField>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Minimum Price" error={priceError}><Input value={min} onChange={(event) => setMin(event.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" /></FormField>
-          <FormField label="Maximum Price" error={priceError}><Input value={max} onChange={(event) => setMax(event.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" /></FormField>
-        </div>
-      </div>
-      <div className="flex flex-col-reverse gap-2 border-t bg-card p-5 sm:flex-row sm:justify-end">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button onClick={() => void submit()} disabled={Boolean(priceError) || !service || !title || !min || !max || addIssue.isPending}>{addIssue.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Save Issue</Button>
-      </div>
-    </ModalShell>
-  );
-}
-
 export function OrganizationDataDashboard() {
   const [modal, setModal] = React.useState<ModalType>(null);
   const [toast, setToast] = React.useState("");
   const [selectedCampaign, setSelectedCampaign] = React.useState<AdCampaign>();
   const [selectedDocument, setSelectedDocument] = React.useState<LegalDocument>();
-  const servicesQuery = useServices();
-  const issuesQuery = useIssues();
   const legalQuery = useLegalDocuments();
   const showToast = React.useCallback((message: string) => setToast(message), []);
-  const services = servicesQuery.data ?? [];
-  const issues = issuesQuery.data ?? [];
 
   function openCampaignEdit(campaign: AdCampaign) {
     setSelectedCampaign(campaign);
@@ -1040,25 +821,19 @@ export function OrganizationDataDashboard() {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-6">
-      <PageHeader title="Organization Data" subtitle="Manage services, issue workflows, campaign assets, and legal documentation." />
+      <PageHeader title="Organization Data" subtitle="Manage campaign assets and legal documentation." />
 
-      <Tabs defaultValue="services" className="space-y-5">
+      <Tabs defaultValue="campaigns" className="space-y-5">
         <div className="overflow-x-auto sherix-scrollbar">
           <TabsList className="h-auto min-w-max justify-start rounded-xl border bg-card p-1 shadow-sm">
-            <TabsTrigger value="services" className="gap-2 px-4 py-2"><BadgeCheck className="h-4 w-4" />Services</TabsTrigger>
-            <TabsTrigger value="issues" className="gap-2 px-4 py-2"><AlignLeft className="h-4 w-4" />Issues</TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-2 px-4 py-2"><ImagePlus className="h-4 w-4" />Ads/Campaigns</TabsTrigger>
             <TabsTrigger value="legal" className="gap-2 px-4 py-2"><Gavel className="h-4 w-4" />Legal</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="services"><ServicesTab services={services} isLoading={servicesQuery.isLoading} isError={servicesQuery.isError} onAdd={() => setModal("service")} onAction={showToast} /></TabsContent>
-        <TabsContent value="issues"><IssuesTab issues={issues} isLoading={issuesQuery.isLoading} isError={issuesQuery.isError} onAdd={() => setModal("issue")} onAction={showToast} /></TabsContent>
         <TabsContent value="campaigns"><CampaignsTab onAdd={() => setModal("campaign-create")} onEdit={openCampaignEdit} onToast={showToast} /></TabsContent>
         <TabsContent value="legal"><LegalTab onUpload={() => setModal("legal-upload")} onReplace={openLegalReplace} onToast={showToast} /></TabsContent>
       </Tabs>
 
-      <ServiceModal open={modal === "service"} onClose={() => setModal(null)} onSaved={() => showToast("Service added successfully.")} onError={showToast} />
-      <IssueModal open={modal === "issue"} onClose={() => setModal(null)} services={services} onSaved={() => showToast("Issue added successfully.")} onError={showToast} />
       <CampaignModal open={modal === "campaign-create"} mode="create" onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
       <CampaignModal open={modal === "campaign-edit"} mode="edit" campaign={selectedCampaign} onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
       <LegalDocumentModal open={modal === "legal-upload"} mode="upload" documents={legalQuery.data ?? []} onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />

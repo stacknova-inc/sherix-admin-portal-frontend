@@ -58,6 +58,34 @@ export function initials(name: string) {
   return (parts[0]?.[0] ?? "S").concat(parts[1]?.[0] ?? "").toUpperCase();
 }
 
+export type ProviderStatus = "Pending" | "Active" | "Suspended";
+
+/**
+ * Account lifecycle status for companies/mechanics, read only from the
+ * backend's top-level `status` field. This is independent of KYC/verification
+ * review outcome - see getKycStatus - and must never be inferred from it.
+ */
+export function getProviderStatus(provider: { status?: string }): ProviderStatus {
+  const status = provider.status?.toLowerCase();
+
+  if (status === "suspended" || status === "banned") return "Suspended";
+  if (status === "active") return "Active";
+
+  return "Pending";
+}
+
+export type KycStatus = "Pending" | "Approved" | "Rejected";
+
+/** KYC/verification review status for companies/mechanics, read from `kyc.status`. */
+export function getKycStatus(provider: { kyc?: { status?: string } }): KycStatus {
+  const status = provider.kyc?.status?.toLowerCase();
+
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
+
+  return "Pending";
+}
+
 export function activeStatus(record: Record<string, unknown>, fallback = "Active") {
   if (typeof record.status === "string") return record.status.toLowerCase() === "banned" ? "Suspended" : record.status;
   if (typeof record.verificationStatus === "string") return record.verificationStatus;

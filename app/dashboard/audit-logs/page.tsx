@@ -196,7 +196,7 @@ export default function AuditLogsPage() {
   );
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Audit Logs" subtitle="Review security, staff, user, payment, and operational activity across the platform." />
+      <PageHeader title="Audit Logs" subtitle="Review security, staff, customer, payment, and operational activity across the platform." />
    
 
       <section className="grid gap-4 ">

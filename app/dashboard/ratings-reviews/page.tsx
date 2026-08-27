@@ -39,7 +39,7 @@ function mapReview(review: Review): ReviewRow {
   const record = review as unknown as Record<string, unknown>;
   const customer = asRecord(record.customer ?? record.reviewer ?? record.user ?? record.customerData);
   const mechanic = asRecord(record.mechanic ?? record.provider ?? record.serviceProvider ?? record.providerData);
-  const related = asRecord(record.relatedTo ?? record.reference ?? record.booking ?? record.job ?? record.request);
+  const related = asRecord(record.relatedTo ?? record.reference ?? record.serviceRequest ?? record.booking ?? record.job ?? record.request);
   const reviewer = firstText(record, ["reviewerName", "customerName", "customerId"], text(customer, "Unknown reviewer"));
   const provider = firstText(record, ["providerName", "mechanicName", "mechanicId"], text(mechanic, "Unknown provider"));
   const service = firstText(

@@ -9,9 +9,9 @@ import { MetricGrid, SoftTag } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useAuditLogs } from "@/hooks/useAudit";
-import { useBookingStats, useBookings } from "@/hooks/useBookings";
 import { useCompanies } from "@/hooks/useCompanies";
 import { useFinancialEarnings, useTransactions } from "@/hooks/useFinancial";
+import { useServiceRequestStats, useServiceRequests } from "@/hooks/useServiceRequests";
 import { useUsers } from "@/hooks/useUsers";
 import { asRecord, firstText, metricValue, money } from "@/lib/live-data";
 
@@ -19,7 +19,7 @@ import { asRecord, firstText, metricValue, money } from "@/lib/live-data";
 
 const categoryTone: Record<string, string> = {
   Financial: "green",
-  Jobs: "blue",
+  Requests: "blue",
   Users: "purple",
   Providers: "amber",
   Audit: "red",
@@ -39,23 +39,23 @@ function numberFromMetric(stats: Record<string, unknown>, keys: string[]) {
 export default function ReportsAnalyticsPage() {
   const usersQuery = useUsers();
   const companiesQuery = useCompanies();
-  const bookingsQuery = useBookings();
-  const bookingStatsQuery = useBookingStats();
+  const serviceRequestsQuery = useServiceRequests();
+  const serviceRequestStatsQuery = useServiceRequestStats();
   const earningsQuery = useFinancialEarnings();
   const transactionsQuery = useTransactions();
   const auditQuery = useAuditLogs();
-  const bookingStats = asRecord(bookingStatsQuery.data);
+  const serviceRequestStats = asRecord(serviceRequestStatsQuery.data);
   const earnings = asRecord(earningsQuery.data);
   const users = usersQuery.data ?? [];
   const companies = companiesQuery.data ?? [];
-  const bookings = bookingsQuery.data ?? [];
+  const serviceRequests = serviceRequestsQuery.data ?? [];
   const transactions = transactionsQuery.data ?? [];
   const auditEvents = auditQuery.data ?? [];
-  const totalJobs = numberFromMetric(bookingStats, ["totalRequests", "totalBookings", "total"]) || bookings.length;
-  const completedJobs = numberFromMetric(bookingStats, ["completedJobs", "completed"]);
-  const pendingJobs = numberFromMetric(bookingStats, ["pendingRequests", "pending"]);
-  const inProgressJobs = numberFromMetric(bookingStats, ["inProgress", "ongoing"]);
-  const cancelledJobs = numberFromMetric(bookingStats, ["cancelledJobs", "cancelled"]);
+  const totalJobs = numberFromMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || serviceRequests.length;
+  const completedJobs = numberFromMetric(serviceRequestStats, ["completedJobs", "completed"]);
+  const pendingJobs = numberFromMetric(serviceRequestStats, ["pendingRequests", "pending"]);
+  const inProgressJobs = numberFromMetric(serviceRequestStats, ["inProgress", "ongoing"]);
+  const cancelledJobs = numberFromMetric(serviceRequestStats, ["cancelledJobs", "cancelled"]);
   const transactionTotal = transactions.reduce((sum, transaction) => sum + Number((transaction as Record<string, unknown>).amount ?? 0), 0);
   const revenueTotal = earnings.totalEarnings ?? earnings.total ?? earnings.revenue ?? transactionTotal;
   const chartData = (Array.isArray(earnings.chart) ? earnings.chart : Array.isArray(earnings.earningsChart) ? earnings.earningsChart : []) as Array<Record<string, string | number>>;
@@ -67,9 +67,9 @@ export default function ReportsAnalyticsPage() {
   ].filter((item) => item.value > 0);
  
   const metrics = [
-    { label: "Users", value: String(users.length), change: "Loaded user records", direction: "up", tone: "purple", icon: Users },
+    { label: "Customers", value: String(users.length), change: "Loaded customer records", direction: "up", tone: "purple", icon: Users },
     { label: "Service Providers", value: String(companies.length), change: "Loaded provider records", direction: "up", tone: "amber", icon: ShieldCheck },
-    { label: "Total Jobs", value: String(totalJobs), change: metricValue(bookingStats, ["totalRequests", "totalBookings", "total"], "Booking stats"), direction: "up", tone: "blue", icon: Briefcase },
+    { label: "Total Requests", value: String(totalJobs), change: metricValue(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"], "Service request stats"), direction: "up", tone: "blue", icon: Briefcase },
     { label: "Revenue", value: money(revenueTotal), change: "Financial earnings/transactions", direction: "up", tone: "green", icon: DollarSign },
     { label: "Transactions", value: String(transactions.length), change: "Loaded transaction records", direction: "up", tone: "teal", icon: Wallet },
   ];
@@ -95,10 +95,10 @@ export default function ReportsAnalyticsPage() {
         </CardShell>
 
         <CardShell className="p-4">
-          <h2 className="text-base font-black">Jobs by Status</h2>
+          <h2 className="text-base font-black">Requests by Status</h2>
           {jobStatus.length ? (
             <>
-              <DonutChart data={jobStatus} total={String(totalJobs)} label="Total Jobs" height={190} />
+              <DonutChart data={jobStatus} total={String(totalJobs)} label="Total Requests" height={190} />
               <div className="space-y-3">
                 {jobStatus.map((item) => (
                   <div key={item.name} className="flex items-center justify-between gap-3 text-sm">
@@ -112,7 +112,7 @@ export default function ReportsAnalyticsPage() {
               </div>
             </>
           ) : (
-            <p className="mt-4 rounded-xl border border-dashed p-6 text-center text-sm font-semibold text-muted-foreground">No booking status data available.</p>
+            <p className="mt-4 rounded-xl border border-dashed p-6 text-center text-sm font-semibold text-muted-foreground">No service request status data available.</p>
           )}
         </CardShell>
       </section>

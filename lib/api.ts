@@ -14,13 +14,13 @@ declare module "axios" {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.NEXT_PUBLIC_BASE_URL ??
-  "";
+  "https://sherix-app-backend-production-84b9.up.railway.app/api/v1/";
 
 function getApiBaseUrl() {
   return API_BASE_URL;
 }
 
-const DEVICE_ID = "12345";
+const DEVICE_ID = "123456";
 
 
 
@@ -35,6 +35,9 @@ function logApiError(error: unknown) {
   if (typeof window === "undefined") return;
 
   if (error instanceof AxiosError) {
+    if (error.response?.status === 409) {
+      return "This record was changed by another administrator. Refresh the data and try again.";
+    }
     console.error("[Sherix API Error]", {
       method: error.config?.method?.toUpperCase(),
       url: error.config?.url,
@@ -49,6 +52,10 @@ function logApiError(error: unknown) {
 
 export function isApiNotFound(error: unknown) {
   return error instanceof AxiosError && error.response?.status === 404;
+}
+
+export function isApiConflict(error: unknown) {
+  return error instanceof AxiosError && error.response?.status === 409;
 }
 
 export function assertApiId(
@@ -134,6 +141,68 @@ api.interceptors.response.use(
   },
 );
 
+const SENSITIVE_HEADER_KEYS = ["authorization", "cookie", "set-cookie", "x-api-key", "api-key", "token", "refresh-token", "x-refresh-token"];
+
+function redactHeaders(headers: unknown): Record<string, unknown> {
+  if (!headers || typeof headers !== "object") return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
+    out[key] = SENSITIVE_HEADER_KEYS.includes(key.toLowerCase()) ? "[REDACTED]" : value;
+  }
+  return out;
+}
+
+function safeParse(data: unknown): unknown {
+  if (typeof data !== "string") return data;
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
+
+/**
+ * TEMPORARY DEBUG HELPER — remove once the suspend-company 400 is diagnosed.
+ * Logs the full axios error (request + response) with secrets redacted.
+ */
+export function logDetailedAxiosError(label: string, error: unknown) {
+  if (!(error instanceof AxiosError)) {
+    console.error(`[${label}] Non-axios error:`, error);
+    return;
+  }
+
+  const cfg = error.config;
+  const res = error.response;
+  const requestData = safeParse(cfg?.data);
+  const responseData = res?.data as
+    | { message?: unknown; error?: unknown; statusCode?: unknown; errors?: unknown }
+    | undefined;
+
+  const fullUrl = cfg?.baseURL && cfg?.url
+    ? `${cfg.baseURL.replace(/\/+$/, "")}/${String(cfg.url).replace(/^\/+/, "")}`
+    : cfg?.url;
+
+  const lines = [
+    `\n========== ${label} ==========`,
+    `METHOD:\n${cfg?.method?.toUpperCase()}`,
+    `BASE URL:\n${cfg?.baseURL}`,
+    `FULL URL:\n${fullUrl}`,
+    `REQUEST DATA:\n${JSON.stringify(requestData, null, 2)}`,
+    `REQUEST HEADERS:\n${JSON.stringify(redactHeaders(cfg?.headers), null, 2)}`,
+    `STATUS:\n${res?.status} ${res?.statusText ?? ""}`,
+    `RESPONSE DATA:\n${JSON.stringify(responseData, null, 2)}`,
+    `RESPONSE HEADERS:\n${JSON.stringify(redactHeaders(res?.headers), null, 2)}`,
+    `BACKEND MESSAGE:\n${responseData?.message ?? "(none)"}`,
+    `BACKEND ERROR:\n${responseData?.error ?? "(none)"}`,
+    `BACKEND VALIDATION ERRORS:\n${JSON.stringify(responseData?.errors ?? "(none)", null, 2)}`,
+    `BACKEND STATUS CODE:\n${responseData?.statusCode ?? "(none)"}`,
+    `ERROR CODE:\n${error.code}`,
+    `============================================\n`,
+  ];
+
+  console.error(lines.join("\n"));
+}
+
 export function unwrapData<T>(response: unknown): T {
   const value = response as {
     data?: unknown;
@@ -157,10 +226,12 @@ export function unwrapArray<T>(response: unknown): T[] {
   for (const key of [
     "services",
     "issues",
+    "commissions",
     "companies",
     "serviceProviders",
     "providers",
     "users",
+    "serviceRequests",
     "bookings",
     "transactions",
     "disputes",

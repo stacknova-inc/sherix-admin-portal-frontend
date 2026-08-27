@@ -24,9 +24,9 @@ function DetailGrid({ items }: { items: string[][] }) {
   );
 }
 
-export default function JobDetailsPage() {
+export default function RequestDetailsPage() {
   // Replace with your actual query later
-  const booking = {
+  const serviceRequest = {
     id: "",
     requestId: "",
     service: "",
@@ -42,16 +42,16 @@ export default function JobDetailsPage() {
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <Link
-        href="/dashboard/jobs"
+        href="/dashboard/requests"
         className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Jobs / Requests
+        Back to Service Requests
       </Link>
 
       <PageHeader
-        title="Job Details"
-        subtitle="View detailed information about a job request."
+        title="Request Details"
+        subtitle="View detailed information about a request."
       />
 
       <CardShell className="p-4">
@@ -59,16 +59,16 @@ export default function JobDetailsPage() {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-black">
-                {booking.service || "Job"}
+                {serviceRequest.service || "Request"}
               </h2>
 
               <StatusBadge
-                status={booking.status || "Pending"}
+                status={serviceRequest.status || "Pending"}
               />
             </div>
 
             <p className="mt-2 text-sm text-muted-foreground">
-              Request ID: {booking.requestId || "-"}
+              Request ID: {serviceRequest.requestId || "-"}
             </p>
           </div>
 
@@ -78,7 +78,7 @@ export default function JobDetailsPage() {
                 Priority
               </p>
               <p className="font-bold">
-                {booking.priority || "-"}
+                {serviceRequest.priority || "-"}
               </p>
             </div>
 
@@ -87,7 +87,7 @@ export default function JobDetailsPage() {
                 Payment Status
               </p>
               <StatusBadge
-                status={booking.paymentStatus || "Pending"}
+                status={serviceRequest.paymentStatus || "Pending"}
               />
             </div>
 
@@ -96,7 +96,7 @@ export default function JobDetailsPage() {
                 Amount
               </p>
               <p className="font-bold">
-                {booking.amount || "-"}
+                {serviceRequest.amount || "-"}
               </p>
             </div>
           </div>
@@ -105,21 +105,21 @@ export default function JobDetailsPage() {
 
       <CardShell className="p-4">
         <h2 className="mb-4 text-sm font-black">
-          Job Information
+          Request Information
         </h2>
 
         <DetailGrid
           items={[
-            ["Job ID", booking.id],
-            ["Request ID", booking.requestId],
-            ["Service", booking.service],
-            ["Customer", booking.customer],
-            ["Provider", booking.provider],
-            ["Location", booking.location],
-            ["Status", booking.status],
-            ["Priority", booking.priority],
-            ["Payment Status", booking.paymentStatus],
-            ["Amount", booking.amount],
+            ["Record ID", serviceRequest.id],
+            ["Request ID", serviceRequest.requestId],
+            ["Service", serviceRequest.service],
+            ["Customer", serviceRequest.customer],
+            ["Provider", serviceRequest.provider],
+            ["Location", serviceRequest.location],
+            ["Status", serviceRequest.status],
+            ["Priority", serviceRequest.priority],
+            ["Payment Status", serviceRequest.paymentStatus],
+            ["Amount", serviceRequest.amount],
           ]}
         />
       </CardShell>

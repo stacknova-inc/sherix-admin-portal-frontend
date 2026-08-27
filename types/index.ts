@@ -50,6 +50,143 @@ export type UpdateIssueInput = Partial<CreateIssueInput> & {
   isActive?: boolean;
 };
 
+export interface Commission extends ApiTimestamped {
+  serviceId?: string;
+  serviceName?: string;
+  serviceSlug?: string;
+  commissionPercent?: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  effectivePercent?: number;
+  source?: string;
+  isActive?: boolean;
+  version?: number;
+  createdBy?: string;
+}
+
+export interface CommissionInput {
+  serviceId: string;
+  commissionPercent: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+export interface BulkCommissionEntry {
+  serviceId: string;
+  commissionPercent: number | null;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  expectedVersion?: number;
+  reason?: string;
+}
+
+export interface BulkCommissionInput {
+  reason: string;
+  commissions: BulkCommissionEntry[];
+}
+
+export interface CallOutPolicy {
+  expiryMinutes?: number;
+  searchRadiusKm?: number;
+  escalationRadiusKm?: number;
+  escalationEnabled?: boolean;
+  arrivalRadiusMeters?: number;
+  etaSpeedKmh?: number;
+  maxConcurrentOffers?: number;
+  rebroadcastEnabled?: boolean;
+  smsEnabled?: boolean;
+}
+
+export interface CustomerFeesPolicy {
+  enabled?: boolean;
+  bookingFeeAmount?: number;
+  serviceFeePercent?: number;
+  minFee?: number;
+  maxFee?: number;
+}
+
+export interface GlobalCommissionPolicy {
+  mechanicServicePercent?: number;
+  storeSalePercent?: number;
+}
+
+export interface PayoutSplit {
+  label?: string;
+  entity?: "mechanic" | "platform" | string;
+  percent?: number;
+}
+
+export interface PayoutPolicy {
+  settlementEnabled?: boolean;
+  settlementPeriodDays?: number;
+  minPayoutAmount?: number;
+  splits?: PayoutSplit[];
+}
+
+export interface PaymentPolicy {
+  cashEnabled?: boolean;
+  enabledMethods?: string[];
+}
+
+export interface InvitationPolicy {
+  companyInvitationExpiryHours?: number;
+  mechanicInvitationExpiryHours?: number;
+}
+
+export interface AvailabilityPolicy {
+  enabled?: boolean;
+  open24Hours?: boolean;
+  defaultOpen?: string;
+  defaultClose?: string;
+  allowWeekends?: boolean;
+}
+
+export interface CoveragePolicy {
+  enabled?: boolean;
+  defaultRadiusKm?: number;
+  maxRadiusKm?: number;
+}
+
+export interface MatchingPolicy {
+  matchByService?: boolean;
+  requireOnline?: boolean;
+  requireAvailable?: boolean;
+  requireZeroBalanceDue?: boolean;
+  maxBroadcastMechanics?: number;
+  sortBy?: string;
+}
+
+export interface PolicyConfig {
+  callOut?: CallOutPolicy;
+  customerFees?: CustomerFeesPolicy;
+  commissions?: GlobalCommissionPolicy;
+  payout?: PayoutPolicy;
+  payment?: PaymentPolicy;
+  invitation?: InvitationPolicy;
+  availability?: AvailabilityPolicy;
+  coverage?: CoveragePolicy;
+  matching?: MatchingPolicy;
+  version?: number;
+  updatedAt?: string;
+  updatedBy?: string;
+  [key: string]: unknown;
+}
+
+export type PolicyConfigUpdateInput = Partial<Omit<PolicyConfig, "version" | "updatedAt" | "updatedBy">> & {
+  expectedVersion: number;
+  reason?: string;
+};
+
+export interface PolicyConfigHistoryEntry extends ApiTimestamped {
+  version?: number;
+  reason?: string;
+  changedBy?: string;
+  changes?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface AdCampaign extends ApiTimestamped {
   title?: string;
   image?: string;
@@ -93,7 +230,32 @@ export interface LegalDocument extends ApiTimestamped {
   uploadedAt?: string;
 }
 
+export interface CompanyEvidence {
+  url?: string;
+  label?: string;
+  type?: string;
+}
+
+export interface CompanyMembership {
+  plan?: string;
+  status?: string;
+  joinedAt?: string;
+  expiresAt?: string;
+}
+
+
+export interface ProviderKyc {
+  status?: "pending" | "approved" | "rejected" | string;
+  submittedAt?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  documents?: unknown[];
+}
+
 export interface Company extends ApiTimestamped {
+  /** The ID required by the company verification/account endpoints. */
+  companyId?: ApiId;
   name?: string;
   companyName?: string;
   businessName?: string;
@@ -101,13 +263,23 @@ export interface Company extends ApiTimestamped {
   phone?: string;
   services?: Array<string | Service>;
   location?: string;
+  coverageArea?: string;
   address?: string;
   rating?: number;
   reviews?: number;
-  status?: string;
-  verificationStatus?: string;
-  isActive?: boolean;
+  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
+  status?: "Pending" | "Active" | "Suspended" | string;
+  kyc?: ProviderKyc;
   isEmployee?: boolean;
+  /** Not yet returned by the backend; the details modal reads these defensively. */
+  businessRegistrationNumber?: string;
+  brn?: string;
+  responsibleContact?: string | { name?: string; phone?: string; email?: string };
+  personnelCount?: number | string;
+  staffCount?: number | string;
+  identityEvidence?: CompanyEvidence[];
+  businessEvidence?: CompanyEvidence[];
+  membership?: CompanyMembership;
 }
 
 export interface ServiceProvider extends Company {
@@ -205,6 +377,8 @@ export interface DashboardAnalytics {
 
 export interface Dispute extends ApiTimestamped {
   jobId?: string;
+  serviceRequest?: unknown;
+  /** @deprecated Kept for backends still nesting the linked record under `booking`. */
   booking?: unknown;
   raisedBy?: unknown;
   against?: unknown;
@@ -213,7 +387,7 @@ export interface Dispute extends ApiTimestamped {
   amount?: number;
 }
 
-export interface Booking extends ApiTimestamped {
+export interface ServiceRequest extends ApiTimestamped {
   requestId?: string;
   service?: unknown;
   customer?: unknown;
@@ -351,4 +525,23 @@ export interface GeneralSettings {
 export interface Settings {
   general?: GeneralSettings;
   [key: string]: unknown;
+}
+
+export interface Mechanic extends ApiTimestamped {
+  /** The user ID required by the mechanic verification/account endpoints. */
+  userId?: ApiId;
+  name?: string;
+  role?: string;
+  email?: string;
+  phoneNumber?: string;
+  company?: string;
+  businessName?: string;
+  services?: string | Array<string | Service>;
+  location?: string;
+  profilePhoto?: { url?: string; publicId?: string };
+  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
+  status?: "Pending" | "Active" | "Suspended" | string;
+  kyc?: ProviderKyc;
+  completedJobs?: number;
+  completedJobsCount?: number;
 }
