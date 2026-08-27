@@ -85,7 +85,7 @@ function mapNotification(notification: AdminNotification): NotificationRow {
     description: firstText(record, ["description", "message", "body"], ""),
     type,
     channels: channelsFrom(record),
-    audience: firstText(record, ["audience", "targetAudience", "recipientType"], "All Users"),
+    audience: firstText(record, ["audience", "targetAudience", "recipientType"], "All Customers"),
     status: firstText(record, ["status"], "Sent"),
     sentOn: dateText(sentAt),
     time: timeText(sentAt),
@@ -155,7 +155,7 @@ const categoryOptions: Array<{ value: NotificationCategoryValue; label: string }
   { value: "promotion", label: "Promotion" },
   { value: "system", label: "System" },
   { value: "security", label: "Security" },
-  { value: "job_update", label: "Job Update" },
+  { value: "job_update", label: "Request Update" },
 ];
 
 type NotificationFormState = {
@@ -410,7 +410,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Notifications" subtitle="Create, manage and track all system notifications sent to users and providers." />
+      <PageHeader title="Notifications" subtitle="Create, manage and track all system notifications sent to customers and providers." />
       <MetricGrid metrics={metrics} />
 
       <div className="font-bold">All Notifications</div>

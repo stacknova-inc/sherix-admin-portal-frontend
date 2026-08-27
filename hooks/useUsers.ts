@@ -32,5 +32,6 @@ export function useUserAction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: usersQueryKey });
     },
+    onError: () => { queryClient.invalidateQueries({ queryKey: usersQueryKey }); },
   });
 }

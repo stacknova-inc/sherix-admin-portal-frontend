@@ -63,7 +63,7 @@ export default function SignInPage() {
           </p>
         </div>
         <div className="relative grid grid-cols-3 gap-3 text-xs text-slate-300">
-          {["12,458 users", "3,892 jobs", "GHS 128k revenue"].map((item) => (
+          {["12,458 customers", "3,892 requests", "GHS 128k revenue"].map((item) => (
             <div
               key={item}
               className="rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur"

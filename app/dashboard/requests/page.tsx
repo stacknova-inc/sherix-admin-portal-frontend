@@ -7,11 +7,11 @@ import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { ExportButton, FilterSelect, MetricGrid, PaginationFooter, SearchBox, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { useBookingStats, useBookings } from "@/hooks/useBookings";
+import { useServiceRequestStats, useServiceRequests } from "@/hooks/useServiceRequests";
 import { activeStatus, asRecord, firstText, metricChange, metricDirection, metricValue, money, recordId, text } from "@/lib/live-data";
-import type { Booking } from "@/types";
+import type { ServiceRequest } from "@/types";
 
-type BookingRow = {
+type ServiceRequestRow = {
   id: string;
   requestId: string;
   service: string;
@@ -24,11 +24,11 @@ type BookingRow = {
   paymentStatus: string;
 };
 
-function mapBooking(booking: Booking): BookingRow {
-  const record = booking as unknown as Record<string, unknown>;
+function mapServiceRequest(serviceRequest: ServiceRequest): ServiceRequestRow {
+  const record = serviceRequest as unknown as Record<string, unknown>;
   return {
-    id: recordId(booking),
-    requestId: firstText(record, ["requestId", "bookingId"], recordId(booking)),
+    id: recordId(serviceRequest),
+    requestId: firstText(record, ["requestId", "serviceRequestId", "bookingId"], recordId(serviceRequest)),
     service: text(record.service),
     customer: text(record.customer),
     provider: text(record.provider),
@@ -40,8 +40,8 @@ function mapBooking(booking: Booking): BookingRow {
   };
 }
 
-const bookingColumns: ColumnDef<BookingRow>[] = [
-  { accessorKey: "id", header: "Job ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
+const serviceRequestColumns: ColumnDef<ServiceRequestRow>[] = [
+  { accessorKey: "id", header: "Request ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
   { accessorKey: "service", header: "Service" },
   { accessorKey: "customer", header: "Customer" },
   { accessorKey: "provider", header: "Provider" },
@@ -51,12 +51,12 @@ const bookingColumns: ColumnDef<BookingRow>[] = [
   { accessorKey: "amount", header: "Amount", cell: ({ row }) => <span className="font-black">{row.original.amount}</span> },
 ];
 
-export default function JobsPage() {
+export default function RequestsPage() {
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("All Statuses");
-  const bookingsQuery = useBookings({ limit: 100 });
-  const statsQuery = useBookingStats();
-  const rows = React.useMemo(() => (bookingsQuery.data ?? []).map(mapBooking), [bookingsQuery.data]);
+  const serviceRequestsQuery = useServiceRequests({ limit: 100 });
+  const statsQuery = useServiceRequestStats();
+  const rows = React.useMemo(() => (serviceRequestsQuery.data ?? []).map(mapServiceRequest), [serviceRequestsQuery.data]);
   const filteredRows = React.useMemo(() => {
     const search = query.trim().toLowerCase();
     return rows.filter((row) => {
@@ -67,11 +67,11 @@ export default function JobsPage() {
   }, [query, rows, status]);
   const stats = asRecord(statsQuery.data);
   const metrics = [
-    { label: "Total Requests", value: metricValue(stats, ["totalRequests", "totalBookings", "total"], String(rows.length)), change: metricChange(stats, ["totalRequests", "totalBookings", "total"]), direction: metricDirection(stats, ["totalRequests", "totalBookings", "total"]), tone: "blue", icon: Briefcase },
+    { label: "Total Requests", value: metricValue(stats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"], String(rows.length)), change: metricChange(stats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]), direction: metricDirection(stats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]), tone: "blue", icon: Briefcase },
     { label: "Pending Requests", value: metricValue(stats, ["pendingRequests", "pending"]), change: metricChange(stats, ["pendingRequests", "pending"]), direction: metricDirection(stats, ["pendingRequests", "pending"], "down"), tone: "amber", icon: Clock3 },
-    { label: "Completed Jobs", value: metricValue(stats, ["completedJobs", "completed"]), change: metricChange(stats, ["completedJobs", "completed"]), direction: metricDirection(stats, ["completedJobs", "completed"]), tone: "green", icon: CheckCircle2 },
-    { label: "InProgress Jobs", value: metricValue(stats, ["inProgressJobs", "inProgress"], String(rows.filter((row) => row.status.toLowerCase() === "in progress").length)), change: metricChange(stats, ["inProgressJobs", "inProgress"]), direction: metricDirection(stats, ["inProgressJobs", "inProgress"], "down"), tone: "purple", icon: CalendarX },
-      { label: "Expired Jobs", value: metricValue(stats, ["expiredJobs", "expired"], String(rows.filter((row) => row.status.toLowerCase() === "expired").length)), change: metricChange(stats, ["expiredJobs", "expired"]), direction: metricDirection(stats, ["expiredJobs", "expired"], "down"), tone: "red", icon: CalendarX },
+    { label: "Completed Requests", value: metricValue(stats, ["completedJobs", "completed"]), change: metricChange(stats, ["completedJobs", "completed"]), direction: metricDirection(stats, ["completedJobs", "completed"]), tone: "green", icon: CheckCircle2 },
+    { label: "InProgress Requests", value: metricValue(stats, ["inProgressJobs", "inProgress"], String(rows.filter((row) => row.status.toLowerCase() === "in progress").length)), change: metricChange(stats, ["inProgressJobs", "inProgress"]), direction: metricDirection(stats, ["inProgressJobs", "inProgress"], "down"), tone: "purple", icon: CalendarX },
+      { label: "Expired Requests", value: metricValue(stats, ["expiredJobs", "expired"], String(rows.filter((row) => row.status.toLowerCase() === "expired").length)), change: metricChange(stats, ["expiredJobs", "expired"]), direction: metricDirection(stats, ["expiredJobs", "expired"], "down"), tone: "red", icon: CalendarX },
 
   ];
 
@@ -93,22 +93,22 @@ export default function JobsPage() {
 
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Jobs & Requests" subtitle="Manage jobs, assignments, and ongoing requests across the platform." />
+      <PageHeader title="Requests" subtitle="Manage requests, assignments, and their progress across the platform." />
       <MetricGrid metrics={metrics} />
       <CardShell>
         <ToolbarCard>
-          <SearchBox placeholder="Search by job, customer, provider or service..." value={query} onChange={setQuery} />
+          <SearchBox placeholder="Search by request, customer, provider or service..." value={query} onChange={setQuery} />
           <FilterSelect placeholder="All Statuses" values={["All Statuses", "Pending", "Completed", "Expired"]} value={status} onChange={setStatus} />
           <div className="flex gap-3">
-            <ExportButton data={exportData} filename="jobs" />
+            <ExportButton data={exportData} filename="requests" />
           </div>
         </ToolbarCard>
-        {bookingsQuery.isLoading ? (
-          <div className="p-6 text-sm font-semibold text-muted-foreground">Loading bookings...</div>
-        ) : bookingsQuery.isError ? (
-          <div className="p-6 text-sm font-semibold text-red-600">Unable to load bookings.</div>
+        {serviceRequestsQuery.isLoading ? (
+          <div className="p-6 text-sm font-semibold text-muted-foreground">Loading service requests...</div>
+        ) : serviceRequestsQuery.isError ? (
+          <div className="p-6 text-sm font-semibold text-red-600">Unable to load service requests.</div>
         ) : (
-          <AdminDataTable data={filteredRows} columns={bookingColumns} minWidth="1320px" rowLabel="bookings" />
+          <AdminDataTable data={filteredRows} columns={serviceRequestColumns} minWidth="1320px" rowLabel="service requests" />
         )}
       </CardShell>
     </div>

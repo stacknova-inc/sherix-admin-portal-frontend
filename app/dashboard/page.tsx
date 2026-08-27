@@ -1,21 +1,28 @@
 "use client";
 
-import { Briefcase, ClipboardCheck, DollarSign, ShieldCheck, Users } from "lucide-react";
-import { JobStatusDonut } from "@/components/dashboard/JobStatusDonut";
-import { JobsOverviewChart } from "@/components/dashboard/JobsOverviewChart";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Briefcase, CheckCircle2, ClipboardCheck, Clock3, DollarSign, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { RequestStatusDonut } from "@/components/dashboard/RequestStatusDonut";
+import { RequestsOverviewChart } from "@/components/dashboard/RequestsOverviewChart";
 import { RecentRequests } from "@/components/dashboard/RecentRequests";
 import { RevenueOverview } from "@/components/dashboard/RevenueOverview";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TopServices } from "@/components/dashboard/TopServices";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { useAuditStats } from "@/hooks/useAudit";
-import { useBookingStats, useBookings } from "@/hooks/useBookings";
-import { useCompanyStats } from "@/hooks/useCompanies";
+import { companiesQueryKey, useCompanies } from "@/hooks/useCompanies";
 import { useDashboardAnalytics, useDashboardSummary } from "@/hooks/useDashboard";
+import { useDisputeStats } from "@/hooks/useDisputes";
 import { useFinancialEarnings } from "@/hooks/useFinancial";
-import { useCompanyMechanics, useIndividualMechanics } from "@/hooks/useMechanics";
-import { useUsers } from "@/hooks/useUsers";
-import { activeStatus, asRecord, firstText, metricChange, metricValue, money, text, timeText } from "@/lib/live-data";
+import { mechanicsQueryKey, useIndividualMechanics } from "@/hooks/useMechanics";
+import { useServiceRequestStats, useServiceRequests } from "@/hooks/useServiceRequests";
+import { usersQueryKey, useUsers } from "@/hooks/useUsers";
+import { activeStatus, asRecord, firstText, getKycStatus, metricChange, metricValue, money, text, timeText } from "@/lib/live-data";
+import { hasPermission, Permission } from "@/lib/rbac";
+import { useUiStore } from "@/store/use-ui-store";
+
+const RANGE_LABELS: Record<string, string> = { "7D": "Last 7 days", "30D": "Last 30 days", "90D": "Last 90 days" };
+const AUTO_REFRESH_MS = 60_000;
 
 function numericMetric(stats: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
@@ -28,44 +35,191 @@ function numericMetric(stats: Record<string, unknown>, keys: string[]) {
 }
 
 export default function DashboardPage() {
+  const role = useUiStore((state) => state.role ?? state.user?.role);
+  const canViewFinancials = hasPermission(role, Permission.EARNINGS);
+  const [range, setRange] = useState("30D");
+  const queryClient = useQueryClient();
+
   const summaryQuery = useDashboardSummary();
-  const analyticsQuery = useDashboardAnalytics("30D");
+  const analyticsQuery = useDashboardAnalytics(range);
   const usersQuery = useUsers();
-  const bookingStatsQuery = useBookingStats();
-  const bookingsQuery = useBookings();
-  const companyStatsQuery = useCompanyStats();
-  const earningsQuery = useFinancialEarnings();
-  const auditStatsQuery = useAuditStats();
+  const serviceRequestStatsQuery = useServiceRequestStats();
+  const serviceRequestsQuery = useServiceRequests();
+  const companyProvidersQuery = useCompanies();
   const individualProvidersQuery = useIndividualMechanics();
-  const companyProvidersQuery = useCompanyMechanics();
+  const disputeStatsQuery = useDisputeStats();
+  const earningsQuery = useFinancialEarnings(canViewFinancials);
+
+  // Near-real-time updates: reuses the app's existing React Query invalidation
+  // mechanism (no websockets/polling elsewhere in the project) on an interval,
+  // instead of a global refetchInterval that would also affect other pages.
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["disputes", "stats"] });
+      queryClient.invalidateQueries({ queryKey: companiesQueryKey });
+      queryClient.invalidateQueries({ queryKey: mechanicsQueryKey });
+      queryClient.invalidateQueries({ queryKey: usersQueryKey });
+      if (canViewFinancials) queryClient.invalidateQueries({ queryKey: ["financial", "earnings"] });
+    }, AUTO_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [queryClient, canViewFinancials]);
+
+  const lastUpdated = useMemo(() => {
+    const timestamps = [summaryQuery.dataUpdatedAt, analyticsQuery.dataUpdatedAt, usersQuery.dataUpdatedAt, serviceRequestStatsQuery.dataUpdatedAt, companyProvidersQuery.dataUpdatedAt, individualProvidersQuery.dataUpdatedAt, disputeStatsQuery.dataUpdatedAt, earningsQuery.dataUpdatedAt].filter(Boolean);
+    return timestamps.length ? Math.max(...timestamps) : 0;
+  }, [summaryQuery.dataUpdatedAt, analyticsQuery.dataUpdatedAt, usersQuery.dataUpdatedAt, serviceRequestStatsQuery.dataUpdatedAt, companyProvidersQuery.dataUpdatedAt, individualProvidersQuery.dataUpdatedAt, disputeStatsQuery.dataUpdatedAt, earningsQuery.dataUpdatedAt]);
+
+  const isRefreshing = [summaryQuery, analyticsQuery, usersQuery, serviceRequestStatsQuery, companyProvidersQuery, individualProvidersQuery, disputeStatsQuery, earningsQuery].some((query) => query.isFetching && !query.isLoading);
+
   const summary = asRecord(summaryQuery.data);
   const analytics = asRecord(analyticsQuery.data);
-  const bookingStats = asRecord(bookingStatsQuery.data);
-  const companyStats = asRecord(companyStatsQuery.data);
+  const serviceRequestStats = asRecord(serviceRequestStatsQuery.data);
   const earnings = asRecord(earningsQuery.data);
+  const disputeStats = asRecord(disputeStatsQuery.data);
   const individualProvidersCount = individualProvidersQuery.data?.length ?? 0;
   const companyProvidersCount = companyProvidersQuery.data?.length ?? 0;
   const totalServiceProviders = individualProvidersCount + companyProvidersCount;
+  const providersErrored = individualProvidersQuery.isError || companyProvidersQuery.isError;
+  const providersLoading = individualProvidersQuery.isLoading || companyProvidersQuery.isLoading;
+
+  const activeUsersCount = (usersQuery.data ?? []).filter((user) => activeStatus(user as unknown as Record<string, unknown>).toLowerCase().includes("active")).length;
+  const pendingVerificationsCount =
+    (companyProvidersQuery.data ?? []).filter((company) => getKycStatus(company) === "Pending").length +
+    (individualProvidersQuery.data ?? []).filter((mechanic) => getKycStatus(mechanic) === "Pending").length;
+
   const cards = [
-    { label: "Total Users", value: usersQuery.data?.length !== undefined ? String(usersQuery.data.length) : metricValue(summary, ["totalUsers", "users"]), change: usersQuery.data ? "Derived from loaded users" : "Live backend data", icon: Users, tone: "red" },
+    {
+      label: "Total Customers",
+      value: usersQuery.data?.length !== undefined ? String(usersQuery.data.length) : metricValue(summary, ["totalUsers", "users"]),
+      change: usersQuery.data ? "Derived from loaded customers" : "Live backend data",
+      icon: Users,
+      tone: "red",
+      href: "/dashboard/customers",
+      isLoading: usersQuery.isLoading,
+      isError: usersQuery.isError,
+      onRetry: () => void usersQuery.refetch(),
+    },
+    {
+      label: "Active Users",
+      value: usersQuery.data ? String(activeUsersCount) : "0",
+      change: "Customers with an active account",
+      icon: UserCheck,
+      tone: "green",
+      href: "/dashboard/customers",
+      isLoading: usersQuery.isLoading,
+      isError: usersQuery.isError,
+      onRetry: () => void usersQuery.refetch(),
+    },
     {
       label: "Service Providers",
-      value: individualProvidersQuery.data || companyProvidersQuery.data
-        ? String(totalServiceProviders)
-        : metricValue(companyStats, ["totalProviders", "serviceProviders", "totalCompanies", "total"], metricValue(summary, ["serviceProviders", "totalProviders", "providers"])),
+      value: individualProvidersQuery.data || companyProvidersQuery.data ? String(totalServiceProviders) : metricValue(summary, ["serviceProviders", "totalProviders", "providers"]),
       change: `${individualProvidersCount} individual • ${companyProvidersCount} company`,
       icon: ShieldCheck,
       tone: "red",
+      href: "/dashboard/service-providers",
+      isLoading: providersLoading,
+      isError: providersErrored,
+      onRetry: () => {
+        void individualProvidersQuery.refetch();
+        void companyProvidersQuery.refetch();
+      },
     },
-    { label: "Total Jobs", value: metricValue(bookingStats, ["totalRequests", "totalBookings", "total"], metricValue(summary, ["totalJobs", "jobs", "bookings"])), change: metricChange(bookingStats, ["totalRequests", "totalBookings", "total"]), icon: Briefcase, tone: "blue" },
-    { label: "Total Revenue", value: money(earnings.totalEarnings ?? earnings.total ?? summary.totalRevenue ?? summary.revenue), change: metricChange(earnings, ["totalEarnings", "total", "revenue"]), icon: DollarSign, tone: "amber" },
-    { label: "Completed Jobs", value: metricValue(bookingStats, ["completedJobs", "completed"], metricValue(summary, ["completedJobs", "completed"])), change: metricChange(bookingStats, ["completedJobs", "completed"]), icon: ClipboardCheck, tone: "green" },
+    {
+      label: "Pending Verifications",
+      value: individualProvidersQuery.data || companyProvidersQuery.data ? String(pendingVerificationsCount) : "0",
+      change: "Awaiting KYC review",
+      icon: ClipboardCheck,
+      tone: "amber",
+      direction: "down" as const,
+      href: "/dashboard/service-providers",
+      isLoading: providersLoading,
+      isError: providersErrored,
+      onRetry: () => {
+        void individualProvidersQuery.refetch();
+        void companyProvidersQuery.refetch();
+      },
+    },
+    {
+      label: "Total Requests",
+      value: metricValue(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"], metricValue(summary, ["totalJobs", "jobs", "serviceRequests", "bookings"])),
+      change: metricChange(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]),
+      icon: Briefcase,
+      tone: "blue",
+      href: "/dashboard/requests",
+      isLoading: serviceRequestStatsQuery.isLoading && serviceRequestsQuery.isLoading,
+      isError: serviceRequestStatsQuery.isError && serviceRequestsQuery.isError,
+      onRetry: () => void serviceRequestStatsQuery.refetch(),
+    },
+    {
+      label: "Active Requests",
+      value: metricValue(serviceRequestStats, ["inProgressJobs", "inProgress", "ongoing"]),
+      change: metricChange(serviceRequestStats, ["inProgressJobs", "inProgress", "ongoing"]),
+      icon: Clock3,
+      tone: "purple",
+      href: "/dashboard/requests",
+      isLoading: serviceRequestStatsQuery.isLoading,
+      isError: serviceRequestStatsQuery.isError,
+      onRetry: () => void serviceRequestStatsQuery.refetch(),
+    },
+    {
+      label: "Completed Requests",
+      value: metricValue(serviceRequestStats, ["completedJobs", "completed"], metricValue(summary, ["completedJobs", "completed"])),
+      change: metricChange(serviceRequestStats, ["completedJobs", "completed"]),
+      icon: CheckCircle2,
+      tone: "green",
+      href: "/dashboard/requests",
+      isLoading: serviceRequestStatsQuery.isLoading,
+      isError: serviceRequestStatsQuery.isError,
+      onRetry: () => void serviceRequestStatsQuery.refetch(),
+    },
+    {
+      label: "Disputes",
+      value: metricValue(disputeStats, ["totalDisputes", "total"]),
+      change: `${metricValue(disputeStats, ["open", "openDisputes"], "0")} open`,
+      icon: AlertTriangle,
+      tone: "amber",
+      direction: "down" as const,
+      href: "/dashboard/disputes",
+      isLoading: disputeStatsQuery.isLoading,
+      isError: disputeStatsQuery.isError,
+      onRetry: () => void disputeStatsQuery.refetch(),
+    },
+    ...(canViewFinancials
+      ? [
+          {
+            label: "Total Revenue",
+            value: money(earnings.totalEarnings ?? earnings.total ?? summary.totalRevenue ?? summary.revenue),
+            change: metricChange(earnings, ["totalEarnings", "total", "revenue"]),
+            icon: DollarSign,
+            tone: "amber",
+            href: "/dashboard/earnings-payments",
+            isLoading: earningsQuery.isLoading,
+            isError: earningsQuery.isError,
+            onRetry: () => void earningsQuery.refetch(),
+          },
+          {
+            label: "Pending Payouts",
+            value: money(earnings.pendingPayouts),
+            change: "Awaiting disbursement",
+            icon: Clock3,
+            tone: "teal",
+            direction: "down" as const,
+            href: "/dashboard/earnings-payments",
+            isLoading: earningsQuery.isLoading,
+            isError: earningsQuery.isError,
+            onRetry: () => void earningsQuery.refetch(),
+          },
+        ]
+      : []),
   ];
-  const completedJobs = numericMetric(bookingStats, ["completedJobs", "completed"]);
-  const inProgressJobs = numericMetric(bookingStats, ["inProgress", "ongoing"]);
-  const cancelledJobs = numericMetric(bookingStats, ["cancelledJobs", "cancelled"]);
-  const pendingJobs = numericMetric(bookingStats, ["pendingRequests", "pending"]);
-  const totalJobs = numericMetric(bookingStats, ["totalRequests", "totalBookings", "total"]) || (bookingsQuery.data?.length ?? 0);
+
+  const completedJobs = numericMetric(serviceRequestStats, ["completedJobs", "completed"]);
+  const inProgressJobs = numericMetric(serviceRequestStats, ["inProgress", "ongoing"]);
+  const cancelledJobs = numericMetric(serviceRequestStats, ["cancelledJobs", "cancelled"]);
+  const pendingJobs = numericMetric(serviceRequestStats, ["pendingRequests", "pending"]);
+  const totalJobs = numericMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || (serviceRequestsQuery.data?.length ?? 0);
   const jobsOverview = ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : Array.isArray(analytics.jobs) ? analytics.jobs : []) as Array<Record<string, string | number>>).length
     ? ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : analytics.jobs) as Array<Record<string, string | number>>)
     : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs}];
@@ -88,17 +242,17 @@ export default function DashboardPage() {
       color: item.color ?? ["#16A34A", "#2563EB", "#F59E0B", "#F97316", "#DC2626"][index % 5],
     };
   });
-  const recentBookings = (bookingsQuery.data ?? []).slice(0, 5).map((booking, index) => {
-    const record = booking as unknown as Record<string, unknown>;
+  const recentServiceRequests = (serviceRequestsQuery.data ?? []).slice(0, 5).map((serviceRequest, index) => {
+    const record = serviceRequest as unknown as Record<string, unknown>;
     return {
       id: String(index + 1),
       name: text(record.customer, firstText(record, ["customerName"], "Customer")),
       location: firstText(record, ["location", "address"]),
       status: activeStatus(record, "Pending"),
-      time: timeText(booking.createdAt) || firstText(record, ["time", "createdAt"]),
+      time: timeText(serviceRequest.createdAt) || firstText(record, ["time", "createdAt"]),
     };
   });
-  const recentRequests = recentBookings.length ? recentBookings : ((Array.isArray(summary.recentRequests) ? summary.recentRequests : []) as Record<string, unknown>[]).map((request, index) => ({
+  const recentRequests = recentServiceRequests.length ? recentServiceRequests : ((Array.isArray(summary.recentRequests) ? summary.recentRequests : []) as Record<string, unknown>[]).map((request, index) => ({
     id: String(index + 1),
     name: text(request.customer, firstText(request, ["customerName"], "Customer")),
     location: firstText(request, ["location", "address"]),
@@ -111,35 +265,59 @@ export default function DashboardPage() {
     percent: Number(service.percent ?? service.percentage ?? 0),
   }));
 
+  const chartsLoading = analyticsQuery.isLoading && serviceRequestStatsQuery.isLoading;
+  const chartsErrored = analyticsQuery.isError && serviceRequestStatsQuery.isError;
+  const requestsLoading = serviceRequestsQuery.isLoading && summaryQuery.isLoading;
+  const requestsErrored = serviceRequestsQuery.isError && summaryQuery.isError;
+  const revenueLoading = analyticsQuery.isLoading && summaryQuery.isLoading;
+  const revenueErrored = analyticsQuery.isError && summaryQuery.isError;
+  const periodLabel = RANGE_LABELS[range] ?? range;
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Dashboard" subtitle="Welcome back, Admin! Here's what's happening with Sherix today." />
-      {summaryQuery.isLoading && usersQuery.isLoading && bookingStatsQuery.isLoading && companyStatsQuery.isLoading ? (
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-32 animate-pulse rounded-xl bg-muted" />)}
-        </section>
-      ) : summaryQuery.isError && usersQuery.isError && bookingStatsQuery.isError && companyStatsQuery.isError && earningsQuery.isError && auditStatsQuery.isError ? (
-        <div className="rounded-xl border bg-card p-5 text-sm font-semibold text-red-600">Unable to load dashboard stats.</div>
-      ) : (
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {cards.map((card) => (
-            <StatCard key={card.label} {...card} />
-          ))}
-        </section>
-      )}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <PageHeader title="Dashboard" subtitle="Welcome back, Admin! Here's what's happening with Sherix today." />
+        <p className="text-xs font-semibold text-muted-foreground" role="status">
+          {isRefreshing ? "Updating…" : lastUpdated ? `Last updated ${new Date(lastUpdated).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : ""}
+        </p>
+      </div>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Key performance indicators">
+        {cards.map((card) => (
+          <StatCard key={card.label} {...card} />
+        ))}
+      </section>
+
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.8fr)]">
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-          <JobsOverviewChart data={jobsOverview} />
-          <JobStatusDonut data={jobStatus} total={String(totalJobs || metricValue(summary, ["totalJobs", "jobs", "bookings"]))} />
+          {chartsLoading ? (
+            <div className="h-[380px] animate-pulse rounded-xl bg-muted lg:col-span-2" />
+          ) : chartsErrored ? (
+            <div className="rounded-xl border bg-card p-5 text-sm font-semibold text-red-600 lg:col-span-2">Unable to load request analytics for this period.</div>
+          ) : (
+            <>
+              <RequestsOverviewChart data={jobsOverview} range={range} onRangeChange={setRange} />
+              <RequestStatusDonut data={jobStatus} total={String(totalJobs || metricValue(summary, ["totalJobs", "jobs", "serviceRequests", "bookings"]))} periodLabel={periodLabel} />
+            </>
+          )}
         </div>
-        <RecentRequests requests={recentRequests} />
+        {requestsLoading ? <div className="h-[380px] animate-pulse rounded-xl bg-muted" /> : requestsErrored ? <div className="rounded-xl border bg-card p-5 text-sm font-semibold text-red-600">Unable to load recent requests.</div> : <RecentRequests requests={recentRequests} />}
       </section>
-      
+
       <section className="grid gap-4 xl:grid-cols-[minmax(260px,0.7fr)_minmax(0,1.1fr)_minmax(260px,0.8fr)]">
-        <RevenueOverview data={revenueOverview} total={money(summary.totalRevenue ?? summary.revenue)} />
-        <TopServices services={topServices} />
+        {revenueLoading ? (
+          <div className="h-[300px] animate-pulse rounded-xl bg-muted xl:col-span-2" />
+        ) : revenueErrored ? (
+          <div className="rounded-xl border bg-card p-5 text-sm font-semibold text-red-600 xl:col-span-2">Unable to load revenue and services data.</div>
+        ) : canViewFinancials ? (
+          <>
+            <RevenueOverview data={revenueOverview} total={money(summary.totalRevenue ?? summary.revenue)} periodLabel={periodLabel} />
+            <TopServices services={topServices} />
+          </>
+        ) : (
+          <TopServices services={topServices} />
+        )}
       </section>
-      
     </div>
   );
 }

@@ -4,25 +4,28 @@ import Link from "next/link";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { CardShell } from "@/components/shared/CardShell";
 
-type JobStatusItem = {
+type RequestStatusItem = {
   name: string;
   value: number;
   percent: string;
   color: string;
 };
 
-export function JobStatusDonut({
+export function RequestStatusDonut({
   data = [],
   total = "0",
+  periodLabel,
 }: {
-  data?: JobStatusItem[];
+  data?: RequestStatusItem[];
   total?: string;
+  periodLabel?: string;
 }) {
   return (
     <CardShell className="p-4 sm:p-5">
       <h2 className="text-base font-black tracking-normal">
-        Job Status Distribution
+        Request Status Distribution
       </h2>
+      {periodLabel && <p className="text-xs text-muted-foreground">{periodLabel}</p>}
 
       <div className="relative mx-auto mt-4 h-48 max-w-64">
         <ResponsiveContainer width="100%" height="100%">
@@ -45,7 +48,7 @@ export function JobStatusDonut({
           <div>
             <p className="text-xl font-black">{total}</p>
             <p className="text-xs font-semibold text-muted-foreground">
-              Total Jobs
+              Total Requests
             </p>
           </div>
         </div>
@@ -73,10 +76,10 @@ export function JobStatusDonut({
       </div>
 
       <Link
-        href="/dashboard/jobs"
+        href="/dashboard/requests"
         className="mt-4 inline-flex text-xs font-bold text-primary hover:underline"
       >
-        View all jobs
+        View all requests
       </Link>
     </CardShell>
   );

@@ -1,4 +1,5 @@
 import { CardShell } from "@/components/shared/CardShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 
 export function TopServices({ services = [] }: { services?: Array<{ name: string; count: string; percent: number }> }) {
@@ -17,7 +18,7 @@ export function TopServices({ services = [] }: { services?: Array<{ name: string
             </div>
           </div>
         ))}
-        {!services.length && <p className="py-8 text-center text-sm font-semibold text-muted-foreground">No services available yet.</p>}
+        {!services.length && <EmptyState title="No services yet" description="Top requested services will appear here once requests start coming in." />}
       </div>
     </CardShell>
   );

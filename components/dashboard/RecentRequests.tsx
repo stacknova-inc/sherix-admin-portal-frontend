@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CardShell } from "@/components/shared/CardShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 
 
@@ -13,7 +14,7 @@ export function RecentRequests({ requests = [] }: { requests?: Array<{ id: strin
     <CardShell className="p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-black tracking-normal">Recent Requests</h2>
-        <Link href="/dashboard/jobs" className="text-xs font-bold text-primary hover:underline">View all</Link>
+        <Link href="/dashboard/requests" className="text-xs font-bold text-primary hover:underline">View all</Link>
       </div>
       <div className="space-y-3">
         {requests.map((request) => (
@@ -33,7 +34,7 @@ export function RecentRequests({ requests = [] }: { requests?: Array<{ id: strin
             </div>
           </div>
         ))}
-        {!requests.length && <p className="py-8 text-center text-sm font-semibold text-muted-foreground">No recent requests yet.</p>}
+        {!requests.length && <EmptyState title="No recent requests" description="New requests will show up here as they come in." />}
       </div>
     </CardShell>
   );
