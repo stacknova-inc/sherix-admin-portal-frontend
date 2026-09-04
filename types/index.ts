@@ -546,7 +546,12 @@ export interface FinancialEarnings {
   [key: string]: unknown;
 }
 
+export type FinancialStatus = "completed" | "pending" | "failed" | string;
+export type FinancialTransactionType = "payment" | "payout" | "refund" | "credit" | "reversal" | "adjustment" | "commission" | string;
+
 export interface Transaction extends ApiTimestamped {
+  transactionId?: string;
+  reference?: string;
   type?: string;
   relatedTo?: string;
   from?: unknown;
@@ -554,6 +559,106 @@ export interface Transaction extends ApiTimestamped {
   method?: string;
   amount?: number;
   status?: string;
+  providerReference?: string;
+  paymentReference?: string;
+  serviceRequest?: unknown;
+  company?: unknown;
+  customer?: unknown;
+  quotationAmount?: number;
+  serviceAmount?: number;
+  serviceFee?: number;
+  callOutFee?: number;
+  otherFees?: number;
+  commission?: number;
+  commissionRate?: number;
+  cashCommission?: number;
+  outstandingCommissionBalance?: number;
+  mechanicAmount?: number;
+  providerAmount?: number;
+  platformAmount?: number;
+  payoutAmount?: number;
+  refundAmount?: number;
+  creditAmount?: number;
+  reversalAmount?: number;
+  adjustmentAmount?: number;
+  disputeHold?: FinancialDisputeHold;
+  history?: FinancialHistoryEvent[];
+}
+
+export interface FinancialPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface TransactionListParams {
+  search?: string;
+  user?: string;
+  company?: string;
+  serviceRequest?: string;
+  type?: string;
+  status?: string;
+  providerReference?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface TransactionListResult {
+  data: Transaction[];
+  pagination: FinancialPagination;
+  serverPaginated: boolean;
+}
+
+export interface Payout extends ApiTimestamped {
+  payoutId?: string;
+  reference?: string;
+  amount?: number;
+  status?: FinancialStatus;
+  provider?: unknown;
+  company?: unknown;
+  serviceRequest?: unknown;
+  paymentReference?: string;
+  providerReference?: string;
+  completedAt?: string;
+  timeline?: FinancialHistoryEvent[];
+  fees?: number;
+  commission?: number;
+  adjustments?: number;
+  disputeHold?: FinancialDisputeHold;
+}
+
+export interface CommissionBalance extends ApiTimestamped {
+  account?: unknown;
+  provider?: unknown;
+  company?: unknown;
+  outstandingAmount?: number;
+  paidAmount?: number;
+  owedAmount?: number;
+  restrictionStatus?: string;
+  dueAt?: string;
+  serviceRequests?: unknown[];
+}
+
+export interface FinancialDisputeHold extends ApiTimestamped {
+  status?: string;
+  reason?: string;
+  amount?: number;
+  serviceRequest?: unknown;
+  transactionId?: string;
+}
+
+export interface FinancialHistoryEvent extends ApiTimestamped {
+  action?: string;
+  type?: string;
+  status?: string;
+  reason?: string;
+  amount?: number;
+  actor?: unknown;
+  timestamp?: string;
+  reference?: string;
 }
 
 export type StaffStatus = "Active" | "Suspended" | "Inactive";

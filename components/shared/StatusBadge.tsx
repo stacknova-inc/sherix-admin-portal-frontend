@@ -38,7 +38,7 @@ const statusClasses: Record<string, string> = {
   Disputed: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
 };
 
-export function StatusBadge({ status, className }: { status: string; className?: string }) {
+export function StatusBadge({ status, className }: { status: unknown; className?: string }) {
  
   const safeStatus = typeof status === "string" && status ? status : "Draft";
   const normalized = safeStatus.toLowerCase() === "banned" ? "Suspended" : safeStatus;

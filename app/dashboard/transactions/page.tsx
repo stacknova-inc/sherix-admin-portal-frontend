@@ -2,196 +2,51 @@
 
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
-import { ArrowRight, Banknote, Briefcase, CreditCard, DollarSign, KeyRound, Wallet, WalletCards } from "lucide-react";
+import { AlertTriangle, CreditCard, DollarSign, Eye, Landmark, RefreshCw, Wallet } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
-import {
-  ActionMenu,
-  ExportButton,
-  FilterSelect,
-  MetricGrid,
-  PaginationFooter,
-  SearchBox,
-  SoftTag,
-  StatusCell,
-  ToolbarCard,
-} from "@/components/shared/AdminPrimitives";
+import { ExportButton, FilterSelect, MetricGrid, SearchBox, SoftTag, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
+import { DetailGrid, DetailSection } from "@/components/shared/DetailField";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTransactions } from "@/hooks/useFinancial";
-import { activeStatus, asRecord, dateText, firstText, money, recordId, text, timeText } from "@/lib/live-data";
-import type { Transaction } from "@/types";
+import { asRecord, dateText, firstText, money, recordId, text, timeText } from "@/lib/live-data";
+import type { Transaction, TransactionListParams } from "@/types";
 
-type TransactionRow = {
-  id: string;
-  type: string;
-  relatedTo: string;
-  detail?: string;
-  from: string;
-  fromRole: string;
-  to: string;
-  toRole: string;
-  method: string;
-  amount: string;
-  status: string;
-  date: string;
-  time: string;
-};
+type TransactionRow = { id: string; type: string; customer: string; provider: string; request: string; amount: string; status: string; reference: string; date: string; time: string; held: boolean; raw: Transaction };
+const tones: Record<string, string> = { payment: "green", payout: "blue", refund: "amber", commission: "purple", credit: "teal", reversal: "red", adjustment: "slate" };
+const amount = (record: Record<string, unknown>, keys: string[]) => money(keys.map((key) => record[key]).find((value) => typeof value === "number" || typeof value === "string"));
+const available = (record: Record<string, unknown>, keys: string[]) => keys.some((key) => record[key] !== undefined && record[key] !== null) ? amount(record, keys) : "Not available";
 
-const typeTone: Record<string, string> = {
-  Payment: "green",
-  Payout: "blue",
-  Refund: "amber",
-  Commission: "purple",
-
-};
-
-function MethodCell({ method }: { method: string }) {
-  const Icon = method === "Bank Transfer" ? Banknote : method === "Wallet Balance" ? Wallet : method === "Card Payment" ? CreditCard : KeyRound;
-  return (
-    <span className="flex min-w-[150px] items-center gap-2 font-semibold">
-      <span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-500/15">
-        <Icon className="h-4 w-4" />
-      </span>
-      {method}
-    </span>
-  );
+function mapTransaction(transaction: Transaction): TransactionRow {
+  const record = asRecord(transaction); const hold = asRecord(record.disputeHold ?? record.hold);
+  return { id: recordId(transaction), type: firstText(record, ["type", "transactionType"], "Payment"), customer: text(record.customer ?? record.user ?? record.from, "Not available"), provider: text(record.company ?? record.provider ?? record.to, "Not available"), request: text(record.serviceRequest ?? record.booking ?? record.job, firstText(record, ["serviceRequestId", "requestId", "jobId"], "Not available")), amount: money(record.amount), status: firstText(record, ["status", "paymentStatus"], "Pending"), reference: firstText(record, ["providerReference", "paymentReference", "reference", "transactionReference"], "Not available"), date: dateText(transaction.createdAt), time: timeText(transaction.createdAt), held: Boolean(hold.status ?? record.disputeHold ?? record.holdStatus), raw: transaction };
 }
 
-const transactionColumns: ColumnDef<TransactionRow>[] = [
-  { accessorKey: "id", header: "Transaction ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> },
-  {
-    accessorKey: "type",
-    header: "Type",
-    cell: ({ row }) => <SoftTag tone={typeTone[row.original.type]}>{row.original.type}</SoftTag>,
-  },
-  {
-    accessorKey: "relatedTo",
-    header: "Related To",
-    cell: ({ row }) => (
-      <div className="min-w-[160px]">
-        <p className="font-bold">{row.original.relatedTo}</p>
-        {row.original.detail && <p className="text-xs text-muted-foreground">{row.original.detail}</p>}
-      </div>
-    ),
-  },
-  {
-    id: "fromTo",
-    header: "From / To",
-    cell: ({ row }) => (
-      <div className="grid min-w-[300px] grid-cols-[1fr_24px_1fr] items-center gap-3">
-        <div>
-          <p className="font-bold">{row.original.from}</p>
-          <p className="text-xs text-muted-foreground">{row.original.fromRole}</p>
-        </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        <div>
-          <p className="font-bold">{row.original.to}</p>
-          <p className="text-xs text-muted-foreground">{row.original.toRole}</p>
-        </div>
-      </div>
-    ),
-  },
-  { accessorKey: "method", header: "Payment Method", cell: ({ row }) => <MethodCell method={row.original.method} /> },
-  { accessorKey: "amount", header: "Amount", cell: ({ row }) => <span className="font-black">{row.original.amount}</span> },
-  { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
-  {
-    accessorKey: "date",
-    header: "Date & Time",
-    cell: ({ row }) => (
-      <div className="min-w-[120px]">
-        <p className="font-semibold">{row.original.date}</p>
-        <p className="text-xs text-muted-foreground">{row.original.time}</p>
-      </div>
-    ),
-  },
-  { id: "actions", header: "Actions", cell: () => <ActionMenu /> },
-];
+function TransactionDetails({ transaction, onClose }: { transaction: Transaction; onClose: () => void }) {
+  const record = asRecord(transaction); const historyValue = record.history ?? record.financialHistory ?? record.auditEvents;
+  const history = Array.isArray(historyValue) ? historyValue as Record<string, unknown>[] : []; const hold = asRecord(record.disputeHold ?? record.hold);
+  return <Dialog open onOpenChange={(open) => !open && onClose()}><DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>Transaction financial details</DialogTitle><DialogDescription>Values shown are fields returned in this transaction response.</DialogDescription></DialogHeader><div className="space-y-5">
+    <DetailSection title="Record"><DetailGrid fields={[["Transaction reference", firstText(record, ["transactionId", "reference", "_id", "id"], "Not available")], ["Payment provider reference", firstText(record, ["providerReference", "paymentReference"], "Not available")], ["Status", firstText(record, ["status"], "Pending")], ["Service request", text(record.serviceRequest ?? record.booking ?? record.job, firstText(record, ["serviceRequestId", "requestId", "jobId"], "Not available"))]]} /></DetailSection>
+    <DetailSection title="Quotation and fees"><DetailGrid fields={[["Original quotation", available(record, ["quotationAmount", "originalAmount"])], ["Quoted service", available(record, ["serviceAmount", "quotedServiceAmount"])], ["Service fee", available(record, ["serviceFee"])], ["Call-out fee", available(record, ["callOutFee"])], ["Other fees", available(record, ["otherFees", "fees"])]]} /></DetailSection>
+    <DetailSection title="Commission and splits"><DetailGrid fields={[["Total commission", available(record, ["commission", "commissionAmount"])], ["Commission rate", record.commissionRate === undefined ? "Not available" : `${record.commissionRate}%`], ["Cash commission", available(record, ["cashCommission"])], ["Outstanding cash commission", available(record, ["outstandingCommissionBalance"])], ["Mechanic", available(record, ["mechanicAmount", "mechanicEarnings"])], ["Provider", available(record, ["providerAmount", "providerPayout"])], ["Platform / Sherix", available(record, ["platformAmount", "platformCommission"])]]} /></DetailSection>
+    <DetailSection title="Final reconciliation"><DetailGrid fields={[["Original amount", available(record, ["originalAmount", "quotationAmount", "amount"])], ["Added fees", available(record, ["fees", "serviceFee"])], ["Refunds", available(record, ["refundAmount", "refunds"])], ["Credits", available(record, ["creditAmount", "credits"])], ["Reversals", available(record, ["reversalAmount", "reversals"])], ["Manual adjustments", available(record, ["adjustmentAmount", "adjustments"])], ["Payout", available(record, ["payoutAmount", "providerAmount"])], ["Final customer amount", available(record, ["finalCustomerAmount", "amount"])]]} /></DetailSection>
+    {Boolean(hold.status) && <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"><b>Dispute hold — {firstText(hold, ["status"], "Active")}</b><br />{firstText(hold, ["reason"], "No reason supplied by the backend.")} {hold.amount !== undefined ? `Held amount: ${money(hold.amount)}.` : ""}</div>}
+    <DetailSection title="Financial history">{history.length ? <div className="space-y-2">{history.map((event, index) => <div className="rounded-lg border p-3 text-sm" key={`${firstText(event, ["id", "_id", "timestamp", "createdAt"], "event")}-${index}`}><b>{firstText(event, ["action", "type", "status"], "Financial event")}</b><span className="ml-2 text-muted-foreground">{dateText(firstText(event, ["timestamp", "createdAt"]))}</span><p className="mt-1 text-muted-foreground">{firstText(event, ["reason", "description", "message"], "No additional detail supplied.")}</p></div>)}</div> : <p className="text-sm text-muted-foreground">No financial history was returned for this transaction.</p>}</DetailSection>
+    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"><b>Financial actions are not enabled.</b> This portal has no documented refund, credit, reversal, or adjustment API endpoint. No money-moving request is sent from this screen.</div>
+  </div></DialogContent></Dialog>;
+}
 
 export default function TransactionsPage() {
-  const [query, setQuery] = React.useState("");
-  const [type, setType] = React.useState("All Types");
-  const [status, setStatus] = React.useState("All Statuses");
-  const transactionsQuery = useTransactions();
-  const rows: TransactionRow[] = React.useMemo(() => (transactionsQuery.data ?? []).map((transaction: Transaction) => {
-    const record = transaction as unknown as Record<string, unknown>;
-    const from = asRecord(record.from);
-    const to = asRecord(record.to);
-    return {
-      id: recordId(transaction),
-      type: firstText(record, ["type"], "Payment"),
-      relatedTo: text(record.serviceRequest ?? record.booking ?? record.job ?? record.service, firstText(record, ["relatedName", "serviceRequestName", "bookingName", "jobName"], "Related record")),
-      detail: firstText(record, ["detail", "description"], ""),
-      from: text(record.from),
-      fromRole: firstText(from, ["role", "type"], "Sender"),
-      to: text(record.to),
-      toRole: firstText(to, ["role", "type"], "Recipient"),
-      method: firstText(record, ["method", "paymentMethod"], "Mobile Money"),
-      amount: money(record.amount),
-      status: activeStatus(record, "Pending"),
-      date: dateText(transaction.createdAt),
-      time: timeText(transaction.createdAt),
-    };
-  }), [transactionsQuery.data]);
-  const filteredRows = React.useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return rows.filter((row) => {
-      const matchesSearch = !search || [row.type, row.relatedTo, row.detail, row.from, row.to, row.method, row.status].join(" ").toLowerCase().includes(search);
-      const matchesType = type === "All Types" || row.type.toLowerCase().includes(type.toLowerCase());
-      const matchesStatus = status === "All Statuses" || row.status.toLowerCase().includes(status.toLowerCase());
-      return matchesSearch && matchesType && matchesStatus;
-    });
-  }, [query, rows, status, type]);
-  const total = rows.reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0);
-  const metrics = [
-    { label: "Total Transactions", value: money(total), change: "Live backend data", direction: "up", tone: "purple", icon: DollarSign },
-    { label: "Total Amount In", value: money(total), change: "Live backend data", direction: "up", tone: "green", icon: Wallet },
-    { label: "Total Amount Out", value: money(0), change: "Live backend data", direction: "down", tone: "amber", icon: WalletCards },
-    { label: "Refunds Issued", value: money(rows.filter((row) => row.type.toLowerCase().includes("refund")).reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0)), change: "Live backend data", direction: "down", tone: "blue", icon: Briefcase },
-  ];
-
-  const exportData = React.useMemo(
-    () =>
-      filteredRows.map(({ id, type, relatedTo, detail, from, fromRole, to, toRole, method, amount, status, date, time }) => ({  
-        id,
-        type,
-        relatedTo,
-        detail,
-        from,
-        fromRole,
-        to,
-        toRole,
-        method,
-        amount,
-        status,
-        date,
-        time
-      })),
-    [filteredRows]
-  );
-
-  return (
-    <div className="mx-auto max-w-[1600px] space-y-5">
-      <PageHeader title="Transactions" subtitle="View and manage all platform transactions." />
-      <MetricGrid metrics={metrics} />
-
-      <CardShell>
-        <ToolbarCard>
-          <SearchBox placeholder="Search by transaction, customer, provider or request..." value={query} onChange={setQuery} />
-          <FilterSelect placeholder="All Types" values={["All Types", "Payment", "Payout", "Refund", "Commission"]} value={type} onChange={setType} />
-          <FilterSelect placeholder="All Statuses" values={["All Statuses", "Completed", "Pending"]} value={status} onChange={setStatus} />
-          <FilterSelect placeholder="All Payment Methods" values={["All Payment Methods", "Mobile Money", "Bank Transfer", "Card Payment"]} className="lg:w-[210px]" />
-          <div className="flex gap-3">
-            <ExportButton data={exportData} filename="transactions" />
-          </div>
-        </ToolbarCard>
-        {transactionsQuery.isLoading ? (
-          <div className="p-6 text-sm font-semibold text-muted-foreground">Loading transactions...</div>
-        ) : transactionsQuery.isError ? (
-          <div className="p-6 text-sm font-semibold text-red-600">Unable to load transactions.</div>
-        ) : (
-          <AdminDataTable data={filteredRows} columns={transactionColumns} minWidth="1320px" rowLabel="transactions" />
-        )}
-      </CardShell>
-    </div>
-  );
+  const [filters, setFilters] = React.useState({ search: "", type: "", status: "", providerReference: "" }); const [page, setPage] = React.useState(1); const [selected, setSelected] = React.useState<Transaction | null>(null);
+  const params = React.useMemo<TransactionListParams>(() => ({ search: filters.search || undefined, type: filters.type === "all" ? undefined : filters.type || undefined, status: filters.status === "all" ? undefined : filters.status || undefined, providerReference: filters.providerReference || undefined, page, limit: 10 }), [filters, page]);
+  const query = useTransactions(params); const rows = React.useMemo(() => (query.data?.data ?? []).map(mapTransaction), [query.data]);
+  const update = (key: keyof typeof filters, value: string) => { setFilters((current) => ({ ...current, [key]: value })); setPage(1); };
+  const columns = React.useMemo<ColumnDef<TransactionRow>[]>(() => [{ accessorKey: "id", header: "Transaction ID", cell: ({ row }) => <span className="font-black">{row.original.id}</span> }, { accessorKey: "type", header: "Type", cell: ({ row }) => <SoftTag tone={tones[row.original.type.toLowerCase()] ?? "slate"}>{row.original.type}</SoftTag> }, { accessorKey: "customer", header: "Customer" }, { accessorKey: "provider", header: "Provider" }, { accessorKey: "request", header: "Service request" }, { accessorKey: "amount", header: "Amount", cell: ({ row }) => <b>{row.original.amount}</b> }, { accessorKey: "status", header: "Status", cell: ({ row }) => <div className="flex items-center gap-2"><StatusCell status={row.original.status} />{row.original.held && <span className="inline-flex items-center gap-1 text-xs font-bold text-red-700"><AlertTriangle className="h-3.5 w-3.5" />Hold</span>}</div> }, { accessorKey: "reference", header: "Provider reference" }, { accessorKey: "date", header: "Date & time", cell: ({ row }) => <span>{row.original.date}<small className="block text-muted-foreground">{row.original.time}</small></span> }, { id: "actions", header: "Actions", cell: ({ row }) => <Button variant="ghost" size="sm" aria-label={`View ${row.original.id}`} onClick={() => setSelected(row.original.raw)}><Eye className="h-4 w-4" />View</Button> }], []);
+  const total = rows.reduce((sum, row) => sum + Number(row.amount.replace(/[^\d.]/g, "")), 0); const exportData = rows.map(({ id, type, customer, provider, request, amount: value, status, reference, date }) => ({ id, type, customer, provider, request, amount: value, status, reference, date }));
+  return <div className="mx-auto max-w-[1600px] space-y-5"><PageHeader title="Transactions" subtitle="Traceable payment, refund, commission and adjustment records from the finance API." /><MetricGrid metrics={[{ label: "Loaded transactions", value: String(query.data?.pagination.total ?? 0), change: "Backend total", tone: "purple", icon: CreditCard }, { label: "This page", value: money(total), change: "Visible records only", tone: "green", icon: DollarSign }, { label: "Pending", value: String(rows.filter((row) => row.status.toLowerCase().includes("pending")).length), change: "This page", tone: "amber", icon: Wallet }, { label: "Held", value: String(rows.filter((row) => row.held).length), change: "This page", tone: "red", icon: Landmark }]} columns="xl:grid-cols-4" />
+    <CardShell><ToolbarCard><SearchBox placeholder="Search transaction, customer, provider or request..." value={filters.search} onChange={(value) => update("search", value)} /><FilterSelect placeholder="All types" options={[{ label: "All types", value: "all" }, ...["Payment", "Payout", "Refund", "Credit", "Reversal", "Adjustment", "Commission"].map((value) => ({ label: value, value }))]} value={filters.type || "all"} onChange={(value) => update("type", value)} /><FilterSelect placeholder="All statuses" options={[{ label: "All statuses", value: "all" }, ...["Completed", "Pending", "Failed"].map((value) => ({ label: value, value }))]} value={filters.status || "all"} onChange={(value) => update("status", value)} /><SearchBox className="lg:max-w-[220px]" placeholder="Provider reference" value={filters.providerReference} onChange={(value) => update("providerReference", value)} /><Button variant="outline" onClick={() => { setFilters({ search: "", type: "", status: "", providerReference: "" }); setPage(1); }}>Clear</Button><ExportButton data={exportData} filename="transactions" /></ToolbarCard>
+      {query.isLoading ? <div className="p-6 text-sm font-semibold text-muted-foreground">Loading transactions…</div> : query.isError ? <div className="flex gap-3 p-6 text-sm font-semibold text-red-600">Unable to load transactions.<Button size="sm" variant="outline" onClick={() => void query.refetch()}><RefreshCw className="h-4 w-4" />Retry</Button></div> : !rows.length ? <div className="p-4"><EmptyState title="No transactions found" description="Try clearing filters or check back after financial activity is recorded." /></div> : <AdminDataTable data={rows} columns={columns} minWidth="1400px" rowLabel="transactions" serverPagination={query.data?.serverPaginated ? { ...query.data.pagination, onPageChange: setPage } : undefined} />}</CardShell>{selected && <TransactionDetails transaction={selected} onClose={() => setSelected(null)} />}</div>;
 }

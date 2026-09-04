@@ -146,3 +146,21 @@ currently moot here because the feature doesn't exist yet - not a bug, just not 
 payment or payout mutations are added, they should follow the `expectedVersion` +
 `Idempotency-Key` + unknown-outcome patterns already established for commissions in this pass,
 from the start.
+
+## 11. Finance administration contracts required for controlled money movement
+
+The only confirmed finance reads are `GET /financial/transactions` and
+`GET /financial/earnings`. The transaction screen forwards non-empty `search`, `user`,
+`company`, `serviceRequest`, `type`, `status`, `providerReference`, `startDate`, `endDate`,
+`page`, and `limit` query parameters, but the backend must document which are supported and
+return `{ data: Transaction[], pagination: { total, page, limit, pages } }` to make server
+filtering and pagination authoritative.
+
+The following APIs do **not** exist in this repository and must be specified before the admin
+portal can expose a money-moving control: transaction/payout detail reads, payout list and
+detail reads, outstanding cash-commission balances, dispute-hold reads, and financial-history
+reads. In particular, the backend also needs explicit, permission-protected endpoints for
+refunds, credits, reversals, and manual adjustments. Each mutation must define the required
+permission, eligibility and refundable balance checks, impact-preview response, reason,
+idempotency semantics, `409`/validation responses, audit event, and a safe way to retrieve the
+authoritative post-mutation record. Until then the UI intentionally sends no financial mutation.

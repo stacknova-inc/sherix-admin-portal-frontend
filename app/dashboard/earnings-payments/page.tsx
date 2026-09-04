@@ -6,6 +6,7 @@ import { DonutChart, EarningsAreaChart } from "@/components/shared/AdminCharts";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { InitialAvatar, MetricGrid, SectionHeader, StatusCell } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useFinancialEarnings } from "@/hooks/useFinancial";
@@ -114,7 +115,7 @@ export default function EarningsPaymentsPage() {
               ))}
               <div className="flex gap-3 rounded-xl bg-blue-50 p-4 text-sm font-semibold text-slate-700 dark:bg-blue-500/10 dark:text-blue-100">
                 <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
-                Platform commission is 8% of request amount excluding tax and discounts.
+                Commission rules are shown from the financial response when available. Amounts do not imply a fixed platform rate.
               </div>
             </div>
           </div>
@@ -124,7 +125,7 @@ export default function EarningsPaymentsPage() {
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.95fr)]">
         <CardShell className="p-4">
           <SectionHeader title="Recent Payouts" />
-          {earningsQuery.isLoading ? <div className="p-6 text-sm font-semibold text-muted-foreground">Loading payouts...</div> : <AdminDataTable data={payoutRows} columns={payoutColumns} minWidth="780px" rowLabel="payouts" />}
+          {earningsQuery.isLoading ? <div className="p-6 text-sm font-semibold text-muted-foreground">Loading payouts...</div> : earningsQuery.isError ? <div className="p-6 text-sm font-semibold text-red-600">Unable to load payout data. <Button size="sm" variant="outline" onClick={() => void earningsQuery.refetch()}>Retry</Button></div> : payoutRows.length ? <AdminDataTable data={payoutRows} columns={payoutColumns} minWidth="780px" rowLabel="payouts" /> : <EmptyState title="No payouts found" description="The earnings endpoint has not returned any payout records." />}
         </CardShell>
 
         <CardShell className="p-4">

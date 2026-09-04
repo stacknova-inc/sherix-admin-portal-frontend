@@ -136,27 +136,27 @@ function LifecycleNotice({ status }: { status: string }) {
   );
 }
 
-function AdministrativeActionsCard() {
-  return (
-    <CardShell className="border-dashed p-4">
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-        <div>
-          <p className="text-sm font-black">Administrative actions are not available yet</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Assignment, reassignment, cancellation, administrative correction, and dispute-handling controls are intentionally not shown here. The backend currently exposes only{" "}
-            <code className="rounded bg-muted px-1 py-0.5">GET /service-requests</code> and <code className="rounded bg-muted px-1 py-0.5">GET /service-requests/stats</code> for this
-            resource, with no mutation endpoints.
-          </p>
-          <p className="mt-2 text-xs font-bold">
-            BACKEND DEPENDENCY: POST/PATCH endpoints (and a matching permission for administrative correction) for assigning, reassigning, cancelling, correcting, and resolving disputes on a
-            service request.
-          </p>
-        </div>
-      </div>
-    </CardShell>
-  );
-}
+// function AdministrativeActionsCard() {
+//   return (
+//     <CardShell className="border-dashed p-4">
+//       <div className="flex items-start gap-3">
+//         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+//         <div>
+//           <p className="text-sm font-black">Administrative actions are not available yet</p>
+//           <p className="mt-1 text-xs text-muted-foreground">
+//             Assignment, reassignment, cancellation, administrative correction, and dispute-handling controls are intentionally not shown here. The backend currently exposes only{" "}
+//             <code className="rounded bg-muted px-1 py-0.5">GET /service-requests</code> and <code className="rounded bg-muted px-1 py-0.5">GET /service-requests/stats</code> for this
+//             resource, with no mutation endpoints.
+//           </p>
+//           <p className="mt-2 text-xs font-bold">
+//             BACKEND DEPENDENCY: POST/PATCH endpoints (and a matching permission for administrative correction) for assigning, reassigning, cancelling, correcting, and resolving disputes on a
+//             service request.
+//           </p>
+//         </div>
+//       </div>
+//     </CardShell>
+//   );
+// }
 
 function CompanyGapNotice() {
   return (
@@ -535,7 +535,7 @@ function ServiceRequestDetail({
         </TabsContent>
       </Tabs>
 
-      <AdministrativeActionsCard />
+      {/* <AdministrativeActionsCard /> */}
     </div>
   );
 }

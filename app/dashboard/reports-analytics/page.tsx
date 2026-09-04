@@ -49,7 +49,7 @@ export default function ReportsAnalyticsPage() {
   const users = usersQuery.data ?? [];
   const companies = companiesQuery.data ?? [];
   const serviceRequests = serviceRequestsQuery.data?.data ?? [];
-  const transactions = transactionsQuery.data ?? [];
+  const transactions = transactionsQuery.data?.data ?? [];
   const auditEvents = auditQuery.data ?? [];
   const totalJobs = numberFromMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || serviceRequests.length;
   const completedJobs = numberFromMetric(serviceRequestStats, ["completedJobs", "completed"]);
