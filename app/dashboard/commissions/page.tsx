@@ -15,10 +15,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { getErrorMessage, isApiConflict } from "@/lib/api";
+import { getErrorMessage, getMutationOutcomeMessage, isApiConflict } from "@/lib/api";
 import { dateText, recordId, text } from "@/lib/live-data";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { useUiStore } from "@/store/use-ui-store";
+import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import { useServices } from "@/hooks/useServices";
 import {
   useBulkUpdateCommissions,
@@ -87,6 +88,8 @@ function AddCommissionDialog({
   const [effectiveFrom, setEffectiveFrom] = React.useState("");
   const [effectiveTo, setEffectiveTo] = React.useState("");
   const [reason, setReason] = React.useState("");
+ 
+  const idempotencyKey = useIdempotencyKey(open);
 
   React.useEffect(() => {
     if (!open) return;
@@ -108,12 +111,15 @@ function AddCommissionDialog({
     if (!canSubmit) return;
     try {
       await createCommission.mutateAsync({
-        serviceId,
-        commissionPercent: percentValue,
-        effectiveFrom: toIsoStart(effectiveFrom),
-        effectiveTo: effectiveTo ? toIsoEnd(effectiveTo) : null,
-        expectedVersion: existingForService?.version ?? 0,
-        reason: reason.trim(),
+        payload: {
+          serviceId,
+          commissionPercent: percentValue,
+          effectiveFrom: toIsoStart(effectiveFrom),
+          effectiveTo: effectiveTo ? toIsoEnd(effectiveTo) : null,
+          expectedVersion: existingForService?.version ?? 0,
+          reason: reason.trim(),
+        },
+        idempotencyKey,
       });
       onSaved("Commission saved successfully.");
       onOpenChange(false);
@@ -122,7 +128,7 @@ function AddCommissionDialog({
         onError("This service's commission changed elsewhere since the page loaded. Refresh the list and try again.");
         return;
       }
-      onError(getErrorMessage(error, "Unable to save commission."));
+      onError(getMutationOutcomeMessage(error, "Saving this commission").message);
     }
   }
 
@@ -241,7 +247,7 @@ function EditCommissionDialog({
         onError("This commission was changed by another administrator. Refresh the list and try again.");
         return;
       }
-      onError(getErrorMessage(error, "Unable to update commission."));
+      onError(getMutationOutcomeMessage(error, "Updating this commission").message);
     }
   }
 
@@ -316,7 +322,7 @@ function DeactivateCommissionDialog({
 
   async function confirm() {
     try {
-      await deactivateCommission.mutateAsync(id);
+      await deactivateCommission.mutateAsync({ id, expectedVersion: commission?.version });
       onSaved(`Commission for ${serviceName} deactivated successfully.`);
       onOpenChange(false);
     } catch (error) {
@@ -324,7 +330,7 @@ function DeactivateCommissionDialog({
         onError("This commission was changed by another administrator. Refresh the list and try again.");
         return;
       }
-      onError(getErrorMessage(error, "Unable to deactivate commission."));
+      onError(getMutationOutcomeMessage(error, "Deactivating this commission").message);
     }
   }
 
@@ -376,6 +382,7 @@ function BulkUpdateDialog({
   onError: (message: string) => void;
 }) {
   const bulkUpdate = useBulkUpdateCommissions();
+  const idempotencyKey = useIdempotencyKey(open);
   const [reason, setReason] = React.useState("");
   const [effectiveFrom, setEffectiveFrom] = React.useState("");
   const [rows, setRows] = React.useState<BulkRow[]>([]);
@@ -412,7 +419,7 @@ function BulkUpdateDialog({
       };
     });
     try {
-      await bulkUpdate.mutateAsync({ reason: reason.trim(), commissions: entries });
+      await bulkUpdate.mutateAsync({ payload: { reason: reason.trim(), commissions: entries }, idempotencyKey });
       onSaved(`Updated commissions for ${entries.length} service${entries.length === 1 ? "" : "s"}.`);
       onOpenChange(false);
     } catch (error) {
@@ -420,7 +427,7 @@ function BulkUpdateDialog({
         onError("One or more of these commissions changed elsewhere since the page loaded. Refresh the list and try again.");
         return;
       }
-      onError(getErrorMessage(error, "Unable to bulk update commissions."));
+      onError(getMutationOutcomeMessage(error, "This bulk update").message);
     }
   }
 

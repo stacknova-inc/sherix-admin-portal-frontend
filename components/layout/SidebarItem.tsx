@@ -26,7 +26,7 @@ export function SidebarItem({ route, compact = false }: { route: NavRoute; compa
 
   const Icon = route.icon;
 
-  // Item with dropdown
+ 
   if (hasChildren) {
     return (
       <div>
@@ -86,7 +86,7 @@ export function SidebarItem({ route, compact = false }: { route: NavRoute; compa
     );
   }
 
-  // Regular item (no children)
+ 
   return (
     <Link
       href={route.href}

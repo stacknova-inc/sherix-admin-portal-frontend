@@ -13,9 +13,10 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { getErrorMessage } from "@/lib/api";
+import { describeMutationError } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
+import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import { useCompanies, useCompanyStatus, useCompanyVerification } from "@/hooks/useCompanies";
 import { useUiStore } from "@/store/use-ui-store";
 import type { Company } from "@/types";
@@ -44,6 +45,7 @@ function evidenceList(...sources: unknown[]) {
 function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useCompanies();
   const verification = useCompanyVerification();
+  const verificationIdempotencyKey = useIdempotencyKey(id);
   const [rejecting, setRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState("");
 
@@ -60,21 +62,21 @@ function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpen
 
   async function approve() {
     try {
-      await verification.mutateAsync({ companyId: id, action: "approve" });
+      await verification.mutateAsync({ companyId: id, action: "approve", idempotencyKey: verificationIdempotencyKey });
       notify("Company approved successfully. An email notification will be sent to the company.");
     } catch (error) {
-      notify(getErrorMessage(error, "Unable to approve company"));
+      notify(describeMutationError(error, "Approving this company"));
     }
   }
 
   async function confirmReject() {
     try {
-      await verification.mutateAsync({ companyId: id, action: "reject", reason: rejectReason });
+      await verification.mutateAsync({ companyId: id, action: "reject", reason: rejectReason, idempotencyKey: verificationIdempotencyKey });
       notify("Company rejected successfully. An email notification will be sent to the company.");
       setRejecting(false);
       setRejectReason("");
     } catch (error) {
-      notify(getErrorMessage(error, "Unable to reject company"));
+      notify(describeMutationError(error, "Rejecting this company"));
     }
   }
 
@@ -181,7 +183,18 @@ function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpen
 function Actions({ row, notify, onView }: { row: Row; notify: (message: string) => void; onView: (id: string) => void }) {
   const role = useUiStore((state) => state.role ?? state.user?.role); const allowed = hasPermission(role, Permission.COMPANIES);
   const status = useCompanyStatus(); const [pending, setPending] = React.useState<"activate" | "suspend" | null>(null); const [reason, setReason] = React.useState("");
-  async function confirm() { if (!pending) return; try { await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined }); notify(`Company ${pending === "activate" ? "activated" : "suspended"} successfully.`); setPending(null); setReason(""); } catch (error) { notify(getErrorMessage(error, `Unable to ${pending} company`)); } }
+  const statusIdempotencyKey = useIdempotencyKey(pending ? `${row.companyId}:${pending}` : row.companyId);
+  async function confirm() {
+    if (!pending) return;
+    try {
+      await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined, idempotencyKey: statusIdempotencyKey });
+      notify(`Company ${pending === "activate" ? "activated" : "suspended"} successfully.`);
+      setPending(null);
+      setReason("");
+    } catch (error) {
+      notify(describeMutationError(error, `${pending === "activate" ? "Activating" : "Suspending"} this company`));
+    }
+  }
   const isBusy = status.isPending;
   return (
     <>

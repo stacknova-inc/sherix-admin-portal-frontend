@@ -1,7 +1,6 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, Briefcase, CheckCircle2, ClipboardCheck, Clock3, DollarSign, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { RequestStatusDonut } from "@/components/dashboard/RequestStatusDonut";
 import { RequestsOverviewChart } from "@/components/dashboard/RequestsOverviewChart";
@@ -9,8 +8,10 @@ import { RecentRequests } from "@/components/dashboard/RecentRequests";
 import { RevenueOverview } from "@/components/dashboard/RevenueOverview";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TopServices } from "@/components/dashboard/TopServices";
+import { DataFreshness } from "@/components/shared/DataFreshness";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { companiesQueryKey, useCompanies } from "@/hooks/useCompanies";
+import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useDashboardAnalytics, useDashboardSummary } from "@/hooks/useDashboard";
 import { useDisputeStats } from "@/hooks/useDisputes";
 import { useFinancialEarnings } from "@/hooks/useFinancial";
@@ -38,7 +39,6 @@ export default function DashboardPage() {
   const role = useUiStore((state) => state.role ?? state.user?.role);
   const canViewFinancials = hasPermission(role, Permission.EARNINGS);
   const [range, setRange] = useState("30D");
-  const queryClient = useQueryClient();
 
   const summaryQuery = useDashboardSummary();
   const analyticsQuery = useDashboardAnalytics(range);
@@ -50,21 +50,11 @@ export default function DashboardPage() {
   const disputeStatsQuery = useDisputeStats();
   const earningsQuery = useFinancialEarnings(canViewFinancials);
 
-  // Near-real-time updates: reuses the app's existing React Query invalidation
-  // mechanism (no websockets/polling elsewhere in the project) on an interval,
-  // instead of a global refetchInterval that would also affect other pages.
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["serviceRequests"] });
-      queryClient.invalidateQueries({ queryKey: ["disputes", "stats"] });
-      queryClient.invalidateQueries({ queryKey: companiesQueryKey });
-      queryClient.invalidateQueries({ queryKey: mechanicsQueryKey });
-      queryClient.invalidateQueries({ queryKey: usersQueryKey });
-      if (canViewFinancials) queryClient.invalidateQueries({ queryKey: ["financial", "earnings"] });
-    }, AUTO_REFRESH_MS);
-    return () => window.clearInterval(id);
-  }, [queryClient, canViewFinancials]);
+ 
+  useAutoRefresh(
+    [["dashboard"], ["serviceRequests"], ["disputes", "stats"], companiesQueryKey, mechanicsQueryKey, usersQueryKey, ...(canViewFinancials ? [["financial", "earnings"]] : [])],
+    AUTO_REFRESH_MS,
+  );
 
   const lastUpdated = useMemo(() => {
     const timestamps = [summaryQuery.dataUpdatedAt, analyticsQuery.dataUpdatedAt, usersQuery.dataUpdatedAt, serviceRequestStatsQuery.dataUpdatedAt, companyProvidersQuery.dataUpdatedAt, individualProvidersQuery.dataUpdatedAt, disputeStatsQuery.dataUpdatedAt, earningsQuery.dataUpdatedAt].filter(Boolean);
@@ -219,7 +209,7 @@ export default function DashboardPage() {
   const inProgressJobs = numericMetric(serviceRequestStats, ["inProgress", "ongoing"]);
   const cancelledJobs = numericMetric(serviceRequestStats, ["cancelledJobs", "cancelled"]);
   const pendingJobs = numericMetric(serviceRequestStats, ["pendingRequests", "pending"]);
-  const totalJobs = numericMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || (serviceRequestsQuery.data?.length ?? 0);
+  const totalJobs = numericMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || (serviceRequestsQuery.data?.data.length ?? 0);
   const jobsOverview = ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : Array.isArray(analytics.jobs) ? analytics.jobs : []) as Array<Record<string, string | number>>).length
     ? ((Array.isArray(analytics.jobsOverview) ? analytics.jobsOverview : analytics.jobs) as Array<Record<string, string | number>>)
     : [{ day: "Current", completed: completedJobs, inProgress: inProgressJobs, cancelled: cancelledJobs}];
@@ -242,12 +232,12 @@ export default function DashboardPage() {
       color: item.color ?? ["#16A34A", "#2563EB", "#F59E0B", "#F97316", "#DC2626"][index % 5],
     };
   });
-  const recentServiceRequests = (serviceRequestsQuery.data ?? []).slice(0, 5).map((serviceRequest, index) => {
+  const recentServiceRequests = (serviceRequestsQuery.data?.data ?? []).slice(0, 5).map((serviceRequest, index) => {
     const record = serviceRequest as unknown as Record<string, unknown>;
     return {
       id: String(index + 1),
       name: text(record.customer, firstText(record, ["customerName"], "Customer")),
-      location: firstText(record, ["location", "address"]),
+      location: firstText(record, ["customerAddress", "location", "address"]),
       status: activeStatus(record, "Pending"),
       time: timeText(serviceRequest.createdAt) || firstText(record, ["time", "createdAt"]),
     };
@@ -277,9 +267,9 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[1600px] space-y-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader title="Dashboard" subtitle="Welcome back, Admin! Here's what's happening with Sherix today." />
-        <p className="text-xs font-semibold text-muted-foreground" role="status">
-          {isRefreshing ? "Updating…" : lastUpdated ? `Last updated ${new Date(lastUpdated).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}` : ""}
-        </p>
+        <div role="status">
+          <DataFreshness isFetching={isRefreshing} dataUpdatedAt={lastUpdated} />
+        </div>
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Key performance indicators">

@@ -29,5 +29,5 @@
     ".next/types/**/*.ts",
     "app/dashboard/service-providers/company"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "vitest.config.ts"]
 }

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { ConnectivityBanner } from "@/components/shared/ConnectivityBanner";
 import { canAccessPath } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/use-ui-store";
@@ -79,6 +80,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </div>
       <div className={cn("min-w-0 transition-[padding] duration-200", collapsed ? "lg:pl-[76px]" : "lg:pl-[260px]")}>
         <Topbar />
+        <ConnectivityBanner />
         <main className="min-w-0 px-3 py-4 sm:px-5 lg:px-6 lg:py-6">{children}</main>
       </div>
     </div>
