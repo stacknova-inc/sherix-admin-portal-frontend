@@ -27,7 +27,7 @@ export function Sidebar({ className }: { className?: string }) {
     try {
       await logoutMutation.mutateAsync();
     } catch {
-      // Local authentication state is still cleared by the mutation's onSettled handler.
+     
     } finally {
       router.replace("/sign-in");
     }

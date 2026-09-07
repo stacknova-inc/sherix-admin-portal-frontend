@@ -6,8 +6,8 @@ export const notificationsApi = {
     const response = await api.get("/admin/notifications");
     return unwrapArray<AdminNotification>(response.data);
   },
-  async broadcast(input: BroadcastNotificationInput) {
-    const response = await api.post("/admin/notifications/broadcast", input);
+  async broadcast(input: BroadcastNotificationInput, idempotencyKey?: string) {
+    const response = await api.post("/admin/notifications/broadcast", input, { idempotencyKey });
     return response.data as BroadcastNotificationResult;
   },
 };

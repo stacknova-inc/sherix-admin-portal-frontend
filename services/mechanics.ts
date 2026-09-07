@@ -13,12 +13,12 @@ export const mechanicsApi = {
     );
   },
 
-  async verification(userId: string, action: MechanicVerificationAction, payload?: { reason?: string }) {
+  async verification(userId: string, action: MechanicVerificationAction, payload?: { reason?: string }, idempotencyKey?: string) {
     const mechanicUserId = assertApiId(userId, `Mechanic ${action}`);
     const verb = action === "approve" ? "approve" : "reject";
     const endpoint = `/admin/verification/mechanics/${verb}/${mechanicUserId}`;
 
-    const response = await api.patch(endpoint, payload);
+    const response = await api.patch(endpoint, payload, { idempotencyKey });
     return unwrapData<Mechanic>(response.data);
   },
 
@@ -26,14 +26,13 @@ export const mechanicsApi = {
     userId: string,
     action: MechanicStatusAction,
     payload?: { reason?: string },
+    idempotencyKey?: string,
   ) {
     const mechanicUserId = assertApiId(userId, `Mechanic ${action}`);
     const verb = action === "activate" ? "reactivate" : "suspend";
     const endpoint = `/admin/verification/accounts/users/${verb}/${mechanicUserId}`;
 
-    const response = await api.patch(endpoint, payload);
-    
-    console.warn(`[${action.toUpperCase()} MECHANIC DEBUG] raw response.data:`, JSON.stringify(response.data, null, 2));
+    const response = await api.patch(endpoint, payload, { idempotencyKey });
     return unwrapData<Mechanic>(response.data);
   },
 };

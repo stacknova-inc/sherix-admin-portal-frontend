@@ -48,7 +48,7 @@ export default function ReportsAnalyticsPage() {
   const earnings = asRecord(earningsQuery.data);
   const users = usersQuery.data ?? [];
   const companies = companiesQuery.data ?? [];
-  const serviceRequests = serviceRequestsQuery.data ?? [];
+  const serviceRequests = serviceRequestsQuery.data?.data ?? [];
   const transactions = transactionsQuery.data ?? [];
   const auditEvents = auditQuery.data ?? [];
   const totalJobs = numberFromMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || serviceRequests.length;

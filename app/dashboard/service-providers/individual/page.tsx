@@ -39,9 +39,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getErrorMessage } from "@/lib/api";
+import { describeMutationError } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
+import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import {
   useMechanicStatus,
   useMechanicVerification,
@@ -86,6 +87,7 @@ const map = (item: Mechanic): Row => ({
 function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useIndividualMechanics();
   const verification = useMechanicVerification();
+  const verificationIdempotencyKey = useIdempotencyKey(id);
   const [rejecting, setRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState("");
 
@@ -101,21 +103,21 @@ function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpe
 
   async function approve() {
     try {
-      await verification.mutateAsync({ userId: id, action: "approve" });
+      await verification.mutateAsync({ userId: id, action: "approve", idempotencyKey: verificationIdempotencyKey });
       notify("Mechanic approved successfully. An email notification will be sent to the mechanic.");
     } catch (error) {
-      notify(getErrorMessage(error, "Unable to approve mechanic"));
+      notify(describeMutationError(error, "Approving this mechanic"));
     }
   }
 
   async function confirmReject() {
     try {
-      await verification.mutateAsync({ userId: id, action: "reject", reason: rejectReason });
+      await verification.mutateAsync({ userId: id, action: "reject", reason: rejectReason, idempotencyKey: verificationIdempotencyKey });
       notify("Mechanic rejected successfully. An email notification will be sent to the mechanic.");
       setRejecting(false);
       setRejectReason("");
     } catch (error) {
-      notify(getErrorMessage(error, "Unable to reject mechanic"));
+      notify(describeMutationError(error, "Rejecting this mechanic"));
     }
   }
 
@@ -214,6 +216,7 @@ function Actions({
     null,
   );
   const [reason, setReason] = React.useState("");
+  const statusIdempotencyKey = useIdempotencyKey(pending ? `${row.userId}:${pending}` : row.userId);
   async function confirm() {
     if (!pending) return;
     try {
@@ -221,12 +224,13 @@ function Actions({
         userId: row.userId,
         action: pending,
         reason: pending === "suspend" ? reason : undefined,
+        idempotencyKey: statusIdempotencyKey,
       });
       notify(`Mechanic ${pending === "activate" ? "activated" : "suspended"} successfully.`);
       setPending(null);
       setReason("");
     } catch (error) {
-      notify(getErrorMessage(error, `Unable to ${pending} mechanic`));
+      notify(describeMutationError(error, `${pending === "activate" ? "Activating" : "Suspending"} this mechanic`));
     }
   }
   const isBusy = status.isPending;

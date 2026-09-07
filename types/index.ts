@@ -254,7 +254,6 @@ export interface ProviderKyc {
 }
 
 export interface Company extends ApiTimestamped {
-  /** The ID required by the company verification/account endpoints. */
   companyId?: ApiId;
   name?: string;
   companyName?: string;
@@ -267,11 +266,9 @@ export interface Company extends ApiTimestamped {
   address?: string;
   rating?: number;
   reviews?: number;
-  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
   status?: "Pending" | "Active" | "Suspended" | string;
   kyc?: ProviderKyc;
   isEmployee?: boolean;
-  /** Not yet returned by the backend; the details modal reads these defensively. */
   businessRegistrationNumber?: string;
   brn?: string;
   responsibleContact?: string | { name?: string; phone?: string; email?: string };
@@ -378,7 +375,6 @@ export interface DashboardAnalytics {
 export interface Dispute extends ApiTimestamped {
   jobId?: string;
   serviceRequest?: unknown;
-  /** @deprecated Kept for backends still nesting the linked record under `booking`. */
   booking?: unknown;
   raisedBy?: unknown;
   against?: unknown;
@@ -387,16 +383,163 @@ export interface Dispute extends ApiTimestamped {
   amount?: number;
 }
 
-export interface ServiceRequest extends ApiTimestamped {
-  requestId?: string;
-  service?: unknown;
-  customer?: unknown;
-  provider?: unknown;
-  location?: string;
+export type ServiceRequestStatus =
+  | "requested"
+  | "mechanic_accepted"
+  | "en_route"
+  | "arrived"
+  | "inspecting"
+  | "diagnosis_completed"
+  | "price_update_pending"
+  | "price_approved"
+  | "in_progress"
+  | "finalizing"
+  | "completed"
+  | "cancelled"
+  | "disputed"
+  | "expired"
+  | string;
+
+export type ServiceRequestPriority = "low" | "medium" | "high" | string;
+
+export interface GeoPoint {
+  type?: "Point" | string;
+  coordinates?: [number, number];
+}
+
+export interface ServiceRequestVehicleDetails {
+  make?: string;
+  model?: string;
+  year?: string | number;
+  color?: string;
+  plateNumber?: string;
+  plate?: string;
+  licensePlate?: string;
+  [key: string]: unknown;
+}
+
+export interface ServiceRequestPriceUpdate {
   amount?: number;
+  price?: number;
+  suggestedPrice?: number;
   status?: string;
-  priority?: string;
+  reason?: string;
+  note?: string;
+  notes?: string;
+  updatedBy?: unknown;
+  by?: unknown;
+  createdAt?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+
+export interface ServiceRequestTimelineEvent {
+  status?: string;
+  stage?: string;
+  event?: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  message?: string;
+  reason?: string;
+  notes?: string;
+  note?: string;
+  actor?: unknown;
+  by?: unknown;
+  performedBy?: unknown;
+  updatedBy?: unknown;
+  previousState?: string;
+  previousStatus?: string;
+  from?: string;
+  newState?: string;
+  newStatus?: string;
+  to?: string;
+  timestamp?: string;
+  createdAt?: string;
+  at?: string;
+  date?: string;
+  [key: string]: unknown;
+}
+
+export interface ServiceRequest extends ApiTimestamped {
+  jobId?: string;
+  requestId?: string;
+  status?: ServiceRequestStatus;
+  priority?: ServiceRequestPriority;
+
+  customerId?: unknown;
+  customerName?: string;
+  customerAddress?: string;
+  customerLocation?: GeoPoint;
+
+  mechanicId?: unknown;
+  declinedMechanicIds?: unknown[];
+
+  serviceId?: unknown;
+
+  vehicleDetails?: ServiceRequestVehicleDetails;
+
+  originalIssueId?: unknown;
+  originalIssueTitle?: string;
+  originalIssueMinPrice?: number;
+  originalIssueMaxPrice?: number;
+  problemDescription?: string;
+
+  actualIssueId?: unknown;
+  actualIssueTitle?: string;
+
+  mechanicSuggestedPrice?: number;
+  priceUpdateStatus?: string;
+  priceUpdates?: ServiceRequestPriceUpdate[];
+  finalCost?: number;
+
+  isPaid?: boolean;
   paymentStatus?: string;
+  paymentId?: unknown;
+  platformFee?: number;
+  mechanicEarnings?: number;
+  payoutId?: unknown;
+
+  reviewId?: unknown;
+
+  photos?: Array<string | { url?: string; caption?: string }>;
+
+  jobStages?: ServiceRequestTimelineEvent[];
+  timeline?: ServiceRequestTimelineEvent[];
+
+  companyId?: unknown;
+
+  [key: string]: unknown;
+}
+
+export interface ServiceRequestPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ServiceRequestListResult {
+  data: ServiceRequest[];
+  pagination: ServiceRequestPagination;
+}
+
+export interface ServiceRequestListParams {
+  status?: string;
+  serviceId?: string;
+  priority?: string;
+  customer?: string;
+  mechanic?: string;
+  companyId?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface FinancialEarnings {
@@ -528,7 +671,6 @@ export interface Settings {
 }
 
 export interface Mechanic extends ApiTimestamped {
-  /** The user ID required by the mechanic verification/account endpoints. */
   userId?: ApiId;
   name?: string;
   role?: string;
@@ -539,7 +681,6 @@ export interface Mechanic extends ApiTimestamped {
   services?: string | Array<string | Service>;
   location?: string;
   profilePhoto?: { url?: string; publicId?: string };
-  /** Account lifecycle status ("Pending" | "Active" | "Suspended"). Never derive this from `kyc.status`. */
   status?: "Pending" | "Active" | "Suspended" | string;
   kyc?: ProviderKyc;
   completedJobs?: number;

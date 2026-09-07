@@ -26,10 +26,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getErrorMessage } from "@/lib/api";
+import { getMutationOutcomeMessage } from "@/lib/api";
 import { dateText, firstText, recordId, text, timeText } from "@/lib/live-data";
 import { cn } from "@/lib/utils";
 import { useBroadcastNotification, useNotifications } from "@/hooks/useNotification";
+import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import type {
   AdminNotification,
   BroadcastNotificationInput,
@@ -206,6 +207,7 @@ function CreateNotificationModal({
   onSent: (message: string) => void;
 }) {
   const broadcastNotification = useBroadcastNotification();
+  const idempotencyKey = useIdempotencyKey(open);
   const [form, setForm] = React.useState<NotificationFormState>(initialNotificationForm);
   const [error, setError] = React.useState("");
   const pending = broadcastNotification.isPending;
@@ -231,6 +233,8 @@ function CreateNotificationModal({
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (broadcastNotification.isPending) return;
     const validationError = validateNotificationForm(form);
     if (validationError) {
       setError(validationError);
@@ -245,11 +249,11 @@ function CreateNotificationModal({
         channel: form.channel,
         category: form.category,
       };
-      const result = await broadcastNotification.mutateAsync(payload);
+      const result = await broadcastNotification.mutateAsync({ input: payload, idempotencyKey });
       onSent(result.message ?? "Notification sent successfully.");
       onOpenChange(false);
     } catch (submitError) {
-      setError(getErrorMessage(submitError, "Unable to send notification."));
+      setError(getMutationOutcomeMessage(submitError, "Sending this notification").message);
     }
   }
 

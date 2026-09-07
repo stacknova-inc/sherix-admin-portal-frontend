@@ -48,11 +48,7 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
-/**
- * Backend returns durations as strings like "24h" / "30d" rather than absolute
- * timestamps, so expiry has to be computed client-side from the duration it gives us
- * (instead of being invented outright, as the previous implementation did).
- */
+
 function parseDurationMs(value: unknown, fallbackMs: number): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value * 1000; // numeric durations follow the JWT `expiresIn`-seconds convention

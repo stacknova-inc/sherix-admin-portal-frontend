@@ -69,7 +69,7 @@ function initialGeneral(settings?: Settings): GeneralSettings {
   );
   const source = Object.keys(general).length ? general : root;
 
-  // API shape: siteInfo, contactInfo, localization, system
+ 
   const platform = asRecord(
     source.siteInfo ?? source.platform ?? source.site ?? source.app,
   );

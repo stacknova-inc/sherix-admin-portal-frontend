@@ -57,7 +57,7 @@ export function useUploadLegalDocument() {
               fallbackDocument.uploadedAt,
             updatedAt: uploaded.updatedAt ?? fallbackDocument.updatedAt,
 
-            // 🔥 FORCE UNIQUE ID ALWAYS
+           
             id:
               uploaded._id ??
               uploaded.id ??
@@ -68,8 +68,7 @@ export function useUploadLegalDocument() {
       queryClient.setQueryData<LegalDocument[]>(
         legalDocumentsQueryKey,
         (current = []) => {
-          // 🔥 DO NOT overwrite by ID anymore (this caused your bug)
-
+       
           const safeDocument: LegalDocument = {
             ...documentToInsert,
             id:
@@ -78,7 +77,7 @@ export function useUploadLegalDocument() {
               `upload-${Date.now()}-${Math.random()}`,
           };
 
-          // 🔥 Only remove true duplicates (same file + same time)
+        
           const filtered = current.filter((doc) => {
             return !(
               doc.fileName === safeDocument.fileName &&

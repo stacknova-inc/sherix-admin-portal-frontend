@@ -63,7 +63,7 @@ function integerInput(value: string) {
   return value.replace(/\D/g, "");
 }
 
-/** Shared save bar + reason capture + version-conflict handling for a single policy-config group. */
+
 function GroupSectionShell({
   title,
   subtitle,

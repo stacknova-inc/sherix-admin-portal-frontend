@@ -19,7 +19,6 @@ type UiStore = {
   toggleSidebar: () => void;
   toggleSidebarCollapsed: () => void;
   login: (email: string, password: string) => Promise<AuthSession>;
-  /** Called by the Axios response interceptor on a 401 to silently renew the session. */
   refreshSession: () => Promise<string>;
   signOut: () => void;
 };
@@ -104,9 +103,7 @@ export const useUiStore = create<UiStore>()(
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        // The access token is allowed to be stale on rehydration — the Axios interceptor
-        // will silently refresh it on the first 401. Only an expired/missing *refresh*
-        // token means the session itself is actually over.
+       
         const sessionValid = Boolean(state.refreshToken && state.refreshTokenExpiresAt && state.refreshTokenExpiresAt > Date.now());
         if (!sessionValid) {
           state.signOut();

@@ -25,8 +25,8 @@ function mergeMechanic(queryClient: QueryClient, userId: string, updated: Mechan
 export function useMechanicVerification() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, action, reason }: { userId: string; action: MechanicVerificationAction; reason?: string }) =>
-      mechanicsApi.verification(userId, action, reason ? { reason } : undefined),
+    mutationFn: ({ userId, action, reason, idempotencyKey }: { userId: string; action: MechanicVerificationAction; reason?: string; idempotencyKey?: string }) =>
+      mechanicsApi.verification(userId, action, reason ? { reason } : undefined, idempotencyKey),
     onSuccess: (updated, { userId }) => mergeMechanic(queryClient, userId, updated),
     onSettled: () => queryClient.invalidateQueries({ queryKey: mechanicsQueryKey }),
   });
@@ -35,7 +35,8 @@ export function useMechanicVerification() {
 export function useMechanicStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, action, reason }: { userId: string; action: MechanicStatusAction; reason?: string }) => mechanicsApi.status(userId, action, reason ? { reason } : undefined),
+    mutationFn: ({ userId, action, reason, idempotencyKey }: { userId: string; action: MechanicStatusAction; reason?: string; idempotencyKey?: string }) =>
+      mechanicsApi.status(userId, action, reason ? { reason } : undefined, idempotencyKey),
     onSuccess: (updated, { userId }) => mergeMechanic(queryClient, userId, updated),
     onSettled: () => queryClient.invalidateQueries({ queryKey: mechanicsQueryKey }),
   });
