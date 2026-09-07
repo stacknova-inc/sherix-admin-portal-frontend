@@ -43,8 +43,14 @@ function normalizeReviewsResponse(response: unknown): ReviewsListResponse {
     source.data,
   ) as Review[];
 
+  const seen = new Set<string>();
+  const deduplicated = reviews.filter((review) => {
+    const id = String(review._id ?? review.id ?? review.reviewId ?? review.referenceId ?? "");
+    if (!id || !seen.has(id)) { if (id) seen.add(id); return true; }
+    return false;
+  });
   return {
-    reviews,
+    reviews: deduplicated,
     pagination: root.pagination ?? data.pagination ?? result.pagination ?? source.pagination ?? root.meta ?? data.meta ?? result.meta ?? source.meta,
   };
 }
@@ -64,7 +70,8 @@ export const reviewsApi = {
     return normalizeReviewStats(response.data);
   },
   async list(params?: Record<string, string | number | undefined>) {
-    const response = await api.get("/reviews", { params });
+    const query = Object.fromEntries(Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== ""));
+    const response = await api.get("/reviews", { params: query });
     return normalizeReviewsResponse(response.data);
   },
 };

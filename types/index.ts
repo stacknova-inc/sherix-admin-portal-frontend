@@ -383,6 +383,29 @@ export interface Dispute extends ApiTimestamped {
   amount?: number;
 }
 
+export interface DisputeListResult {
+  data: Dispute[];
+  pagination: FinancialPagination;
+  serverPaginated: boolean;
+}
+
+export interface ResolveDisputeInput {
+  outcome: "dismissed" | "refund_customer" | "release_to_mechanic" | "split" | "fee" | "warning" | "restriction" | "suspension";
+  party?: "mechanic" | "customer";
+  amount?: number;
+  note?: string;
+}
+
+export interface DisputeReason extends ApiTimestamped {
+  title: string;
+  isActive: boolean;
+}
+
+export interface DisputeReasonInput {
+  title: string;
+  isActive: boolean;
+}
+
 export type ServiceRequestStatus =
   | "requested"
   | "mechanic_accepted"
@@ -740,6 +763,7 @@ export interface ReviewStats {
 }
 
 export interface Review extends ApiTimestamped {
+  reviewId?: string;
   customerId?: string;
   reviewerName?: string;
   mechanicId?: string;

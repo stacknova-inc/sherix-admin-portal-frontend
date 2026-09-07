@@ -6,17 +6,17 @@ import * as React from "react";
 import { AlertTriangle, CheckCircle2, Clock3, FileClock, XCircle } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   FilterSelect,
   InitialAvatar,
   MetricGrid,
-  PaginationFooter,
   SearchBox,
   StatusCell,
   ToolbarCard,
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/button";
 import { useDisputeStats, useDisputes } from "@/hooks/useDisputes";
 import { activeStatus, asRecord, dateText, firstText, initials, metricValue, money, recordId, text, timeText } from "@/lib/live-data";
 import type { Dispute } from "@/types";
@@ -109,7 +109,7 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
       </div>
     ),
   },
-  { id: "actions", header: "Actions", cell: () => <ActionMenu /> },
+  { id: "actions", header: "Actions", cell: ({ row }) => <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/disputes/${row.original.id}`}>View</Link></Button> },
 ];
 
 export default function DisputesPage() {
@@ -117,7 +117,7 @@ export default function DisputesPage() {
   const [status, setStatus] = React.useState("All Statuses");
   const disputesQuery = useDisputes();
   const statsQuery = useDisputeStats();
-  const rows = React.useMemo(() => (disputesQuery.data ?? []).map(mapDispute), [disputesQuery.data]);
+  const rows = React.useMemo(() => (disputesQuery.data?.data ?? []).map(mapDispute), [disputesQuery.data]);
   const filteredRows = React.useMemo(() => {
     const search = query.trim().toLowerCase();
     return rows.filter((row) => {
@@ -137,7 +137,7 @@ export default function DisputesPage() {
 
   return (
     <div className="mx-auto max-w-full space-y-5">
-      <PageHeader title="Disputes" subtitle="Review and manage all disputes raised on the platform." />
+      <div className="flex flex-wrap items-start justify-between gap-3"><PageHeader title="Disputes" subtitle="Review and manage all disputes raised on the platform." /><Button asChild variant="outline"><Link href="/dashboard/disputes/reasons">Manage dispute reasons</Link></Button></div>
       <MetricGrid metrics={metrics} />
 
       <section className="grid gap-4">
@@ -149,7 +149,9 @@ export default function DisputesPage() {
           {disputesQuery.isLoading ? (
             <div className="p-6 text-sm font-semibold text-muted-foreground">Loading disputes...</div>
           ) : disputesQuery.isError ? (
-            <div className="p-6 text-sm font-semibold text-red-600">Unable to load disputes.</div>
+            <div className="flex gap-3 p-6 text-sm font-semibold text-red-600">Unable to load disputes.<Button size="sm" variant="outline" onClick={() => void disputesQuery.refetch()}>Retry</Button></div>
+          ) : !filteredRows.length ? (
+            <div className="p-4"><EmptyState title="No disputes found" description="Try a different search or status filter." /></div>
           ) : (
             <AdminDataTable data={filteredRows} columns={disputeColumns} rowLabel="disputes" />
           )}

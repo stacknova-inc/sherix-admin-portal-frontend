@@ -164,3 +164,28 @@ refunds, credits, reversals, and manual adjustments. Each mutation must define t
 permission, eligibility and refundable balance checks, impact-preview response, reason,
 idempotency semantics, `409`/validation responses, audit event, and a safe way to retrieve the
 authoritative post-mutation record. Until then the UI intentionally sends no financial mutation.
+
+## 12. Ratings moderation endpoints are still required
+
+`GET /reviews` and `GET /reviews/stats` are connected as read-only, with duplicate-review
+protection. The supplied contract exposes **no** endpoint to keep visible, hide, restore, or
+permanently remove a review; it also does not document reported-review fields, evidence access,
+assignment, or review history. The moderation queue therefore deliberately does not render
+fictional moderation controls. Required contracts include the necessary permission per action,
+reason and confirmation semantics, audit output, and secure evidence access.
+
+## 13. Dispute contracts connected from the supplied Postman collection
+
+The portal now uses `GET /disputes`, `GET /disputes/stats`, `GET /disputes/:id`,
+`PATCH /disputes/:id`, and `POST /disputes/:id/resolve`. The resolve request follows the
+documented `outcome`, conditional `party`, optional `amount`, and optional `note` payload.
+The UI requires a non-empty resolution note and uses an idempotency key, but the backend must
+confirm that it enforces the key. Response examples are still needed for dispute detail,
+pagination/filter parameter names, financial impact previews, evidence, messages, notifications,
+timeline/audit events, and precise closed/reopen behavior. There is no documented reopen or
+payout-hold mutation endpoint, so none is exposed.
+
+`GET`, `POST`, and `PATCH /admin/dispute-reasons` are connected for reason management using
+`{ title, isActive }`. The `POST /admin/dispute-reasons/bulk` endpoint is intentionally not
+wired until its request body schema is supplied; bulk payload envelopes vary and guessing one
+would be unsafe.

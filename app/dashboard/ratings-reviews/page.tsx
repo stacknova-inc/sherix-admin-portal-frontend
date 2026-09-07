@@ -15,7 +15,9 @@ import {
   ToolbarCard,
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
 import { getErrorMessage } from "@/lib/api";
 import { asRecord, dateText, firstText, initials, metricValue, recordId, text, timeText } from "@/lib/live-data";
 import { useReviews, useReviewStats } from "@/hooks/useReviews";
@@ -159,7 +161,9 @@ export default function RatingsReviewsPage() {
           {reviewsQuery.isLoading ? (
             <div className="p-6 text-sm font-semibold text-muted-foreground">Loading reviews...</div>
           ) : reviewsQuery.isError ? (
-            <div className="p-6 text-sm font-semibold text-red-600">{getErrorMessage(reviewsQuery.error, "Unable to load reviews.")}</div>
+            <div className="flex gap-3 p-6 text-sm font-semibold text-red-600">{getErrorMessage(reviewsQuery.error, "Unable to load reviews.")}<Button size="sm" variant="outline" onClick={() => void reviewsQuery.refetch()}>Retry</Button></div>
+          ) : !filteredRows.length ? (
+            <div className="p-4"><EmptyState title="No reviews found" description="Try adjusting the current search or filters." /></div>
           ) : (
             <AdminDataTable data={filteredRows} columns={reviewColumns} minWidth="1280px" rowLabel="reviews" />
           )}
