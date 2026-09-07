@@ -17,7 +17,7 @@ export function useNotifications(enabled = true) {
 export function useBroadcastNotification() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: BroadcastNotificationInput) => notificationsApi.broadcast(input),
+    mutationFn: ({ input, idempotencyKey }: { input: BroadcastNotificationInput; idempotencyKey?: string }) => notificationsApi.broadcast(input, idempotencyKey),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
     },

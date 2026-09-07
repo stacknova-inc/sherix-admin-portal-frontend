@@ -22,8 +22,8 @@ function mergeCompany(queryClient: QueryClient, companyId: string, updated: Comp
 export function useCompanyVerification() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ companyId, action, reason }: { companyId: string; action: CompanyVerificationAction; reason?: string }) =>
-      companiesApi.verification(companyId, action, reason ? { reason } : undefined),
+    mutationFn: ({ companyId, action, reason, idempotencyKey }: { companyId: string; action: CompanyVerificationAction; reason?: string; idempotencyKey?: string }) =>
+      companiesApi.verification(companyId, action, reason ? { reason } : undefined, idempotencyKey),
     onSuccess: (updated, { companyId }) => mergeCompany(queryClient, companyId, updated),
     onSettled: () => queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
   });
@@ -31,7 +31,8 @@ export function useCompanyVerification() {
 export function useCompanyStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ companyId, action, reason }: { companyId: string; action: CompanyStatusAction; reason?: string }) => companiesApi.status(companyId, action, reason ? { reason } : undefined),
+    mutationFn: ({ companyId, action, reason, idempotencyKey }: { companyId: string; action: CompanyStatusAction; reason?: string; idempotencyKey?: string }) =>
+      companiesApi.status(companyId, action, reason ? { reason } : undefined, idempotencyKey),
     onSuccess: (updated, { companyId }) => mergeCompany(queryClient, companyId, updated),
     onSettled: () => queryClient.invalidateQueries({ queryKey: companiesQueryKey }),
   });

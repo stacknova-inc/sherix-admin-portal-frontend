@@ -60,11 +60,7 @@ export function initials(name: string) {
 
 export type ProviderStatus = "Pending" | "Active" | "Suspended";
 
-/**
- * Account lifecycle status for companies/mechanics, read only from the
- * backend's top-level `status` field. This is independent of KYC/verification
- * review outcome - see getKycStatus - and must never be inferred from it.
- */
+
 export function getProviderStatus(provider: { status?: string }): ProviderStatus {
   const status = provider.status?.toLowerCase();
 
@@ -76,7 +72,6 @@ export function getProviderStatus(provider: { status?: string }): ProviderStatus
 
 export type KycStatus = "Pending" | "Approved" | "Rejected";
 
-/** KYC/verification review status for companies/mechanics, read from `kyc.status`. */
 export function getKycStatus(provider: { kyc?: { status?: string } }): KycStatus {
   const status = provider.kyc?.status?.toLowerCase();
 
@@ -116,6 +111,27 @@ export function metricChange(stats: Record<string, unknown> | undefined, keys: s
   }
 
   return fallback;
+}
+
+export function formatStatusLabel(status: unknown, fallback = "Unknown") {
+  if (typeof status !== "string" || !status.trim()) return fallback;
+  return status
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+export function geoPointCoords(point: unknown): { latitude: number; longitude: number } | null {
+  const record = asRecord(point);
+  const coordinates = record.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return null;
+  const [longitude, latitude] = coordinates;
+  if (typeof longitude !== "number" || typeof latitude !== "number") return null;
+  return { latitude, longitude };
+}
+
+export function googleMapsUrl(latitude: number, longitude: number) {
+  return `https://www.google.com/maps?q=${latitude},${longitude}`;
 }
 
 export function metricDirection(stats: Record<string, unknown> | undefined, keys: string[], fallback: "up" | "down" = "up") {

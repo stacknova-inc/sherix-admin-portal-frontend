@@ -101,28 +101,34 @@ export function SearchBox({
   );
 }
 
+export type FilterOption = { label: string; value: string };
+
 export function FilterSelect({
   placeholder,
   values,
+  options,
   className,
   value,
   onChange,
 }: {
   placeholder: string;
-  values: string[];
+  values?: string[];
+  options?: FilterOption[];
   className?: string;
   value?: string;
   onChange?: (value: string) => void;
 }) {
+  const resolvedOptions: FilterOption[] = options ?? (values ?? []).map((entry) => ({ label: entry, value: entry }));
+
   return (
-    <Select defaultValue={values[0] ?? placeholder} value={value} onValueChange={onChange}>
-      <SelectTrigger className={cn("h-9 w-full bg-card   lg:w-[150px]", className)}>
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger aria-label={placeholder} className={cn("h-9 w-full bg-card   lg:w-[150px]", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent className="bg-white">
-        {values.map((value) => (
-          <SelectItem key={value} value={value}>
-            {value}
+        {resolvedOptions.map((option) => (
+          <SelectItem key={option.value} value={option.value}>
+            {option.label}
           </SelectItem>
         ))}
       </SelectContent>
