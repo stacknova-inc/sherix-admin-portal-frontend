@@ -16,7 +16,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { describeMutationError } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
-import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import { useCompanies, useCompanyStatus, useCompanyVerification } from "@/hooks/useCompanies";
 import { useUiStore } from "@/store/use-ui-store";
 import type { Company } from "@/types";
@@ -45,7 +44,6 @@ function evidenceList(...sources: unknown[]) {
 function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useCompanies();
   const verification = useCompanyVerification();
-  const verificationIdempotencyKey = useIdempotencyKey(id);
   const [rejecting, setRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState("");
 
@@ -62,7 +60,7 @@ function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpen
 
   async function approve() {
     try {
-      await verification.mutateAsync({ companyId: id, action: "approve", idempotencyKey: verificationIdempotencyKey });
+      await verification.mutateAsync({ companyId: id, action: "approve" });
       notify("Company approved successfully. An email notification will be sent to the company.");
     } catch (error) {
       notify(describeMutationError(error, "Approving this company"));
@@ -71,7 +69,7 @@ function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpen
 
   async function confirmReject() {
     try {
-      await verification.mutateAsync({ companyId: id, action: "reject", reason: rejectReason, idempotencyKey: verificationIdempotencyKey });
+      await verification.mutateAsync({ companyId: id, action: "reject", reason: rejectReason });
       notify("Company rejected successfully. An email notification will be sent to the company.");
       setRejecting(false);
       setRejectReason("");
@@ -183,11 +181,10 @@ function CompanyDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpen
 function Actions({ row, notify, onView }: { row: Row; notify: (message: string) => void; onView: (id: string) => void }) {
   const role = useUiStore((state) => state.role ?? state.user?.role); const allowed = hasPermission(role, Permission.COMPANIES);
   const status = useCompanyStatus(); const [pending, setPending] = React.useState<"activate" | "suspend" | null>(null); const [reason, setReason] = React.useState("");
-  const statusIdempotencyKey = useIdempotencyKey(pending ? `${row.companyId}:${pending}` : row.companyId);
   async function confirm() {
     if (!pending) return;
     try {
-      await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined, idempotencyKey: statusIdempotencyKey });
+      await status.mutateAsync({ companyId: row.companyId, action: pending, reason: pending === "suspend" ? reason : undefined });
       notify(`Company ${pending === "activate" ? "activated" : "suspended"} successfully.`);
       setPending(null);
       setReason("");
@@ -242,5 +239,5 @@ const columns = (notify: (message: string) => void, onView: (id: string) => void
 export default function CompanyMechanicsPage() {
   const query = useCompanies(); const [toast, setToast] = React.useState(""); const [viewingId, setViewingId] = React.useState<string | null>(null); const [search, setSearch] = React.useState(""); const [status, setStatus] = React.useState("Status");
   const rows = React.useMemo(() => (query.data ?? []).map(map), [query.data]); const filtered = rows.filter((row) => (!search || [row.name, row.email, row.phone, row.location, ...row.services].join(" ").toLowerCase().includes(search.toLowerCase())) && (status === "Status" || row.status === status));
-  return <div className="mx-auto max-w-[1600px] space-y-5"><PageHeader title="Companies" subtitle="Manage company verification and account status." /><CardShell><ToolbarCard><SearchBox placeholder="Search companies by name, email, phone or service..." value={search} onChange={setSearch} /><FilterSelect placeholder="Status" values={["Status", "Pending", "Active", "Suspended"]} value={status} onChange={setStatus} /></ToolbarCard>{query.isLoading ? <div className="flex gap-2 p-6 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading companies...</div> : query.isError ? <div className="flex gap-3 p-6 text-red-600">Unable to load companies.<Button size="sm" variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : filtered.length === 0 ? <div className="p-6 text-sm text-muted-foreground">{search || status !== "Status" ? "No companies match the current filters." : "No companies found."}</div> : <AdminDataTable data={filtered} columns={columns(setToast, setViewingId)} minWidth="1200px" rowLabel="companies" />}</CardShell>{toast && <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-sm font-bold">{toast}</div>}{viewingId && <CompanyDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} notify={setToast} />}</div>;
+  return <div className="mx-auto max-w-[1600px] space-y-5"><PageHeader title="Companies" subtitle="Manage company verification and account status." /><CardShell><ToolbarCard><SearchBox placeholder="Search companies by name, email, phone or service..." value={search} onChange={setSearch} /><FilterSelect placeholder="Status" values={["Status", "Pending", "Active", "Suspended"]} value={status} onChange={setStatus} /></ToolbarCard>{query.isLoading ? <div className="flex gap-2 p-6 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Loading companies...</div> : query.isError ? <div className="flex gap-3 p-6 text-red-600">Unable to load companies.<Button size="sm" variant="outline" onClick={() => void query.refetch()}>Retry</Button></div> : filtered.length === 0 ? <div className="p-6 text-sm text-muted-foreground">{search || status !== "Status" ? "No companies match the current filters." : "No companies found."}</div> : <AdminDataTable data={filtered} columns={columns(setToast, setViewingId)} minWidth="1200px" rowLabel="companies" />}</CardShell>{toast && <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-xs font-bold">{toast}</div>}{viewingId && <CompanyDetailsDialog id={viewingId} onOpenChange={(open) => !open && setViewingId(null)} notify={setToast} />}</div>;
 }

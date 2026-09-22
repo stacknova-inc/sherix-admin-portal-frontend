@@ -50,7 +50,7 @@ export default function ReportsAnalyticsPage() {
   const companies = companiesQuery.data ?? [];
   const serviceRequests = serviceRequestsQuery.data?.data ?? [];
   const transactions = transactionsQuery.data?.data ?? [];
-  const auditEvents = auditQuery.data ?? [];
+  const auditEvents = auditQuery.data?.data ?? [];
   const totalJobs = numberFromMetric(serviceRequestStats, ["totalRequests", "totalServiceRequests", "totalBookings", "total"]) || serviceRequests.length;
   const completedJobs = numberFromMetric(serviceRequestStats, ["completedJobs", "completed"]);
   const pendingJobs = numberFromMetric(serviceRequestStats, ["pendingRequests", "pending"]);

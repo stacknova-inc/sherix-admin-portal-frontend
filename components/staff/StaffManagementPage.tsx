@@ -46,7 +46,6 @@ import { getErrorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
   useCreateStaff,
-  useStaffAuditLogs,
   useStaffMembers,
   useStaffStatusAction,
   useUpdateStaff,
@@ -124,7 +123,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">
+    <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl">
       {message}
     </div>
   );
@@ -671,7 +670,6 @@ function buildColumns(
 
 export function StaffManagementPage() {
   const staffQuery = useStaffMembers();
-  const auditQuery = useStaffAuditLogs();
   const [toast, setToast] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [department, setDepartment] = React.useState("All Departments");
@@ -741,7 +739,7 @@ export function StaffManagementPage() {
         icon: ShieldAlert,
       },
     ],
-    [auditQuery.data?.length, staff],
+    [staff],
   );
 
   function openCreate() {

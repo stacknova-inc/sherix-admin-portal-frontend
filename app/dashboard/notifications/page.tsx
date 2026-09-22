@@ -3,10 +3,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";
-import { Bell, FileText, Loader2, Plus, Send, Upload, X } from "lucide-react";
+import { Bell, Eye, FileText, Loader2, Plus, Send, Upload, X } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   ChannelIcons,
   FilterSelect,
   MetricGrid,
@@ -16,8 +15,10 @@ import {
   ToolbarCard,
 } from "@/components/shared/AdminPrimitives";
 import { CardShell } from "@/components/shared/CardShell";
+import { DetailGrid, DetailSection } from "@/components/shared/DetailField";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -30,7 +31,6 @@ import { getMutationOutcomeMessage } from "@/lib/api";
 import { dateText, firstText, recordId, text, timeText } from "@/lib/live-data";
 import { cn } from "@/lib/utils";
 import { useBroadcastNotification, useNotifications } from "@/hooks/useNotification";
-import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import type {
   AdminNotification,
   BroadcastNotificationInput,
@@ -94,7 +94,8 @@ function mapNotification(notification: AdminNotification): NotificationRow {
   };
 }
 
-const notificationColumns: ColumnDef<NotificationRow>[] = [
+function getNotificationColumns(onView: (id: string) => void): ColumnDef<NotificationRow>[] {
+  return [
   {
     accessorKey: "title",
     header: "Notification Title",
@@ -124,8 +125,18 @@ const notificationColumns: ColumnDef<NotificationRow>[] = [
       </div>
     ),
   },
-  { id: "actions", header: "Actions", cell: () => <ActionMenu /> },
-];
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button variant="ghost" size="sm" onClick={() => onView(row.original.id)}>
+          <Eye className="h-4 w-4" />
+          Review
+        </Button>
+      ),
+    },
+  ];
+}
 
 const roleOptions: Array<{ value: NotificationRoleValue; label: string }> = [
   { value: "customer", label: "Customer" },
@@ -191,7 +202,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">
+    <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl">
       {message}
     </div>
   );
@@ -207,7 +218,6 @@ function CreateNotificationModal({
   onSent: (message: string) => void;
 }) {
   const broadcastNotification = useBroadcastNotification();
-  const idempotencyKey = useIdempotencyKey(open);
   const [form, setForm] = React.useState<NotificationFormState>(initialNotificationForm);
   const [error, setError] = React.useState("");
   const pending = broadcastNotification.isPending;
@@ -249,7 +259,7 @@ function CreateNotificationModal({
         channel: form.channel,
         category: form.category,
       };
-      const result = await broadcastNotification.mutateAsync({ input: payload, idempotencyKey });
+      const result = await broadcastNotification.mutateAsync({ input: payload });
       onSent(result.message ?? "Notification sent successfully.");
       onOpenChange(false);
     } catch (submitError) {
@@ -391,8 +401,11 @@ export default function NotificationsPage() {
   const [status, setStatus] = React.useState("All Status");
   const [modalOpen, setModalOpen] = React.useState(false);
   const [toast, setToast] = React.useState("");
+  const [viewId, setViewId] = React.useState("");
   const notificationsQuery = useNotifications();
   const rows = React.useMemo(() => (notificationsQuery.data ?? []).map(mapNotification), [notificationsQuery.data]);
+  const notificationById = React.useMemo(() => new Map((notificationsQuery.data ?? []).map((item) => [recordId(item), item])), [notificationsQuery.data]);
+  const notificationColumns = React.useMemo(() => getNotificationColumns(setViewId), [setViewId]);
   const filteredRows = React.useMemo(() => {
     const search = query.trim().toLowerCase();
     return rows.filter((row) => {
@@ -443,7 +456,43 @@ export default function NotificationsPage() {
       </section>
 
       <CreateNotificationModal open={modalOpen} onOpenChange={setModalOpen} onSent={setToast} />
+      <NotificationDetailDialog notification={notificationById.get(viewId)} onOpenChange={(open) => !open && setViewId("")} />
       {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </div>
+  );
+}
+
+function NotificationDetailDialog({ notification, onOpenChange }: { notification?: AdminNotification; onOpenChange: (open: boolean) => void }) {
+  const record = notification as unknown as Record<string, unknown> | undefined;
+  const sentAt = record ? record.sentAt ?? record.createdAt ?? record.updatedAt : undefined;
+
+  return (
+    <Dialog open={Boolean(notification)} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{record ? firstText(record, ["title", "name", "subject"], "Notification detail") : "Notification detail"}</DialogTitle>
+        </DialogHeader>
+        {record && (
+          <div className="space-y-4">
+            <DetailSection title="Message">
+              <p className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">{firstText(record, ["description", "message", "body"], "No message content.")}</p>
+            </DetailSection>
+            <DetailGrid
+              fields={[
+                ["Audience", firstText(record, ["audience", "targetAudience", "recipientType"], "All Customers")],
+                ["Channel", channelsFrom(record).join(", ") || "Not available"],
+                ["Category", firstText(record, ["type", "category"], "Notification")],
+                ["Status", firstText(record, ["status"], "Sent")],
+                ["Sent to", record.sentTo !== undefined ? String(record.sentTo) : "Not available"],
+                ["Delivered on", `${dateText(sentAt)} ${timeText(sentAt)}`],
+              ]}
+            />
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

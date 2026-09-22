@@ -21,6 +21,7 @@ import {
   StatusCell,
   ToolbarCard,
 } from "@/components/shared/AdminPrimitives";
+import { AuditTrailPanel } from "@/components/shared/AuditTrailPanel";
 import { CardShell } from "@/components/shared/CardShell";
 import { AccountStateDialog } from "@/components/shared/AccountStateDialog";
 import { DetailGrid } from "@/components/shared/DetailField";
@@ -84,7 +85,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">
+    <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl">
       {message}
     </div>
   );
@@ -131,6 +132,7 @@ function CustomerDetailsDialog({ id, onOpenChange }: { id: string; onOpenChange:
                 <StatusCell status={activeStatus(record)} />
               </div>
             </div>
+            <AuditTrailPanel entityType="user" entityId={id} title="Account audit trail" />
           </div>
         )}
       </DialogContent>

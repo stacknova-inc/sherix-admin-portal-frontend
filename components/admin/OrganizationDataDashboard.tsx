@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
+  Ban,
   CalendarClock,
   CheckCircle2,
   CloudUpload,
@@ -10,9 +12,11 @@ import {
   FileArchive,
   FileText,
   Gavel,
+  History,
   ImagePlus,
   Loader2,
   MoreVertical,
+  PauseCircle,
   Pencil,
   Plus,
   RefreshCw,
@@ -30,14 +34,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { DetailGrid } from "@/components/shared/DetailField";
 import { getErrorMessage } from "@/lib/api";
-import { activeStatus, asRecord, dateText, firstText, recordId, text } from "@/lib/live-data";
+import { asRecord, dateText, firstText, recordId, text } from "@/lib/live-data";
 import { cn } from "@/lib/utils";
 import { useAdCampaign, useAdCampaigns, useCreateAdCampaign, useDeleteAdCampaign, useToggleAdCampaignStatus, useUpdateAdCampaign } from "@/hooks/useAdCampaigns";
 import { useLegalDocuments, useUploadLegalDocument } from "@/hooks/useLegalDocuments";
 import type { AdCampaign, LegalDocument } from "@/types";
 
-type ModalType = "campaign-create" | "campaign-edit" | "legal-upload" | "legal-replace" | null;
+type ModalType = "campaign-create" | "campaign-edit" | "campaign-review" | "legal-upload" | "legal-replace" | null;
 
 const statusStyles: Record<string, string> = {
   Active: "bg-emerald-50 text-emerald-700 ring-emerald-600/15 dark:bg-emerald-500/15 dark:text-emerald-300",
@@ -47,6 +52,8 @@ const statusStyles: Record<string, string> = {
   Open: "bg-amber-50 text-amber-700 ring-amber-600/15 dark:bg-amber-500/15 dark:text-amber-300",
   Live: "bg-red-50 text-primary ring-primary/15 dark:bg-red-500/15 dark:text-red-300",
   Scheduled: "bg-blue-50 text-blue-700 ring-blue-600/15 dark:bg-blue-500/15 dark:text-blue-300",
+  Paused: "bg-amber-50 text-amber-700 ring-amber-600/15 dark:bg-amber-500/15 dark:text-amber-300",
+  Ended: "bg-slate-100 text-slate-700 ring-slate-600/15 dark:bg-slate-500/15 dark:text-slate-300",
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -121,7 +128,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-3 rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-3 rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl animate-in slide-in-from-bottom-4">
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
         <CheckCircle2 className="h-4 w-4" />
       </span>
@@ -183,6 +190,23 @@ function UploadProgress({ file, progress }: { file?: File; progress: number }) {
 function imageUrl(campaign: AdCampaign) {
   const record = asRecord(campaign);
   return text(record.imageUrl ?? record.imageURL ?? record.image ?? record.url ?? record.fileUrl, "");
+}
+
+/**
+ * Derives a delivery lifecycle from the only fields the documented ad-campaigns contract
+ * returns (isActive + start/end dates) - there is no dedicated status field for
+ * scheduled/paused/ended, so this is inferred rather than server-authoritative.
+ */
+function campaignLifecycle(campaign: AdCampaign): "Scheduled" | "Active" | "Paused" | "Ended" {
+  const record = asRecord(campaign);
+  const isActive = typeof record.isActive === "boolean" ? record.isActive : true;
+  const now = Date.now();
+  const start = campaign.startDate ? new Date(campaign.startDate).getTime() : NaN;
+  const end = campaign.endDate ? new Date(campaign.endDate).getTime() : NaN;
+  if (Number.isFinite(end) && now > end) return "Ended";
+  if (!isActive) return "Paused";
+  if (Number.isFinite(start) && now < start) return "Scheduled";
+  return "Active";
 }
 
 function documentUrl(document: LegalDocument) {
@@ -284,11 +308,10 @@ function Toolbar({
           </SelectTrigger>
           <SelectContent className="bg-white">
             <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="live">Live</SelectItem>
             <SelectItem value="scheduled">Scheduled</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="ended">Ended</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -303,23 +326,46 @@ function Toolbar({
 function CampaignActions({
   campaign,
   onEdit,
+  onReview,
   onToast,
 }: {
   campaign: AdCampaign;
   onEdit: (campaign: AdCampaign) => void;
+  onReview: (campaign: AdCampaign) => void;
   onToast: (message: string) => void;
 }) {
   const toggleStatus = useToggleAdCampaignStatus();
   const deleteCampaign = useDeleteAdCampaign();
   const id = recordId(campaign);
+  const lifecycle = campaignLifecycle(campaign);
 
-  async function handleToggle() {
-    if (!id || !window.confirm("Change this campaign status?")) return;
+  async function handlePause() {
+    if (!id || !window.confirm("Pause this campaign? It stops being shown to users until resumed.")) return;
     try {
       await toggleStatus.mutateAsync(id);
-      onToast("Campaign status updated.");
+      onToast("Campaign paused.");
     } catch (error) {
-      onToast(getErrorMessage(error, "Unable to update campaign status"));
+      onToast(getErrorMessage(error, "Unable to pause this campaign"));
+    }
+  }
+
+  async function handleResume() {
+    if (!id || !window.confirm("Resume this campaign?")) return;
+    try {
+      await toggleStatus.mutateAsync(id);
+      onToast("Campaign resumed.");
+    } catch (error) {
+      onToast(getErrorMessage(error, "Unable to resume this campaign"));
+    }
+  }
+
+  async function handleCancel() {
+    if (!id || !window.confirm("Cancel this campaign before it starts? It will not go live unless resumed.")) return;
+    try {
+      await toggleStatus.mutateAsync(id);
+      onToast("Campaign cancelled.");
+    } catch (error) {
+      onToast(getErrorMessage(error, "Unable to cancel this campaign"));
     }
   }
 
@@ -345,9 +391,35 @@ function CampaignActions({
           <Pencil className="h-4 w-4" />
           Edit
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void handleToggle()}>
-          <RefreshCw className="h-4 w-4" />
-          Toggle status
+        {lifecycle === "Ended" ? (
+          <DropdownMenuItem onSelect={() => onReview(campaign)}>
+            <Eye className="h-4 w-4" />
+            Review delivery
+          </DropdownMenuItem>
+        ) : lifecycle === "Paused" ? (
+          <DropdownMenuItem onSelect={() => void handleResume()}>
+            <RefreshCw className="h-4 w-4" />
+            Resume
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem onSelect={() => void handlePause()}>
+              <PauseCircle className="h-4 w-4" />
+              Pause
+            </DropdownMenuItem>
+            {lifecycle === "Scheduled" && (
+              <DropdownMenuItem onSelect={() => void handleCancel()}>
+                <Ban className="h-4 w-4" />
+                Cancel
+              </DropdownMenuItem>
+            )}
+          </>
+        )}
+        <DropdownMenuItem asChild disabled={!id}>
+          <Link href={`/dashboard/audit-logs?entityType=content&entityId=${id}`}>
+            <History className="h-4 w-4" />
+            Audit history
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void handleDelete()} className="text-red-600 focus:text-red-600">
           <Trash2 className="h-4 w-4" />
@@ -358,17 +430,65 @@ function CampaignActions({
   );
 }
 
-function CampaignsTab({ onAdd, onEdit, onToast }: { onAdd: () => void; onEdit: (campaign: AdCampaign) => void; onToast: (message: string) => void }) {
+function CampaignReviewDialog({ open, campaign, onClose }: { open: boolean; campaign?: AdCampaign; onClose: () => void }) {
+  const campaignId = campaign ? recordId(campaign) : "";
+  const detailQuery = useAdCampaign(open ? campaignId : undefined);
+  const source = detailQuery.data ?? campaign;
+
+  if (!open) return null;
+
+  return (
+    <ModalShell title="Campaign delivery review" subtitle="Read-only summary of this campaign after its scheduled run." open={open} onClose={onClose}>
+      <div className="grid gap-4 p-5">
+        {detailQuery.isLoading && <div className="rounded-xl border bg-muted/40 p-3 text-sm font-semibold text-muted-foreground">Loading campaign details...</div>}
+        {source && (
+          <>
+            <div className="h-40 w-full overflow-hidden rounded-xl border bg-muted">
+              {imageUrl(source) ? (
+                <img src={imageUrl(source)} alt={source.title ?? "Campaign image"} className="h-full w-full object-cover" />
+              ) : (
+                <div className="grid h-full place-items-center text-muted-foreground"><ImagePlus className="h-4 w-4" /></div>
+              )}
+            </div>
+            <DetailGrid
+              fields={[
+                ["Title", source.title ?? "Untitled campaign"],
+                ["Delivery status", <StatusBadge key="status" status={campaignLifecycle(source)} />],
+                ["Start date", dateText(source.startDate)],
+                ["End date", dateText(source.endDate)],
+                ["Created", dateText(source.createdAt)],
+              ]}
+            />
+          </>
+        )}
+      </div>
+      <div className="flex justify-end border-t bg-card p-5">
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </div>
+    </ModalShell>
+  );
+}
+
+function CampaignsTab({
+  onAdd,
+  onEdit,
+  onReview,
+  onToast,
+}: {
+  onAdd: () => void;
+  onEdit: (campaign: AdCampaign) => void;
+  onReview: (campaign: AdCampaign) => void;
+  onToast: (message: string) => void;
+}) {
   const campaignsQuery = useAdCampaigns();
   const [query, setQuery] = React.useState("");
   const [status, setStatus] = React.useState("all");
   const campaigns = campaignsQuery.data ?? [];
   const filtered = React.useMemo(() => {
     return campaigns.filter((campaign) => {
-      const record = asRecord(campaign);
-      const normalizedStatus = activeStatus(record, "Active");
-      const haystack = [campaign.title, normalizedStatus, campaign.startDate, campaign.endDate].join(" ").toLowerCase();
-      const statusMatch = status === "all" || normalizedStatus.toLowerCase() === status;
+      const lifecycle = campaignLifecycle(campaign);
+      const haystack = [campaign.title, lifecycle, campaign.startDate, campaign.endDate].join(" ").toLowerCase();
+      const statusMatch = status === "all" || lifecycle.toLowerCase() === status;
       return haystack.includes(query.toLowerCase()) && statusMatch;
     });
   }, [campaigns, query, status]);
@@ -388,7 +508,7 @@ function CampaignsTab({ onAdd, onEdit, onToast }: { onAdd: () => void; onEdit: (
               <tbody className="divide-y">
                 {filtered.map((campaign) => {
                   const src = imageUrl(campaign);
-                  const statusText = activeStatus(asRecord(campaign), "Active");
+                  const statusText = campaignLifecycle(campaign);
                   return (
                     <tr key={recordId(campaign)} className="bg-card transition-colors hover:bg-muted/35">
                       <td className="px-5 py-4">
@@ -401,7 +521,7 @@ function CampaignsTab({ onAdd, onEdit, onToast }: { onAdd: () => void; onEdit: (
                       <td className="px-5 py-4 font-semibold">{dateText(campaign.endDate)}</td>
                       <td className="px-5 py-4"><StatusBadge status={statusText} /></td>
                       <td className="px-5 py-4">{dateText(campaign.createdAt)}</td>
-                      <td className="px-5 py-4 text-right"><CampaignActions campaign={campaign} onEdit={onEdit} onToast={onToast} /></td>
+                      <td className="px-5 py-4 text-right"><CampaignActions campaign={campaign} onEdit={onEdit} onReview={onReview} onToast={onToast} /></td>
                     </tr>
                   );
                 })}
@@ -610,6 +730,13 @@ function LegalActions({
           <RefreshCw className="h-4 w-4" />
           Replace
         </DropdownMenuItem>
+
+        <DropdownMenuItem asChild disabled={!recordId(document)}>
+          <Link href={`/dashboard/audit-logs?entityType=content&entityId=${recordId(document)}`} className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Audit history
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -814,6 +941,11 @@ export function OrganizationDataDashboard() {
     setModal("campaign-edit");
   }
 
+  function openCampaignReview(campaign: AdCampaign) {
+    setSelectedCampaign(campaign);
+    setModal("campaign-review");
+  }
+
   function openLegalReplace(document?: LegalDocument) {
     setSelectedDocument(document);
     setModal("legal-replace");
@@ -830,12 +962,13 @@ export function OrganizationDataDashboard() {
             <TabsTrigger value="legal" className="gap-2 px-4 py-2"><Gavel className="h-4 w-4" />Legal</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="campaigns"><CampaignsTab onAdd={() => setModal("campaign-create")} onEdit={openCampaignEdit} onToast={showToast} /></TabsContent>
+        <TabsContent value="campaigns"><CampaignsTab onAdd={() => setModal("campaign-create")} onEdit={openCampaignEdit} onReview={openCampaignReview} onToast={showToast} /></TabsContent>
         <TabsContent value="legal"><LegalTab onUpload={() => setModal("legal-upload")} onReplace={openLegalReplace} onToast={showToast} /></TabsContent>
       </Tabs>
 
       <CampaignModal open={modal === "campaign-create"} mode="create" onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
       <CampaignModal open={modal === "campaign-edit"} mode="edit" campaign={selectedCampaign} onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
+      <CampaignReviewDialog open={modal === "campaign-review"} campaign={selectedCampaign} onClose={() => setModal(null)} />
       <LegalDocumentModal open={modal === "legal-upload"} mode="upload" documents={legalQuery.data ?? []} onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
       <LegalDocumentModal open={modal === "legal-replace"} mode="replace" selectedDocument={selectedDocument} documents={legalQuery.data ?? []} onClose={() => setModal(null)} onSaved={showToast} onError={showToast} />
       {toast && <Toast message={toast} onClose={() => setToast("")} />}

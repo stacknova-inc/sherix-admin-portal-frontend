@@ -370,7 +370,7 @@ export default function ServiceCategoriesPage() {
       </CardShell>
 
       {toast && (
-        <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">{toast}</div>
+        <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl">{toast}</div>
       )}
 
       {allowed && (

@@ -381,6 +381,8 @@ export interface Dispute extends ApiTimestamped {
   reason?: string;
   status?: string;
   amount?: number;
+  /** Originating Support Ticket, when this dispute was escalated from one. Optional: a dispute does not require a ticket. */
+  supportTicketId?: string;
 }
 
 export interface DisputeListResult {
@@ -814,4 +816,106 @@ export interface Mechanic extends ApiTimestamped {
   kyc?: ProviderKyc;
   completedJobs?: number;
   completedJobsCount?: number;
+}
+
+/**
+ * Support ticket domain. No backend endpoint exists for this yet - see
+ * docs/backend-dependencies.md. Field names follow the same documented-shape-unknown
+ * convention as Dispute: broad, optional, resolved defensively via lib/live-data helpers.
+ */
+export type TicketRequesterType = "customer" | "mechanic" | "company";
+
+export type TicketStatus = "open" | "in_progress" | "pending_customer" | "resolved" | "closed";
+
+export type TicketPriority = "low" | "medium" | "high" | "urgent";
+
+export type TicketCategory = "billing" | "account" | "service_request" | "technical" | "safety" | "other";
+
+export interface TicketAttachment {
+  id?: string;
+  url?: string;
+  fileName?: string;
+  fileType?: string;
+  uploadedAt?: string;
+  uploadedBy?: unknown;
+}
+
+export interface TicketMessage extends ApiTimestamped {
+  author?: unknown;
+  authorName?: string;
+  authorRole?: string;
+  body?: string;
+  message?: string;
+  attachments?: TicketAttachment[];
+  visibility?: "public" | "internal";
+  isInternal?: boolean;
+}
+
+export interface SupportTicket extends ApiTimestamped {
+  ticketId?: string;
+  subject?: string;
+  title?: string;
+  description?: string;
+  requesterType?: TicketRequesterType;
+  requester?: unknown;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  category?: TicketCategory;
+  assignee?: unknown;
+  assignedTo?: unknown;
+  messages?: TicketMessage[];
+  attachments?: TicketAttachment[];
+  resolutionNote?: string;
+  resolvedAt?: string;
+  resolvedBy?: unknown;
+  /** Related Service Request/Job, when this ticket is about a specific job. Optional: general support tickets have none. */
+  jobId?: string;
+  /** Set once this ticket has been escalated to a Dispute. The ticket itself is never converted into a dispute. */
+  disputeId?: string;
+}
+
+export interface TicketListParams {
+  search?: string;
+  requesterType?: string;
+  status?: string;
+  priority?: string;
+  category?: string;
+  assignee?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  /** Filter tickets related to a specific Service Request/Job. */
+  jobId?: string;
+}
+
+export interface TicketListResult {
+  data: SupportTicket[];
+  pagination: FinancialPagination;
+  serverPaginated: boolean;
+}
+
+export interface AddTicketNoteInput {
+  body: string;
+  visibility: "public" | "internal";
+}
+
+export interface AssignTicketInput {
+  assigneeId: string;
+}
+
+export interface UpdateTicketStatusInput {
+  status: TicketStatus;
+}
+
+export interface ResolveTicketInput {
+  resolutionNote: string;
+}
+
+/**
+ * Escalates a ticket to a separate Dispute record. Does NOT convert the ticket into
+ * a dispute - the ticket remains as-is, with `disputeId` set to the new/linked record.
+ */
+export interface EscalateTicketInput {
+  reason: string;
 }

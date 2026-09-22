@@ -14,8 +14,8 @@ export const commissionsApi = {
     const response = await api.get(`/commissions/service/${serviceId}`);
     return unwrapData<Commission>(response.data);
   },
-  async create(payload: CommissionInput, idempotencyKey?: string) {
-    const response = await api.post("/commissions", payload, { idempotencyKey });
+  async create(payload: CommissionInput) {
+    const response = await api.post("/commissions", payload);
     return unwrapData<Commission>(response.data);
   },
   async update(id: string, payload: CommissionInput) {
@@ -26,8 +26,8 @@ export const commissionsApi = {
     const response = await api.patch(`/commissions/${id}/deactivate`, { expectedVersion });
     return unwrapData<Commission>(response.data);
   },
-  async bulkUpdate(payload: BulkCommissionInput, idempotencyKey?: string) {
-    const response = await api.put("/commissions/bulk", payload, { idempotencyKey });
+  async bulkUpdate(payload: BulkCommissionInput) {
+    const response = await api.put("/commissions/bulk", payload);
     return unwrapArray<Commission>(response.data);
   },
 };

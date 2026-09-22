@@ -26,6 +26,7 @@ export enum Permission {
 
   ISSUES = "issues",
   DISPUTES = "disputes",
+  SUPPORT_TICKETS = "support_tickets",
 
   USERS = "users",
   STAFF_MANAGEMENT = "staff_management",
@@ -107,6 +108,7 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
     Permission.USERS,
     Permission.DISPUTES,
     Permission.ISSUES,
+    Permission.SUPPORT_TICKETS,
     Permission.REVIEWS,
     Permission.NOTIFICATIONS,
   ],
@@ -142,6 +144,7 @@ export const rolePermissions: Record<StaffRole, Permission[]> = {
     Permission.DASHBOARD,
     Permission.ISSUES,
     Permission.DISPUTES,
+    Permission.SUPPORT_TICKETS,
     Permission.NOTIFICATIONS,
   ],
 
@@ -182,6 +185,8 @@ const routePermissions: Array<{
 
   { path: "/dashboard/disputes", permission: Permission.DISPUTES },
 
+  { path: "/dashboard/support-tickets", permission: Permission.SUPPORT_TICKETS },
+
   { path: "/dashboard/ratings-reviews", permission: Permission.REVIEWS },
 
   {
@@ -210,6 +215,7 @@ const apiPermissions: Array<{ path: string; permission: Permission }> = [
 
   { path: "/issues", permission: Permission.ISSUES },
   { path: "/disputes", permission: Permission.DISPUTES },
+  { path: "/admin/support/tickets", permission: Permission.SUPPORT_TICKETS },
 
   { path: "/customers", permission: Permission.USERS },
   { path: "/staff", permission: Permission.STAFF_MANAGEMENT },

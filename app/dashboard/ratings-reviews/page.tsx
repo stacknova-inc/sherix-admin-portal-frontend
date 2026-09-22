@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Clock3, MessageSquareText, Star, ThumbsUp } from "lucide-react";
+import { CheckCircle2, Clock3, History, MessageSquareText, Star, ThumbsUp } from "lucide-react";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import {
-  ActionMenu,
   FilterSelect,
   InitialAvatar,
   MetricGrid,
@@ -114,7 +114,16 @@ const reviewColumns: ColumnDef<ReviewRow>[] = [
     ),
   },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
-  { id: "actions", header: "Actions", cell: () => <ActionMenu /> },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => (
+      <Link href={`/dashboard/audit-logs?entityType=review&entityId=${row.original.id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+        <History className="h-3.5 w-3.5" />
+        Audit history
+      </Link>
+    ),
+  },
 ];
 
 export default function RatingsReviewsPage() {

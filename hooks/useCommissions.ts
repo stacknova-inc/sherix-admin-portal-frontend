@@ -32,7 +32,7 @@ export function useEffectiveCommission(serviceId?: string) {
 export function useCreateCommission() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ payload, idempotencyKey }: { payload: CommissionInput; idempotencyKey?: string }) => commissionsApi.create(payload, idempotencyKey),
+    mutationFn: ({ payload }: { payload: CommissionInput }) => commissionsApi.create(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: commissionsQueryKey }),
   });
 }
@@ -56,7 +56,7 @@ export function useDeactivateCommission() {
 export function useBulkUpdateCommissions() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ payload, idempotencyKey }: { payload: BulkCommissionInput; idempotencyKey?: string }) => commissionsApi.bulkUpdate(payload, idempotencyKey),
+    mutationFn: ({ payload }: { payload: BulkCommissionInput }) => commissionsApi.bulkUpdate(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: commissionsQueryKey }),
   });
 }

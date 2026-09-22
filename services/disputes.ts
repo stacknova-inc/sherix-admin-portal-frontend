@@ -22,5 +22,5 @@ export const disputesApi = {
   async stats() { const response = await api.get("/disputes/stats"); return unwrapData<Record<string, unknown>>(response.data); },
   async get(id: string) { const response = await api.get(`/disputes/${id}`); return unwrapData<Dispute>(response.data); },
   async updateStatus(id: string, status: string) { const response = await api.patch(`/disputes/${id}`, { status }); return unwrapData<Dispute>(response.data); },
-  async resolve(id: string, input: ResolveDisputeInput, idempotencyKey?: string) { const response = await api.post(`/disputes/${id}/resolve`, input, { idempotencyKey }); return unwrapData<Dispute>(response.data); },
+  async resolve(id: string, input: ResolveDisputeInput) { const response = await api.post(`/disputes/${id}/resolve`, input); return unwrapData<Dispute>(response.data); },
 };

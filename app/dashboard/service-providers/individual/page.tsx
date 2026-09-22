@@ -42,7 +42,6 @@ import {
 import { describeMutationError } from "@/lib/api";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { asRecord, firstText, getKycStatus, getProviderStatus, recordId, text, type ProviderStatus } from "@/lib/live-data";
-import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import {
   useMechanicStatus,
   useMechanicVerification,
@@ -87,7 +86,6 @@ const map = (item: Mechanic): Row => ({
 function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpenChange: (open: boolean) => void; notify: (message: string) => void }) {
   const query = useIndividualMechanics();
   const verification = useMechanicVerification();
-  const verificationIdempotencyKey = useIdempotencyKey(id);
   const [rejecting, setRejecting] = React.useState(false);
   const [rejectReason, setRejectReason] = React.useState("");
 
@@ -103,7 +101,7 @@ function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpe
 
   async function approve() {
     try {
-      await verification.mutateAsync({ userId: id, action: "approve", idempotencyKey: verificationIdempotencyKey });
+      await verification.mutateAsync({ userId: id, action: "approve" });
       notify("Mechanic approved successfully. An email notification will be sent to the mechanic.");
     } catch (error) {
       notify(describeMutationError(error, "Approving this mechanic"));
@@ -112,7 +110,7 @@ function MechanicDetailsDialog({ id, onOpenChange, notify }: { id: string; onOpe
 
   async function confirmReject() {
     try {
-      await verification.mutateAsync({ userId: id, action: "reject", reason: rejectReason, idempotencyKey: verificationIdempotencyKey });
+      await verification.mutateAsync({ userId: id, action: "reject", reason: rejectReason });
       notify("Mechanic rejected successfully. An email notification will be sent to the mechanic.");
       setRejecting(false);
       setRejectReason("");
@@ -216,7 +214,6 @@ function Actions({
     null,
   );
   const [reason, setReason] = React.useState("");
-  const statusIdempotencyKey = useIdempotencyKey(pending ? `${row.userId}:${pending}` : row.userId);
   async function confirm() {
     if (!pending) return;
     try {
@@ -224,7 +221,6 @@ function Actions({
         userId: row.userId,
         action: pending,
         reason: pending === "suspend" ? reason : undefined,
-        idempotencyKey: statusIdempotencyKey,
       });
       notify(`Mechanic ${pending === "activate" ? "activated" : "suspended"} successfully.`);
       setPending(null);
@@ -390,7 +386,7 @@ export default function IndividualMechanicsPage() {
         )}
       </CardShell>
       {toast && (
-        <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-sm font-bold">
+        <div className="fixed bottom-5 right-5 rounded-xl border bg-card p-4 text-xs font-bold">
           {toast}
         </div>
       )}

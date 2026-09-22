@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import * as React from "react";
 import { AlertTriangle, CheckCircle2, Clock3, FileClock, XCircle } from "lucide-react";
@@ -112,9 +113,12 @@ const disputeColumns: ColumnDef<DisputeRow>[] = [
   { id: "actions", header: "Actions", cell: ({ row }) => <Button asChild variant="ghost" size="sm"><Link href={`/dashboard/disputes/${row.original.id}`}>View</Link></Button> },
 ];
 
-export default function DisputesPage() {
+const disputeStatusLabels: Record<string, string> = { open: "Open", under_review: "Under Review", resolved: "Resolved", rejected: "Rejected" };
+
+function DisputesPageInner() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = React.useState("");
-  const [status, setStatus] = React.useState("All Statuses");
+  const [status, setStatus] = React.useState(() => disputeStatusLabels[searchParams.get("status") ?? ""] ?? "All Statuses");
   const disputesQuery = useDisputes();
   const statsQuery = useDisputeStats();
   const rows = React.useMemo(() => (disputesQuery.data?.data ?? []).map(mapDispute), [disputesQuery.data]);
@@ -157,8 +161,16 @@ export default function DisputesPage() {
           )}
         </CardShell>
 
-        
+
       </section>
     </div>
+  );
+}
+
+export default function DisputesPage() {
+  return (
+    <React.Suspense fallback={<div role="status" aria-live="polite" className="p-6 text-sm font-semibold text-muted-foreground">Loading disputes...</div>}>
+      <DisputesPageInner />
+    </React.Suspense>
   );
 }

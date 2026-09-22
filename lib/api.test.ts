@@ -1,6 +1,6 @@
 import { AxiosError } from "axios";
 import { describe, expect, it } from "vitest";
-import { describeMutationError, generateIdempotencyKey, getMutationOutcomeMessage, isApiConflict, isUnknownOutcome } from "./api";
+import { describeMutationError, getMutationOutcomeMessage, isApiConflict, isUnknownOutcome } from "./api";
 
 function networkError(overrides: Partial<AxiosError> = {}) {
   const error = new AxiosError("Network Error", undefined, undefined, {});
@@ -78,15 +78,5 @@ describe("describeMutationError", () => {
   it("falls through to unknown-outcome messaging for a dropped connection", () => {
     const message = describeMutationError(networkError(), "Updating this record");
     expect(message).toContain("could not be confirmed");
-  });
-});
-
-describe("generateIdempotencyKey", () => {
-  it("RETRY SAFETY: produces a value, and repeated calls produce DIFFERENT keys (caller must reuse one key per attempt, not call this per retry)", () => {
-    const a = generateIdempotencyKey();
-    const b = generateIdempotencyKey();
-    expect(a).toBeTruthy();
-    expect(b).toBeTruthy();
-    expect(a).not.toEqual(b);
   });
 });

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Clock3, KeyRound, UserRound } from "lucide-react";
+import { ArrowLeft, UserRound } from "lucide-react";
+import { AuditTrailPanel } from "@/components/shared/AuditTrailPanel";
 import { CardShell } from "@/components/shared/CardShell";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SoftTag, StatusCell } from "@/components/shared/AdminPrimitives";
 import { Button } from "@/components/ui/button";
-import { useStaffAuditLogs, useStaffMember, useStaffNotifications } from "@/hooks/useStaff";
+import { useStaffMember } from "@/hooks/useStaff";
 import { staffRoleDefinitions } from "@/services/staff";
 
 function dateTime(value?: string) {
@@ -32,8 +33,6 @@ export function StaffDetailsPage() {
   const params = useParams<{ staffId: string }>();
   const staffId = params.staffId;
   const staffQuery = useStaffMember(staffId);
-  const auditQuery = useStaffAuditLogs(staffId);
-  const notificationsQuery = useStaffNotifications(staffId);
   const staff = staffQuery.data;
 
   if (staffQuery.isLoading) {
@@ -85,10 +84,10 @@ export function StaffDetailsPage() {
           </div>
         </CardShell>
 
-        
+        <CardShell className="p-4">
+          <AuditTrailPanel actor={staffId} title="Administrator activity" limit={8} />
+        </CardShell>
       </div>
-
-      
     </div>
   );
 }

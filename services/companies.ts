@@ -14,13 +14,12 @@ export const companiesApi = {
     companyId: string,
     action: CompanyVerificationAction,
     payload?: { reason?: string },
-    idempotencyKey?: string,
   ) {
     const verifiedCompanyId = assertApiId(companyId, `Company ${action}`);
     const verb = action === "approve" ? "approve" : "reject";
     const endpoint = `/admin/verification/companies/${verb}/${verifiedCompanyId}`;
 
-    const response = await api.patch(endpoint, payload, { idempotencyKey });
+    const response = await api.patch(endpoint, payload);
     return unwrapData<Company>(response.data);
   },
 
@@ -28,14 +27,13 @@ export const companiesApi = {
     companyId: string,
     action: CompanyStatusAction,
     payload?: { reason?: string },
-    idempotencyKey?: string,
   ) {
     const targetCompanyId = assertApiId(companyId, `Company ${action}`);
     const verb = action === "activate" ? "reactivate" : "suspend";
     const endpoint = `/admin/verification/accounts/companies/${verb}/${targetCompanyId}`;
 
     try {
-      const response = await api.patch(endpoint, payload, { idempotencyKey });
+      const response = await api.patch(endpoint, payload);
       return unwrapData<Company>(response.data);
     } catch (error) {
       logDetailedAxiosError(`${action.toUpperCase()} COMPANY DEBUG`, error);

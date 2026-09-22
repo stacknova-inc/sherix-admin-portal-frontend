@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Briefcase, CheckCircle2, ClipboardCheck, Clock3, DollarSign, ShieldCheck, UserCheck, Users } from "lucide-react";
+import {  Briefcase, CheckCircle2, ClipboardCheck, Clock3, DollarSign,  ShieldCheck, UserCheck, Users } from "lucide-react";
 import { RequestStatusDonut } from "@/components/dashboard/RequestStatusDonut";
 import { RequestsOverviewChart } from "@/components/dashboard/RequestsOverviewChart";
 import { RecentRequests } from "@/components/dashboard/RecentRequests";
@@ -48,11 +48,12 @@ export default function DashboardPage() {
   const companyProvidersQuery = useCompanies();
   const individualProvidersQuery = useIndividualMechanics();
   const disputeStatsQuery = useDisputeStats();
+  
   const earningsQuery = useFinancialEarnings(canViewFinancials);
 
- 
+
   useAutoRefresh(
-    [["dashboard"], ["serviceRequests"], ["disputes", "stats"], companiesQueryKey, mechanicsQueryKey, usersQueryKey, ...(canViewFinancials ? [["financial", "earnings"]] : [])],
+    [["dashboard"], ["serviceRequests"], ["disputes", "stats"], ["support-tickets", "stats"], companiesQueryKey, mechanicsQueryKey, usersQueryKey, ...(canViewFinancials ? [["financial", "earnings"]] : [])],
     AUTO_REFRESH_MS,
   );
 
@@ -163,18 +164,6 @@ export default function DashboardPage() {
       isLoading: serviceRequestStatsQuery.isLoading,
       isError: serviceRequestStatsQuery.isError,
       onRetry: () => void serviceRequestStatsQuery.refetch(),
-    },
-    {
-      label: "Disputes",
-      value: metricValue(disputeStats, ["totalDisputes", "total"]),
-      change: `${metricValue(disputeStats, ["open", "openDisputes"], "0")} open`,
-      icon: AlertTriangle,
-      tone: "amber",
-      direction: "down" as const,
-      href: "/dashboard/disputes",
-      isLoading: disputeStatsQuery.isLoading,
-      isError: disputeStatsQuery.isError,
-      onRetry: () => void disputeStatsQuery.refetch(),
     },
     ...(canViewFinancials
       ? [

@@ -33,5 +33,5 @@ export function useUpdateDisputeStatus() {
 
 export function useResolveDispute() {
   const queryClient = useQueryClient();
-  return useMutation({ mutationFn: ({ id, input, idempotencyKey }: { id: string; input: ResolveDisputeInput; idempotencyKey?: string }) => disputesApi.resolve(id, input, idempotencyKey), onSuccess: (_, variables) => { void queryClient.invalidateQueries({ queryKey: ["disputes"] }); void queryClient.invalidateQueries({ queryKey: ["disputes", variables.id] }); } });
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: ResolveDisputeInput }) => disputesApi.resolve(id, input), onSuccess: (_, variables) => { void queryClient.invalidateQueries({ queryKey: ["disputes"] }); void queryClient.invalidateQueries({ queryKey: ["disputes", variables.id] }); } });
 }

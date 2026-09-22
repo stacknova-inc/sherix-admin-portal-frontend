@@ -4,14 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { staffApi, type StaffStatusAction } from "@/services/staff";
 import type { CreateStaffInput, StaffMember, UpdateStaffInput } from "@/types";
 
-export type AuditEvent = {
-  id: string;
-  actionType: string;
-  timestamp?: string;
-  note?: string;
-  performedBy?: string;
-};
-
 export const staffQueryKey = ["staff"] as const;
 
 export function useStaffMembers() {
@@ -29,28 +21,13 @@ export function useStaffMember(id?: string) {
   });
 }
 
-export function useStaffAuditLogs(staffId?: string) {
-  return useQuery<AuditEvent[]>({
-    queryKey: ["staff", "audit", staffId ?? "all"],
-    queryFn: (): AuditEvent[] => [],
-  });
-}
-
-export function useStaffNotifications(staffId?: string) {
-  return useQuery<AuditEvent[]>({
-    queryKey: ["staff", "notifications", staffId ?? "all"],
-    queryFn: (): AuditEvent[] => [],
-  });
-}
-
 export function useCreateStaff() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateStaffInput) => staffApi.create(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: staffQueryKey });
-      queryClient.invalidateQueries({ queryKey: ["staff", "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["staff", "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
     },
   });
 }
@@ -63,8 +40,7 @@ export function useUpdateStaff() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: staffQueryKey });
       queryClient.invalidateQueries({ queryKey: ["staff", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["staff", "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["staff", "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
     },
   });
 }
@@ -77,8 +53,7 @@ export function useStaffStatusAction() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: staffQueryKey });
       queryClient.invalidateQueries({ queryKey: ["staff", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["staff", "audit"] });
-      queryClient.invalidateQueries({ queryKey: ["staff", "notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["audit"] });
     },
   });
 }

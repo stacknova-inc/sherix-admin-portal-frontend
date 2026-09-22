@@ -1,7 +1,8 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Info } from "lucide-react";
+import Link from "next/link";
+import { History, Info } from "lucide-react";
 import { DonutChart, EarningsAreaChart } from "@/components/shared/AdminCharts";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { InitialAvatar, MetricGrid, SectionHeader, StatusCell } from "@/components/shared/AdminPrimitives";
@@ -39,6 +40,16 @@ const payoutColumns: ColumnDef<PayoutRow>[] = [
   { accessorKey: "method", header: "Method" },
   { accessorKey: "date", header: "Date" },
   { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusCell status={row.original.status} /> },
+  {
+    id: "actions",
+    header: "Actions",
+    cell: ({ row }) => (
+      <Link href={`/dashboard/audit-logs?entityType=payout&entityId=${row.original.id}`} className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+        <History className="h-3.5 w-3.5" />
+        Audit history
+      </Link>
+    ),
+  },
 ];
 
 export default function EarningsPaymentsPage() {
@@ -60,12 +71,12 @@ export default function EarningsPaymentsPage() {
   });
   const distribution = [
     { name: "Provider Payouts", value: Number(earnings.providerEarnings ?? earnings.providerPayouts ?? 0), percent: "", color: "#16A34A" },
-    { name: "Platform Commission", value: Number(earnings.platformCommission ?? earnings.commission ?? 0), percent: "", color: "#2563EB" },
+    { name: "Sherix Commission", value: Number(earnings.platformCommission ?? earnings.commission ?? 0), percent: "", color: "#2563EB" },
     { name: "Pending Payouts", value: Number(earnings.pendingPayouts ?? 0), percent: "", color: "#F59E0B" },
   ].filter((item) => item.value > 0);
   const metrics = [
     { label: "Total Earnings", value: money(earnings.totalEarnings ?? earnings.total), change: "Live backend data", direction: "up", tone: "green", icon: Wallet },
-    { label: "Platform Commission", value: money(earnings.platformCommission ?? earnings.commission), change: "Live backend data", direction: "up", tone: "purple", icon: DollarSign },
+    { label: "Sherix Commission", value: money(earnings.platformCommission ?? earnings.commission), change: "Live backend data", direction: "up", tone: "purple", icon: DollarSign },
     { label: "Provider Earnings", value: money(earnings.providerEarnings ?? earnings.providerPayouts), change: "Live backend data", direction: "up", tone: "blue", icon: WalletCards },
     { label: "Pending Payouts", value: money(earnings.pendingPayouts), change: "Live backend data", direction: "down", tone: "amber", icon: Clock3 },
     { label: "Paid This Month", value: money(earnings.paidThisMonth), change: "Live backend data", direction: "up", tone: "teal", icon: CheckCircle2 },
@@ -92,7 +103,7 @@ export default function EarningsPaymentsPage() {
             </span>
             <span className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-blue-600" />
-              Platform Commission <span>{money(earnings.platformCommission ?? earnings.commission)}</span>
+              Sherix Commission <span>{money(earnings.platformCommission ?? earnings.commission)}</span>
             </span>
           </div>
           {earningsQuery.isLoading ? <div className="h-[280px] animate-pulse rounded-xl bg-muted" /> : chartData.length ? <EarningsAreaChart data={chartData} /> : <p className="py-12 text-center text-sm font-semibold text-muted-foreground">No earnings analytics available yet.</p>}

@@ -626,7 +626,7 @@ export default function OperationalSettingsPage() {
             Policy History
           </Button>
           <Button variant="outline" className="bg-card" asChild>
-            <Link href="/dashboard/audit-logs">
+            <Link href="/dashboard/audit-logs?entityType=configuration">
               <History className="h-4 w-4" />
               Audit Logs
             </Link>

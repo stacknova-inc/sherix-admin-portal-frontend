@@ -63,6 +63,7 @@ export const dashboardRoutes: NavRoute[] = [
   { title: "Transactions", href: "/dashboard/transactions", icon: CreditCard },
   { title: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { title: "Disputes", href: "/dashboard/disputes", icon: MessageSquareWarning },
+  { title: "Support Tickets", href: "/dashboard/support-tickets", icon: LifeBuoy },
   { title: "Ratings & Reviews", href: "/dashboard/ratings-reviews", icon: Star },
   { title: "Organization Data", href: "/dashboard/organization-data", icon: ListChecks },
   { title: "Reports & Analytics", href: "/dashboard/reports-analytics", icon: BarChart3 },

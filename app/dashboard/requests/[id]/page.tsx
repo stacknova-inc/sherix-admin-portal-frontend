@@ -12,17 +12,22 @@ import {
   Car,
   CheckCircle2,
   Clock3,
+  CreditCard,
   ExternalLink,
   History,
   Images,
+  LifeBuoy,
   Loader2,
   Lock,
   MapPin,
+  Network,
   Phone,
+  ShieldAlert,
   UserRound,
   Wrench,
   XCircle,
 } from "lucide-react";
+import { AuditTrailPanel } from "@/components/shared/AuditTrailPanel";
 import { CardShell } from "@/components/shared/CardShell";
 import { DataFreshness } from "@/components/shared/DataFreshness";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -30,7 +35,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getErrorMessage } from "@/lib/api";
-import { asRecord, dateText, firstText, formatStatusLabel, geoPointCoords, googleMapsUrl, money, timeText } from "@/lib/live-data";
+import { asRecord, dateText, firstText, formatStatusLabel, geoPointCoords, googleMapsUrl, money, recordId, timeText } from "@/lib/live-data";
 import {
   buildLifecycleTimeline,
   isPopulatedReference,
@@ -43,6 +48,8 @@ import {
 import { hasPermission, Permission } from "@/lib/rbac";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useCompanies } from "@/hooks/useCompanies";
+import { useDisputes } from "@/hooks/useDisputes";
+import { useTransactions } from "@/hooks/useFinancial";
 import { useServices } from "@/hooks/useServices";
 import { serviceRequestDetailKey, useServiceRequestDetail } from "@/hooks/useServiceRequests";
 import { useUiStore } from "@/store/use-ui-store";
@@ -164,6 +171,72 @@ function CompanyGapNotice() {
       Company information is not available for this service request. The <code className="rounded bg-muted px-1 py-0.5">companyId</code> filter groups service requests by the mechanic&apos;s
       company, but this record does not include a resolvable company reference.
       <p className="mt-1 font-bold">BACKEND DEPENDENCY: a populated company object (or a companyId that matches an existing company record) on the service request response.</p>
+    </div>
+  );
+}
+
+function RelatedRecordsTab({ jobId }: { jobId: string }) {
+  const transactionsQuery = useTransactions(jobId ? { serviceRequest: jobId } : undefined);
+  
+  const disputesQuery = useDisputes(jobId ? { jobId } : undefined);
+
+  const transactions = transactionsQuery.data?.data ?? [];
+
+  const disputes = disputesQuery.data?.data ?? [];
+
+  return (
+    <div className="space-y-5">
+      <SectionCard title="Related Transactions" icon={CreditCard}>
+        {transactionsQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading transactions...</p>
+        ) : transactions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No transactions were found for this service request.</p>
+        ) : (
+          <div className="space-y-2">
+            {transactions.map((transaction) => {
+              const record = asRecord(transaction);
+              return (
+                <div key={recordId(transaction)} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                  <div>
+                    <p className="font-bold capitalize">{firstText(record, ["type", "transactionType"], "Payment")}</p>
+                    <p className="text-xs text-muted-foreground">{dateText(transaction.createdAt)} · {firstText(record, ["status"], "Pending")}</p>
+                  </div>
+                  <span className="font-black">{money(record.amount)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <Link href="/dashboard/transactions" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+          View all transactions
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      </SectionCard>
+
+      
+
+      <SectionCard title="Related Dispute" icon={ShieldAlert}>
+        {disputesQuery.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading disputes...</p>
+        ) : disputes.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No dispute has been raised for this service request.</p>
+        ) : (
+          <div className="space-y-2">
+            {disputes.map((dispute) => {
+              const record = asRecord(dispute);
+              return (
+                <Link key={recordId(dispute)} href={`/dashboard/disputes/${recordId(dispute)}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm hover:border-primary">
+                  <div>
+                    <p className="font-bold">{firstText(record, ["reason", "description"], "Dispute")}</p>
+                    <p className="text-xs text-muted-foreground">{money(record.amount)}</p>
+                  </div>
+                  <StatusBadge status={firstText(record, ["status"], "Open")} />
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
     </div>
   );
 }
@@ -294,6 +367,8 @@ function ServiceRequestDetail({
 
   const photos = (request.photos ?? []).map((photo) => (typeof photo === "string" ? { url: photo } : (photo as { url?: string; caption?: string })));
 
+  const relatedJobId = request.jobId || request.requestId || recordId(request) || displayId;
+
   return (
     <div className="mx-auto max-w-[1600px] space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -337,6 +412,7 @@ function ServiceRequestDetail({
             <TabsTrigger value="photos" className="gap-2 px-4 py-2"><Images className="h-4 w-4" />Photos</TabsTrigger>
             <TabsTrigger value="assignment" className="gap-2 px-4 py-2"><Award className="h-4 w-4" />Assignment</TabsTrigger>
             <TabsTrigger value="timeline" className="gap-2 px-4 py-2"><History className="h-4 w-4" />Timeline</TabsTrigger>
+            <TabsTrigger value="related" className="gap-2 px-4 py-2"><Network className="h-4 w-4" />Related Records</TabsTrigger>
           </TabsList>
         </div>
 
@@ -446,7 +522,7 @@ function ServiceRequestDetail({
               <Field label="Amount" value={typeof paymentAmount === "number" ? money(paymentAmount) : "-"} />
               <Field label="Provider" value={paymentProvider} />
               <Field label="Payment Reference" value={paymentReference} />
-              <Field label="Platform Fee" value={typeof request.platformFee === "number" ? money(request.platformFee) : "-"} />
+              <Field label="Sherix Commission" value={typeof request.platformFee === "number" ? money(request.platformFee) : "-"} />
               <Field label="Mechanic Earnings" value={typeof request.mechanicEarnings === "number" ? money(request.mechanicEarnings) : "-"} />
             </FieldGrid>
           </SectionCard>
@@ -532,6 +608,13 @@ function ServiceRequestDetail({
               </ol>
             )}
           </SectionCard>
+          <SectionCard title="Administrative Audit Trail" icon={History}>
+            <AuditTrailPanel entityType="service_request" entityId={displayId} title="Audit trail" />
+          </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="related">
+          <RelatedRecordsTab jobId={relatedJobId} />
         </TabsContent>
       </Tabs>
 

@@ -6,6 +6,7 @@ import { AlertTriangle, History, Layers, Loader2, MoreVertical, Pencil, Percent,
 import Link from "next/link";
 import { AdminDataTable } from "@/components/shared/AdminDataTable";
 import { ExportButton, FilterSelect, MetricGrid, SearchBox, SoftTag, StatusCell, ToolbarCard } from "@/components/shared/AdminPrimitives";
+import { AuditTrailPanel } from "@/components/shared/AuditTrailPanel";
 import { CardShell } from "@/components/shared/CardShell";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -19,7 +20,6 @@ import { getErrorMessage, getMutationOutcomeMessage, isApiConflict } from "@/lib
 import { dateText, recordId, text } from "@/lib/live-data";
 import { hasPermission, Permission } from "@/lib/rbac";
 import { useUiStore } from "@/store/use-ui-store";
-import { useIdempotencyKey } from "@/hooks/useIdempotencyKey";
 import { useServices } from "@/hooks/useServices";
 import {
   useBulkUpdateCommissions,
@@ -88,8 +88,6 @@ function AddCommissionDialog({
   const [effectiveFrom, setEffectiveFrom] = React.useState("");
   const [effectiveTo, setEffectiveTo] = React.useState("");
   const [reason, setReason] = React.useState("");
- 
-  const idempotencyKey = useIdempotencyKey(open);
 
   React.useEffect(() => {
     if (!open) return;
@@ -119,7 +117,6 @@ function AddCommissionDialog({
           expectedVersion: existingForService?.version ?? 0,
           reason: reason.trim(),
         },
-        idempotencyKey,
       });
       onSaved("Commission saved successfully.");
       onOpenChange(false);
@@ -286,6 +283,7 @@ function EditCommissionDialog({
             <FormField label="Reason" hint="Recorded for audit purposes.">
               <Textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Reason for this change" />
             </FormField>
+            {commission && <AuditTrailPanel entityType="commission" entityId={recordId(commission)} title="Audit trail" />}
           </div>
         )}
         <DialogFooter>
@@ -382,7 +380,6 @@ function BulkUpdateDialog({
   onError: (message: string) => void;
 }) {
   const bulkUpdate = useBulkUpdateCommissions();
-  const idempotencyKey = useIdempotencyKey(open);
   const [reason, setReason] = React.useState("");
   const [effectiveFrom, setEffectiveFrom] = React.useState("");
   const [rows, setRows] = React.useState<BulkRow[]>([]);
@@ -419,7 +416,7 @@ function BulkUpdateDialog({
       };
     });
     try {
-      await bulkUpdate.mutateAsync({ payload: { reason: reason.trim(), commissions: entries }, idempotencyKey });
+      await bulkUpdate.mutateAsync({ payload: { reason: reason.trim(), commissions: entries } });
       onSaved(`Updated commissions for ${entries.length} service${entries.length === 1 ? "" : "s"}.`);
       onOpenChange(false);
     } catch (error) {
@@ -611,7 +608,7 @@ export default function CommissionsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader title="Commissions" subtitle="Manage per-service commission rates. Services without a custom rate use the global default." />
         <Button variant="outline" className="bg-card" asChild>
-          <Link href="/dashboard/audit-logs">
+          <Link href="/dashboard/audit-logs?entityType=commission">
             <History className="h-4 w-4" />
             View Audit History
           </Link>
@@ -666,7 +663,7 @@ export default function CommissionsPage() {
         )}
       </CardShell>
 
-      {toast && <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-sm font-bold shadow-2xl">{toast}</div>}
+      {toast && <div className="fixed bottom-5 right-5 z-50 rounded-xl border bg-card p-4 text-xs font-bold shadow-2xl">{toast}</div>}
 
       {allowed && (
         <>

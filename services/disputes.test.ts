@@ -16,8 +16,8 @@ describe("disputesApi", () => {
   it("sends the documented status and resolve payloads", async () => {
     vi.mocked(api.patch).mockResolvedValue({ data: {} }); vi.mocked(api.post).mockResolvedValue({ data: {} });
     await disputesApi.updateStatus("d-1", "under_review");
-    await disputesApi.resolve("d-1", { outcome: "warning", party: "customer", amount: 0, note: "Evidence reviewed" }, "stable-key");
+    await disputesApi.resolve("d-1", { outcome: "warning", party: "customer", amount: 0, note: "Evidence reviewed" });
     expect(api.patch).toHaveBeenCalledWith("/disputes/d-1", { status: "under_review" });
-    expect(api.post).toHaveBeenCalledWith("/disputes/d-1/resolve", { outcome: "warning", party: "customer", amount: 0, note: "Evidence reviewed" }, { idempotencyKey: "stable-key" });
+    expect(api.post).toHaveBeenCalledWith("/disputes/d-1/resolve", { outcome: "warning", party: "customer", amount: 0, note: "Evidence reviewed" });
   });
 });
