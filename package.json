@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "node -e \"const r=require('child_process').spawnSync('next',['build'],{stdio:'inherit',shell:true,env:{...process.env,NODE_ENV:'production'}});process.exit(r.status??1)\"",
-    "start": "next start",
+    "dev": "node api.js && next dev",
+    "build": "node api.js && node -e \"const r=require('child_process').spawnSync('next',['build'],{stdio:'inherit',shell:true,env:{...process.env,NODE_ENV:'production'}});process.exit(r.status??1)\"",
+    "start": "node api.js && next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest"
